@@ -1,0 +1,158 @@
+/* ============================================================================
+   TRADYX TAILWIND CSS & DESIGN SYSTEM (src/index.css)
+   Google AI Studio Aesthetic Alignment & Dark Mode Precision
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  background-color: #090d16 !important;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Force dark styling on all form controls */
+input, select, textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* Ensure WebGL canvas elements are transparent and display smoothly */
+canvas {
+  display: block !important;
+  background: transparent !important;
+  outline: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(2, 6, 23, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.6);
+}
+
+/* iOS Safe Area Padding for Mobile Bottom Bar */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* Organic Liquid Blob Morphing Animation */
+@keyframes blob-morph {
+  0% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  25% {
+    border-radius: 40% 60% 70% 30% / 50% 60% 40% 60%;
+  }
+  50% {
+    border-radius: 70% 30% 50% 50% / 30% 70% 60% 40%;
+  }
+  75% {
+    border-radius: 30% 70% 40% 60% / 70% 40% 50% 60%;
+  }
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+.animate-blob-morph {
+  animation: blob-morph 9s ease-in-out infinite;
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 0.95; transform: scale(1.25); }
+}
+
+.animate-star-twinkle {
+  animation: star-twinkle 3s ease-in-out infinite;
+}
+
+/* Quasar Astrophysical Animations & Shockwave Effects */
+@keyframes quasar-shockwave {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.9), inset 0 0 0 0 rgba(255, 215, 0, 0.9);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 80px 40px rgba(0, 240, 255, 0.7), inset 0 0 40px 20px rgba(255, 215, 0, 0.7);
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+    box-shadow: 0 0 180px 90px rgba(0, 240, 255, 0), inset 0 0 90px 45px rgba(255, 215, 0, 0);
+  }
+}
+
+.animate-quasar-shockwave {
+  animation: quasar-shockwave 0.85s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes quasar-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-quasar-spin-slow {
+  animation: quasar-spin-slow 22s linear infinite;
+}
+
+@keyframes quasar-spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+.animate-quasar-spin-reverse {
+  animation: quasar-spin-reverse 30s linear infinite;
+}
+
+@keyframes quasar-pulse-core {
+  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)); }
+  50% { transform: scale(1.12); filter: brightness(1.35) drop-shadow(0 0 35px rgba(0, 240, 255, 1)); }
+}
+.animate-quasar-pulse-core {
+  animation: quasar-pulse-core 3s ease-in-out infinite;
+}
+
+/* Cosmic Glassmorphism & Astrophysical UI Classes */
+.cosmic-glass {
+  background-color: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.7);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.06);
+}
+
+.cosmic-glass-hover {
+  transition: all 0.3s ease;
+}
+
+.cosmic-glass-hover:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.15), 0 0 15px rgba(255, 215, 0, 0.08);
+}
+
+
