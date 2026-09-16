@@ -19,7 +19,6 @@ import { BottomNavBar } from '../components/BottomNavBar';
 import { AuthModal } from '../components/AuthModal';
 import { UserAccount, SystemBroadcast } from '../types/auth';
 import { subscribeBroadcast } from '../services/broadcastService';
-import { FINANCIAL_DISCLAIMER_IT } from '../../security/disclaimer';
 import { 
     BrainCircuit, 
     ShieldCheck, 
@@ -85,8 +84,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const [broadcast, setBroadcast] = useState<SystemBroadcast | null>(null);
     const [dismissedBroadcastId, setDismissedBroadcastId] = useState<string | null>(null);
 
+    // Section Refs for Mobile Navigation Scroll Triggers
+    const homeRef = useRef<HTMLDivElement>(null);
     const quasarRef = useRef<HTMLDivElement>(null);
+    const walletRef = useRef<HTMLDivElement>(null);
+    const statsRef = useRef<HTMLDivElement>(null);
     const tradeFormRef = useRef<HTMLDivElement>(null);
+    const historyRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         fetchTrades(demoUserId);
@@ -98,23 +102,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
         };
     }, []);
 
+    const scrollToHome = () => {
+        homeRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const scrollToQuasar = () => {
         quasarRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const scrollToWallet = () => {
+        walletRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const scrollToStats = () => {
+        statsRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const scrollToTradeForm = () => {
         tradeFormRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    const scrollToHistory = () => {
+        historyRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const isMasterAdmin = authUser?.email.toLowerCase() === 'riccardosalvia2@gmail.com';
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white selection:bg-cyan-500 selection:text-slate-950 pb-36 overflow-y-auto [webkit-overflow-scrolling:touch]">
+        <div ref={homeRef} className="min-h-[100dvh] w-full bg-[#090D16] text-white selection:bg-cyan-500 selection:text-slate-950 pb-28 sm:pb-32 overflow-y-auto [webkit-overflow-scrolling:touch]">
             
             {/* Header / Navbar */}
             {!hideTopHeader && (
-                <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+                <header className="border-b border-slate-800/80 bg-[#090D16]/90 backdrop-blur-xl sticky top-0 z-40 w-full">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
                             <BrainCircuit className="w-6 h-6 text-slate-950 font-bold" />
@@ -123,18 +143,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-cyan-200 to-blue-400 bg-clip-text text-transparent">
                                 TRADYX
                             </h1>
-                            <div className="text-[10px] text-cyan-400 font-mono tracking-widest uppercase font-semibold">
+                            <div className="text-[10px] text-cyan-400 font-mono tracking-widest uppercase font-semibold hidden sm:block">
                                 AI Trading Journal & Market Intelligence
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {/* AI Coach Trigger Button */}
                         <button
                             type="button"
                             onClick={() => setIsAICoachOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950 to-indigo-950 border border-purple-700/80 text-xs font-bold text-purple-300 hover:text-white transition shadow-lg active:scale-95"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950 to-indigo-950 border border-purple-700/80 text-xs font-bold text-purple-300 hover:text-white transition shadow-lg active:scale-95 cursor-pointer"
                         >
                             <BrainCircuit className="w-4 h-4 text-cyan-400 animate-pulse" />
                             <span>AI Coach</span>
@@ -144,20 +164,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {authUser ? (
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs">
                                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                                <span className="font-bold text-slate-200">{authUser.full_name || authUser.email}</span>
+                                <span className="font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">{authUser.full_name || authUser.email}</span>
                                 {isMasterAdmin ? (
-                                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-purple-950 text-purple-300 border border-purple-800 uppercase">
+                                    <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-purple-950 text-purple-300 border border-purple-800 uppercase">
                                         ADMIN
                                     </span>
                                 ) : (
-                                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-cyan-950 text-cyan-400 border border-cyan-800 uppercase">
+                                    <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-cyan-950 text-cyan-400 border border-cyan-800 uppercase">
                                         USER
                                     </span>
                                 )}
                                 <button
                                     type="button"
                                     onClick={() => setAuthUser(null)}
-                                    className="ml-1 text-slate-400 hover:text-rose-400 transition"
+                                    className="ml-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
                                     title="Disconnetti"
                                 >
                                     <LogOut className="w-3.5 h-3.5" />
@@ -167,10 +187,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsAuthModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer"
                             >
                                 <LogIn className="w-4 h-4" />
-                                <span>Accedi / Registrati</span>
+                                <span>Accedi</span>
                             </button>
                         )}
                     </div>
@@ -180,7 +200,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 📣 GLOBAL SYSTEM BROADCAST BANNER */}
             {broadcast && broadcast.active && dismissedBroadcastId !== broadcast.id && (
-                <div className={`border-b py-3 px-6 text-xs flex items-center justify-between shadow-2xl transition animate-in slide-in-from-top duration-300 ${
+                <div className={`border-b py-3 px-4 sm:px-6 text-xs flex items-center justify-between shadow-2xl transition animate-in slide-in-from-top duration-300 w-full ${
                     broadcast.style === 'PROMO'
                         ? 'bg-gradient-to-r from-emerald-950 via-teal-950 to-emerald-950 border-emerald-500/80 text-emerald-100'
                         : broadcast.style === 'WARNING'
@@ -202,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                         type="button"
                         onClick={() => setDismissedBroadcastId(broadcast.id)}
-                        className="p-1 rounded-lg hover:bg-slate-800/80 text-slate-400 hover:text-white transition ml-3"
+                        className="p-1 rounded-lg hover:bg-slate-800/80 text-slate-400 hover:text-white transition ml-3 cursor-pointer"
                         title="Chiudi annuncio"
                     >
                         <X className="w-4 h-4" />
@@ -210,9 +230,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             )}
 
-            {/* 🚫 ACCESS DENIED TOAST BANNER (When unauthorized access occurs) */}
+            {/* 🚫 ACCESS DENIED TOAST BANNER */}
             {accessDeniedNotice && (
-                <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 border-b border-rose-500/80 py-3.5 px-6 text-rose-100 text-xs flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300">
+                <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 border-b border-rose-500/80 py-3.5 px-4 sm:px-6 text-rose-100 text-xs flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 w-full">
                     <div className="flex items-center gap-3 max-w-5xl mx-auto">
                         <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 animate-bounce" />
                         <div>
@@ -223,7 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                         type="button"
                         onClick={onDismissNotice}
-                        className="p-1 rounded-lg hover:bg-rose-900 text-rose-300 hover:text-white transition"
+                        className="p-1 rounded-lg hover:bg-rose-900 text-rose-300 hover:text-white transition cursor-pointer"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -232,7 +252,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Email Verification Warning Banner */}
             {authUser && !authUser.email_confirmed && (
-                <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-b border-amber-500/60 py-3 px-6 text-amber-200 text-xs flex items-center justify-between shadow-xl">
+                <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-b border-amber-500/60 py-3 px-4 sm:px-6 text-amber-200 text-xs flex items-center justify-between shadow-xl w-full">
                     <div className="flex items-center gap-3 max-w-5xl mx-auto">
                         <Clock className="w-5 h-5 text-amber-400 shrink-0 animate-pulse" />
                         <div>
@@ -243,16 +263,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             )}
 
-            {/* Main Content Layout */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
+            {/* Main Content Layout - Full Width Responsive Grid */}
+            <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
                 
                 {/* Desktop Navigation Toggle */}
-                <div className="hidden md:flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div className="hidden md:flex items-center justify-between border-b border-slate-800/80 pb-4 w-full">
                     <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 backdrop-blur-md">
                         <button
                             type="button"
                             onClick={() => setActiveTab('JOURNAL')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition ${
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                                 activeTab === 'JOURNAL'
                                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20'
                                     : 'text-slate-400 hover:text-slate-200'
@@ -265,7 +285,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             onClick={() => setActiveTab('BACKTEST')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition ${
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                                 activeTab === 'BACKTEST'
                                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20'
                                     : 'text-slate-400 hover:text-slate-200'
@@ -279,8 +299,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {activeTab === 'JOURNAL' ? (
                     <>
-                        {/* Hero 3D Quasar Bubble Display */}
-                        <section ref={quasarRef} id="quasar-section" className="space-y-3">
+                        {/* 1. Hero 3D Quasar Bubble Display */}
+                        <section ref={quasarRef} id="quasar-section" className="space-y-3 w-full scroll-mt-20">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-300">
                                     <Sparkles className="w-4 h-4 text-cyan-400" />
@@ -289,66 +309,67 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <span className="hidden sm:inline text-xs text-slate-500 font-mono">WebGL 30 FPS Cap • Low Power GPU</span>
                             </div>
 
-                            <QuasarBubble />
+                            <div className="w-full">
+                                <QuasarBubble />
+                            </div>
                         </section>
 
-                        {/* External API Market Section (Crypto Ticker & Macro Calendar) */}
-                        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-                            <div className="lg:col-span-5">
+                        {/* 2. External API Market Section (Crypto Ticker & Macro Calendar) - Wallet & Market */}
+                        <section ref={walletRef} id="wallet-market-section" className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full scroll-mt-20">
+                            <div className="lg:col-span-5 w-full">
                                 <CryptoWidget />
                             </div>
-                            <div className="lg:col-span-7">
+                            <div className="lg:col-span-7 w-full">
                                 <MacroCalendar />
                             </div>
                         </section>
 
-                        {/* 📊 ADVANCED TRADING ANALYTICS SECTION */}
-                        <section className="space-y-6 sm:space-y-8">
+                        {/* 3. 📊 ADVANCED TRADING ANALYTICS SECTION - Stats */}
+                        <section ref={statsRef} id="stats-analytics-section" className="space-y-6 sm:space-y-8 w-full scroll-mt-20">
                             {/* Quantitative Expectancy & Cost of Emotion Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-                                <div className="lg:col-span-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full">
+                                <div className="lg:col-span-6 w-full">
                                     <CostOfEmotionWidget trades={trades} />
                                 </div>
-                                <div className="lg:col-span-6">
+                                <div className="lg:col-span-6 w-full">
                                     <ExpectancyMatrixWidget trades={trades} />
                                 </div>
                             </div>
 
                             {/* Monthly Trading Heatmap Calendar */}
-                            <div>
+                            <div className="w-full">
                                 <HeatmapCalendarWidget trades={trades} />
                             </div>
                         </section>
 
-                        {/* Journal & Operations Grid */}
-                        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-                            <div ref={tradeFormRef} id="trade-form-section" className="lg:col-span-6">
+                        {/* 4. Journal & Operations Grid - Trade Form & History Trade List */}
+                        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full">
+                            <div ref={tradeFormRef} id="trade-form-section" className="lg:col-span-6 w-full scroll-mt-20">
                                 <TradeForm />
                             </div>
-                            <div className="lg:col-span-6">
+                            <div ref={historyRef} id="history-trade-list-section" className="lg:col-span-6 w-full scroll-mt-20">
                                 <TradeList />
                             </div>
                         </section>
                     </>
                 ) : (
                     <Suspense fallback={
-                        <div className="p-12 text-center bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-xl flex flex-col items-center justify-center space-y-3">
+                        <div className="p-12 text-center bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-xl flex flex-col items-center justify-center space-y-3 w-full">
                             <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                             <div className="text-xs font-mono text-slate-400 uppercase tracking-wider">Caricamento Backtesting Studio...</div>
                         </div>
                     }>
-                        <BacktestStudio />
+                        <div className="w-full">
+                            <BacktestStudio />
+                        </div>
                     </Suspense>
                 )}
             </main>
 
             {/* Footer with Legal Disclaimer */}
-            <footer className="max-w-7xl mx-auto px-6 mt-12 sm:mt-16 pt-6 border-t border-slate-900 text-center space-y-2">
-                <p className="text-xs text-slate-500 max-w-4xl mx-auto leading-relaxed">
-                    ⚖️ <strong className="text-slate-400">Disclaimer Legale:</strong> {FINANCIAL_DISCLAIMER_IT}
-                </p>
+            <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 mt-12 sm:mt-16 pt-6 border-t border-slate-900 text-center space-y-2">
                 <div className="text-[11px] text-slate-600 font-mono">
-                    © 2026 Tradyx AI Inc. All rights reserved. Mobile Optimized (30 FPS Cap & Code Splitting).
+                    © 2026 Tradyx AI Inc. All rights reserved. Mobile Full-Screen Responsive.
                 </div>
             </footer>
 
@@ -371,7 +392,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onOpenAICoach={() => setIsAICoachOpen(true)}
                 onFocusQuasar={scrollToQuasar}
                 onFocusTradeForm={scrollToTradeForm}
+                onFocusHistory={scrollToHistory}
+                onFocusStats={scrollToStats}
+                onFocusWallet={scrollToWallet}
+                onFocusHome={scrollToHome}
             />
         </div>
     );
 };
+
+export default Dashboard;

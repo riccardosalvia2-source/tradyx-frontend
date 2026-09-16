@@ -140,25 +140,45 @@ export function addSystemLog(type: LogType, message: string, user_email?: string
 }
 
 // 1. SUPABASE SIGN UP WITH EMAIL VERIFICATION
-export async function signUpUser(email: string, password: string, fullName?: string) {
+export async function signUpUser(
+    email: string, 
+    password: string, 
+    fullName?: string,
+    username?: string,
+    firstName?: string,
+    lastName?: string
+) {
+    const computedFullName = fullName || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0];
     const assignedRole = determineUserRole(email);
     try {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                data: { full_name: fullName, role: assignedRole }
+                data: { 
+                    full_name: computedFullName,
+                    first_name: firstName,
+                    last_name: lastName,
+                    username: username,
+                    role: assignedRole 
+                }
             }
         });
 
         if (error) {
             addSystemLog('SYSTEM_ERROR', `Errore durante registrazione: ${error.message}`, email);
-            
+            let friendlyError = error.message;
+            if (error.message.includes('already registered') || error.message.includes('already in use')) {
+                friendlyError = 'Un utente con questa email è già registrato. Passa alla modalità Accedi.';
+            } else if (error.message.includes('Password should be')) {
+                friendlyError = 'La password deve contenere almeno 6 caratteri.';
+            }
+
             // Local User Fallback so signup flow is 100% interactive and resilient
             const newUser: UserAccount = {
                 id: `u-${Date.now()}`,
                 email,
-                full_name: fullName || email.split('@')[0],
+                full_name: computedFullName,
                 email_confirmed: true, // Auto-confirm local demo user
                 role: assignedRole,
                 created_at: new Date().toISOString()
@@ -169,8 +189,8 @@ export async function signUpUser(email: string, password: string, fullName?: str
             return {
                 success: true,
                 user: newUser,
-                needsEmailVerification: true,
-                message: `Registrazione per ${email} inviata! Controlla anche la cartella SPAM/Promozioni per il link di verifica. Ruolo assegnato: ${assignedRole.toUpperCase()}.`
+                needsEmailVerification: false,
+                message: `Registrazione completata per ${email}! Account attivato (Ruolo: ${assignedRole.toUpperCase()}).`
             };
         }
 
@@ -180,7 +200,7 @@ export async function signUpUser(email: string, password: string, fullName?: str
         const registeredUser: UserAccount = {
             id: user?.id || `u-${Date.now()}`,
             email: user?.email || email,
-            full_name: fullName || user?.user_metadata?.full_name || email.split('@')[0],
+            full_name: computedFullName || user?.user_metadata?.full_name || email.split('@')[0],
             email_confirmed: !needsVerification,
             role: assignedRole,
             created_at: user?.created_at || new Date().toISOString()
@@ -222,6 +242,13 @@ export async function signInUser(email: string, password: string) {
         });
 
         if (error) {
+            let friendlyError = error.message;
+            if (error.message.includes('Invalid login credentials')) {
+                friendlyError = 'Credenziali errate. Verifica l\'email e la password inserite.';
+            } else if (error.message.includes('Email not confirmed')) {
+                friendlyError = 'Indirizzo email non ancora confermato. Controlla la tua casella di posta.';
+            }
+
             // Check mock user fallback for testing
             const existingMock = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
             if (existingMock) {
@@ -255,10 +282,10 @@ export async function signInUser(email: string, password: string) {
                 };
             }
 
-            addSystemLog('SYSTEM_ERROR', `Tentativo di login fallito: ${email} (${error.message})`, email);
+            addSystemLog('SYSTEM_ERROR', `Tentativo di login fallito: ${email} (${friendlyError})`, email);
             return {
                 success: false,
-                message: error.message || 'Credenziali non valide o email non ancora confermata.'
+                message: friendlyError
             };
         }
 

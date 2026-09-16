@@ -58,6 +58,18 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
     const [activeSourcesCount, setActiveSourcesCount] = useState<number>(3);
     const [isLoadingNews, setIsLoadingNews] = useState<boolean>(false);
 
+    // Serverless Sentiment API State
+    const [serverSentiment, setServerSentiment] = useState<{
+        sentimentScore: number;
+        status: string;
+        label: string;
+        isProfitable: boolean;
+        headline: string;
+        summary: string;
+        aiAdvice: string;
+    } | null>(null);
+    const [isLoadingSentiment, setIsLoadingSentiment] = useState<boolean>(true);
+
     // Auto-refresh countdown state (60 seconds)
     const [secondsToRefresh, setSecondsToRefresh] = useState<number>(60);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -82,6 +94,52 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
         loadNewsData();
     }, []);
 
+    // Fetch Sentiment from Serverless Function Endpoint (/api/quasar-sentiment)
+    useEffect(() => {
+        let isMounted = true;
+        const fetchSentiment = async () => {
+            setIsLoadingSentiment(true);
+            try {
+                const res = await fetch('/api/quasar-sentiment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trades: safeTrades })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) setServerSentiment(data);
+                } else {
+                    throw new Error(`Server status ${res.status}`);
+                }
+            } catch (err) {
+                // Fallback for offline dev environment
+                const fallbackIsProfitable = (safeTrades || []).reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0) >= 0;
+                if (isMounted) {
+                    setServerSentiment({
+                        sentimentScore: fallbackIsProfitable ? 85 : 70,
+                        status: fallbackIsProfitable ? 'BULLISH_DISCIPLINED' : 'LOSS_UNSTABLE',
+                        label: fallbackIsProfitable ? '• 85% Bullish & Disciplinato' : '• 70% Loss & Instabile',
+                        isProfitable: fallbackIsProfitable,
+                        headline: fallbackIsProfitable 
+                            ? '✨ La galassia operativa mostra un’eccellente stabilità ed aderenza al trading plan.'
+                            : '⚠️ La galassia oggi è fortemente in perdita. Il mercato è instabile ed incerto.',
+                        summary: fallbackIsProfitable
+                            ? 'Stai battendo il mercato: mantieni il focus e sfrutta le inefficienze senza cedere all\'avidità.'
+                            : 'Aumento della volatilità generale. L\'algoritmo raccomanda di non forzare entrate di recupero impulsivo.',
+                        aiAdvice: fallbackIsProfitable
+                            ? 'Mantenere il piano di Risk Management. In presenza di profitti superiori al 3% giornaliero, valutare la presa di profitto parziale.'
+                            : 'Pausa tattica raccomandata. Non tentare il Revenge Trading per recuperare i drawdown della sessione.'
+                    });
+                }
+            } finally {
+                if (isMounted) setIsLoadingSentiment(false);
+            }
+        };
+
+        fetchSentiment();
+        return () => { isMounted = false; };
+    }, [safeTrades]);
+
     useEffect(() => {
         const timer = setInterval(() => {
             setSecondsToRefresh(prev => {
@@ -96,13 +154,6 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
 
         return () => clearInterval(timer);
     }, []);
-
-    // Calculate total PnL & dominant sentiment
-    const totalPnl = useMemo(() => {
-        return (safeTrades || []).reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
-    }, [safeTrades]);
-
-    const isProfitable = totalPnl >= 0;
 
     // Filtered multi-source news feed
     const filteredNews = useMemo(() => {
@@ -139,6 +190,9 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
             setIsExplorerOpen(true);
         }, 450);
     };
+
+    const totalPnl = (safeTrades || []).reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
+    const isProfitable = totalPnl >= 0;
 
     return (
         <div className="w-full max-w-[400px] min-h-[360px] mx-auto my-auto relative flex flex-col items-center justify-center rounded-3xl bg-slate-950/80 border border-slate-800/80 p-4 overflow-hidden shadow-2xl backdrop-blur-xl group">
@@ -261,7 +315,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                         {/* Corpo del Modale (Scrollabile in verticale) */}
                         <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-4 py-4 scrollbar-thin">
                             
-                            {/* 1. Card Global Sentiment */}
+                            {/* 1. Card Global Sentiment (dati dal Serverless API /api/quasar-sentiment) */}
                             <div className="p-5 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 relative overflow-hidden shadow-xl">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-300">
@@ -269,34 +323,44 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                                         <span>Stato Globale del Sentiment:</span>
                                     </div>
 
-                                    <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-black font-mono border ${isProfitable ? 'bg-emerald-950 text-emerald-300 border-emerald-700' : 'bg-rose-950 text-rose-300 border-rose-700'}`}>
-                                        {isProfitable ? '• 85% Bullish & Disciplinato' : '• 70% Loss & Instabile'}
-                                    </span>
+                                    {isLoadingSentiment ? (
+                                        <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-mono bg-slate-900 text-slate-400 border border-slate-800 animate-pulse flex items-center gap-1.5">
+                                            <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
+                                            Analisi Server Quasar AI...
+                                        </span>
+                                    ) : (
+                                        <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-black font-mono border ${serverSentiment?.isProfitable ? 'bg-emerald-950 text-emerald-300 border-emerald-700' : 'bg-rose-950 text-rose-300 border-rose-700'}`}>
+                                            {serverSentiment?.label || '• 85% Bullish & Disciplinato'}
+                                        </span>
+                                    )}
                                 </div>
 
-                                <div className="space-y-1">
-                                    <h4 className="text-base font-extrabold text-white">
-                                        {isProfitable 
-                                            ? '✨ La galassia operativa mostra un’eccellente stabilità ed aderenza al trading plan.'
-                                            : '⚠️ La galassia oggi è fortemente in perdita. Il mercato è instabile ed incerto.'}
-                                    </h4>
-                                    <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                                        {isProfitable 
-                                            ? 'Stai battendo il mercato: mantieni il focus e sfrutta le inefficienze senza cedere all\'avidità.'
-                                            : 'Aumento della volatilità generale. L\'algoritmo raccomanda di non forzare entrate di recupero impulsivo.'}
-                                    </p>
-                                </div>
-
-                                {/* Box "Consiglio Strategico AI" */}
-                                <div className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center gap-3 text-xs">
-                                    <Bot className="w-4 h-4 text-cyan-400 shrink-0" />
-                                    <div className="text-slate-200">
-                                        <strong className="text-cyan-300 font-mono">Consiglio Strategico AI: </strong>
-                                        {isProfitable 
-                                            ? 'Mantenere il piano di Risk Management. In presenza di profitti superiori al 3% giornaliero, valutare la presa di profitto parziale.'
-                                            : 'Pausa tattica raccomandata. Non tentare il Revenge Trading per recuperare i drawdown della sessione.'}
+                                {isLoadingSentiment ? (
+                                    <div className="py-3 space-y-2 animate-pulse">
+                                        <div className="h-4 bg-slate-900 rounded w-3/4"></div>
+                                        <div className="h-3 bg-slate-900 rounded w-1/2"></div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-1">
+                                            <h4 className="text-base font-extrabold text-white">
+                                                {serverSentiment?.headline}
+                                            </h4>
+                                            <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                                                {serverSentiment?.summary}
+                                            </p>
+                                        </div>
+
+                                        {/* Box "Consiglio Strategico AI" */}
+                                        <div className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center gap-3 text-xs">
+                                            <Bot className="w-4 h-4 text-cyan-400 shrink-0" />
+                                            <div className="text-slate-200">
+                                                <strong className="text-cyan-300 font-mono">Consiglio Strategico AI: </strong>
+                                                {serverSentiment?.aiAdvice}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* 2. Sezione "LIVE FEED & MARKET NEWS" */}

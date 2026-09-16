@@ -1,19 +1,42 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="it" class="dark bg-[#090D16]">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Cache-Busting & Anti-Caching Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="theme-color" content="#090D16" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TradyX App" />
+
     <title>Tradyx - AI Trading Journal & Quasar 3D Bubble</title>
+
     <!-- Tailwind CSS CDN for instant glassmorphism styling -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var registration of registrations) {
+            registration.unregister();
+          }
+        }).catch(function(err) { /* ignore */ });
+      }
+    </script>
   </head>
-  <body class="bg-[#090D16] text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
-    <div id="root"></div>
+  <body class="bg-[#090D16] text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950 min-h-[100dvh]">
+    <div id="root" class="bg-[#090D16] min-h-[100dvh] w-full"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,25 +1,28 @@
 // ============================================================================
 // TRADYX MOBILE BOTTOM NAVIGATION BAR (src/components/BottomNavBar.tsx)
-// Author: Lead Mobile UI/UX Engineer & Senior Front-End Developer
-// Description: Fixed mobile bottom bar with glassmorphic styling, iOS safe-area
-//              support, and 44px+ touch-friendly target buttons.
 // ============================================================================
 
 import React from 'react';
 import { 
-    LayoutDashboard, 
-    Sparkles, 
+    Home, 
     PlusCircle, 
-    Sliders, 
-    BrainCircuit 
+    History, 
+    BarChart3, 
+    Wallet, 
+    BrainCircuit, 
+    Sparkles 
 } from 'lucide-react';
 
 interface BottomNavBarProps {
-    activeTab: 'JOURNAL' | 'BACKTEST' | 'ADMIN';
-    setActiveTab: (tab: 'JOURNAL' | 'BACKTEST' | 'ADMIN') => void;
+    activeTab: 'JOURNAL' | 'BACKTEST';
+    setActiveTab: (tab: 'JOURNAL' | 'BACKTEST') => void;
     onOpenAICoach: () => void;
     onFocusQuasar: () => void;
     onFocusTradeForm: () => void;
+    onFocusHistory?: () => void;
+    onFocusStats?: () => void;
+    onFocusWallet?: () => void;
+    onFocusHome?: () => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
@@ -27,70 +30,99 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     setActiveTab,
     onOpenAICoach,
     onFocusQuasar,
-    onFocusTradeForm
+    onFocusTradeForm,
+    onFocusHistory,
+    onFocusStats,
+    onFocusWallet,
+    onFocusHome
 }) => {
+    const handleNavigation = (action?: () => void) => {
+        if (activeTab !== 'JOURNAL') {
+            setActiveTab('JOURNAL');
+        }
+        if (action) {
+            setTimeout(() => action(), 50);
+        }
+    };
+
     return (
-        <nav className="flex md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur border-t border-slate-800 px-2 py-2 justify-around items-center pb-safe shadow-2xl">
+        <nav className="fixed bottom-0 left-0 w-full z-50 bg-[#0f1115]/95 backdrop-blur border-t border-white/10 flex justify-around items-center py-2 pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl">
             
-            {/* 1. Dashboard / Journal Tab */}
+            {/* 1. Home */}
             <button
                 type="button"
-                onClick={() => setActiveTab('JOURNAL')}
-                className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] rounded-xl transition active:scale-95 ${
-                    activeTab === 'JOURNAL' ? 'text-cyan-400 font-extrabold' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => handleNavigation(onFocusHome)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
+                title="Home"
             >
-                <LayoutDashboard className={`w-5 h-5 mb-0.5 ${activeTab === 'JOURNAL' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : ''}`} />
-                <span className="text-[9px] font-mono tracking-tight">Journal</span>
+                <Home className="w-5 h-5 mb-0.5 text-slate-300" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">Home</span>
             </button>
 
-            {/* 2. Quasar 3D Bubble Focus */}
+            {/* 2. Trade */}
             <button
                 type="button"
-                onClick={() => {
-                    setActiveTab('JOURNAL');
-                    onFocusQuasar();
-                }}
-                className="flex flex-col items-center justify-center min-w-[48px] min-h-[44px] rounded-xl text-slate-400 hover:text-cyan-300 transition active:scale-95"
-            >
-                <Sparkles className="w-5 h-5 mb-0.5 text-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono tracking-tight">Quasar</span>
-            </button>
-
-            {/* 3. New Trade Entry Action Button */}
-            <button
-                type="button"
-                onClick={() => {
-                    setActiveTab('JOURNAL');
-                    onFocusTradeForm();
-                }}
-                className="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] -mt-3 bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-950 rounded-full shadow-lg shadow-cyan-500/40 active:scale-95 transition"
+                onClick={() => handleNavigation(onFocusTradeForm)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-emerald-400 transition active:scale-95 cursor-pointer"
                 title="Nuovo Trade"
             >
-                <PlusCircle className="w-6 h-6 font-black" />
+                <PlusCircle className="w-5 h-5 mb-0.5 text-emerald-400" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">Trade</span>
             </button>
 
-            {/* 4. Native AI Coach Tab Trigger */}
+            {/* 3. History */}
+            <button
+                type="button"
+                onClick={() => handleNavigation(onFocusHistory)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
+                title="Storico Trade"
+            >
+                <History className="w-5 h-5 mb-0.5 text-cyan-400" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">History</span>
+            </button>
+
+            {/* 4. Stats */}
+            <button
+                type="button"
+                onClick={() => handleNavigation(onFocusStats)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-purple-300 transition active:scale-95 cursor-pointer"
+                title="Statistiche Analytics"
+            >
+                <BarChart3 className="w-5 h-5 mb-0.5 text-purple-400" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">Stats</span>
+            </button>
+
+            {/* 5. Wallet */}
+            <button
+                type="button"
+                onClick={() => handleNavigation(onFocusWallet)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-amber-300 transition active:scale-95 cursor-pointer"
+                title="Mercato & Wallet"
+            >
+                <Wallet className="w-5 h-5 mb-0.5 text-amber-400" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">Wallet</span>
+            </button>
+
+            {/* 6. Coach */}
             <button
                 type="button"
                 onClick={onOpenAICoach}
-                className="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-cyan-300 transition active:scale-95"
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
                 title="Tradyx AI Coach"
             >
                 <BrainCircuit className="w-5 h-5 mb-0.5 text-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono tracking-tight">AI Coach</span>
+                <span className="text-[9px] font-mono tracking-tight font-medium">Coach</span>
             </button>
 
-            {/* 5. Backtesting Studio Tab */}
+            {/* 7. Bolla (Quasar 3D) */}
             <button
                 type="button"
-                onClick={() => setActiveTab('BACKTEST')}
-                className={`flex flex-col items-center justify-center min-w-[44px] min-h-[44px] rounded-xl transition active:scale-95 ${
-                    activeTab === 'BACKTEST' ? 'text-cyan-400 font-extrabold' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => handleNavigation(onFocusQuasar)}
+                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
+                title="Quasar 3D Bolla"
             >
-                <Sliders className={`w-5 h-5 mb-0.5 ${activeTab === 'BACKTEST' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : ''}`} />
-                <span className="text-[9px] font-mono tracking-tight">Backtest</span>
+                <Sparkles className="w-5 h-5 mb-0.5 text-cyan-400 animate-pulse" />
+                <span className="text-[9px] font-mono tracking-tight font-medium">Bolla</span>
             </button>
 
         </nav>
