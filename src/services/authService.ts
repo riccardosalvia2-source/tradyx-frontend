@@ -161,7 +161,8 @@ export async function signUpUser(
                     last_name: lastName,
                     username: username,
                     role: assignedRole 
-                }
+                },
+                emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/demo` : undefined
             }
         });
 

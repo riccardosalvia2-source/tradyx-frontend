@@ -77,6 +77,10 @@ export const App: React.FC = () => {
                     };
                     setAuthUser(activeUser);
                     localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
+                    setCurrentView('demo');
+                    if (typeof window !== 'undefined' && window.location.pathname !== '/demo') {
+                        window.history.pushState({}, '', '/demo');
+                    }
                 } else if (!session && isMounted) {
                     const saved = localStorage.getItem('tradyx_user');
                     if (saved) {
@@ -84,6 +88,10 @@ export const App: React.FC = () => {
                             const savedUser = JSON.parse(saved);
                             if (savedUser && isMounted) {
                                 setAuthUser(savedUser);
+                                setCurrentView('demo');
+                                if (typeof window !== 'undefined' && window.location.pathname !== '/demo') {
+                                    window.history.pushState({}, '', '/demo');
+                                }
                             }
                         } catch (e) { /* ignore */ }
                     }
@@ -114,6 +122,11 @@ export const App: React.FC = () => {
                 };
                 setAuthUser(activeUser);
                 localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
+                setIsAuthModalOpen(false);
+                setCurrentView('demo');
+                if (typeof window !== 'undefined' && window.location.pathname !== '/demo') {
+                    window.history.pushState({}, '', '/demo');
+                }
                 if (!isSettled && isMounted) {
                     isSettled = true;
                     clearTimeout(safetyTimer);
@@ -122,6 +135,10 @@ export const App: React.FC = () => {
             } else if (event === 'SIGNED_OUT') {
                 setAuthUser(null);
                 localStorage.removeItem('tradyx_user');
+                setCurrentView('landing');
+                if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+                    window.history.pushState({}, '', '/');
+                }
                 if (!isSettled && isMounted) {
                     isSettled = true;
                     clearTimeout(safetyTimer);
@@ -219,7 +236,7 @@ export const App: React.FC = () => {
 
                 {/* Global Auth Modal Popup */}
                 <AuthModal
-                    isOpen={isAuthModalOpen || !authUser}
+                    isOpen={isAuthModalOpen}
                     onClose={() => setIsAuthModalOpen(false)}
                     onAuthenticated={handleAuthenticated}
                 />
