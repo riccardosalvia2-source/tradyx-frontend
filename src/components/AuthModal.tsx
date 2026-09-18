@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { signUpUser, signInUser } from '../services/authService';
 import { UserAccount } from '../types/auth';
-import { LogIn, UserPlus, Mail, Lock, User, CheckCircle2, AlertCircle, X, ShieldCheck, ArrowRight, AtSign } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, User, CheckCircle2, AlertCircle, X, ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -25,7 +25,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     // Form fields
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     
@@ -55,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         if (mode === 'SIGNUP') {
             const fullName = `${firstName} ${lastName}`.trim();
-            const res = await signUpUser(email, password, fullName, username, firstName, lastName);
+            const res = await signUpUser(email, password, fullName, undefined, firstName, lastName);
             setIsLoading(false);
 
             if (!res.success) {
@@ -216,56 +215,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {/* Auth Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {mode === 'SIGNUP' && (
-                        <>
-                            {/* Nome & Cognome Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Nome</label>
-                                    <div className="relative">
-                                        <User className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
-                                        <input
-                                            type="text"
-                                            value={firstName}
-                                            onChange={(e) => setFirstName(e.target.value)}
-                                            placeholder="Marco"
-                                            className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Cognome</label>
-                                    <div className="relative">
-                                        <User className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
-                                        <input
-                                            type="text"
-                                            value={lastName}
-                                            onChange={(e) => setLastName(e.target.value)}
-                                            placeholder="Rossi"
-                                            className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Username */}
+                        /* Nome & Cognome Grid */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+                                <label className="block text-xs font-semibold text-slate-300 mb-1">Nome</label>
                                 <div className="relative">
-                                    <AtSign className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
+                                    <User className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
                                     <input
                                         type="text"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="trader_pro"
-                                        className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        placeholder="Marco"
+                                        className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-base focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
                                         required
                                     />
                                 </div>
                             </div>
-                        </>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-300 mb-1">Cognome</label>
+                                <div className="relative">
+                                    <User className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        placeholder="Rossi"
+                                        className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-base focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {/* Email */}
@@ -278,7 +259,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="tuonome@email.com"
-                                className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-base focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition"
                                 required
                             />
                         </div>
@@ -294,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl p-3 pl-10 w-full text-base focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition"
                                 required
                                 minLength={6}
                             />

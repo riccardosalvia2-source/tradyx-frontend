@@ -46,7 +46,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     };
 
     return (
-        <nav className="fixed bottom-0 left-0 w-full z-50 bg-[#0f1115]/95 backdrop-blur border-t border-white/10 flex justify-around items-center py-2 pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1115]/95 backdrop-blur border-t border-white/10 flex justify-around items-center py-2 pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl">
             
             {/* 1. Home */}
             <button
