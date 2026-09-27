@@ -1,29 +1,32 @@
 /* ============================================================================
    TRADYX TAILWIND CSS & DESIGN SYSTEM (src/index.css)
-   Google AI Studio Aesthetic Alignment & Dark Mode Precision
+   High-End Fintech / Web3 SaaS Aesthetic (Dark Futuristic Luxury)
    ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html, body, #root {
-  background-color: #090d16 !important;
-  color: #ffffff;
+  background-color: #05070B !important;
+  color: #f8fafc;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Force dark styling on all form controls */
 input, select, textarea {
-  background-color: #0f172a !important;
-  border-color: #334155 !important;
+  background-color: #0b0f19 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
   color: #ffffff !important;
 }
 
@@ -41,41 +44,30 @@ canvas {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(2, 6, 23, 0.8);
-  border-radius: 9999px;
+  background: rgba(5, 7, 11, 0.9);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+  background: rgba(51, 65, 85, 0.6);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 240, 255, 0.6);
+  background: rgba(0, 240, 255, 0.8);
 }
 
-/* iOS Safe Area Padding for Mobile Bottom Bar */
+/* iOS Safe Area Padding for Mobile */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 1rem);
 }
 
 /* Organic Liquid Blob Morphing Animation */
 @keyframes blob-morph {
-  0% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  }
-  25% {
-    border-radius: 40% 60% 70% 30% / 50% 60% 40% 60%;
-  }
-  50% {
-    border-radius: 70% 30% 50% 50% / 30% 70% 60% 40%;
-  }
-  75% {
-    border-radius: 30% 70% 40% 60% / 70% 40% 50% 60%;
-  }
-  100% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  }
+  0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 40% 60% 70% 30% / 50% 60% 40% 60%; }
+  50% { border-radius: 70% 30% 50% 50% / 30% 70% 60% 40%; }
+  75% { border-radius: 30% 70% 40% 60% / 70% 40% 50% 60%; }
+  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
 }
 
 .animate-blob-morph {
@@ -137,13 +129,23 @@ canvas {
   animation: quasar-pulse-core 3s ease-in-out infinite;
 }
 
+/* Subtle Shimmer for High-End CTA Buttons */
+@keyframes button-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-shimmer {
+  animation: button-shimmer 3.5s ease-in-out infinite;
+}
+
 /* Cosmic Glassmorphism & Astrophysical UI Classes */
 .cosmic-glass {
-  background-color: rgba(5, 7, 11, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(5, 7, 11, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.06);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.08);
 }
 
 .cosmic-glass-hover {
@@ -151,16 +153,17 @@ canvas {
 }
 
 .cosmic-glass-hover:hover {
-  border-color: rgba(0, 240, 255, 0.3);
-  box-shadow: 0 0 35px rgba(0, 240, 255, 0.15), 0 0 15px rgba(255, 215, 0, 0.08);
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.2), 0 0 15px rgba(168, 85, 247, 0.15);
 }
 
 /* User Specific Glassmorphism Spec */
 .glass-card {
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 .glass-card-hover {
@@ -171,7 +174,7 @@ canvas {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(0, 240, 255, 0.35);
   box-shadow: 0 20px 50px -10px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
 }
 
 /* Dark Luxury Theme Background */
@@ -190,7 +193,7 @@ canvas {
 
 /* Glowing text gradients */
 .text-gradient-hero {
-  background: linear-gradient(135deg, #FFFFFF 0%, #00F0FF 45%, #A855F7 85%, #EC4899 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #00F0FF 40%, #2DD4BF 70%, #6366F1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -200,6 +203,7 @@ canvas {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 
 
 

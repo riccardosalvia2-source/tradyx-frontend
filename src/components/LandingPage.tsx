@@ -1,6 +1,6 @@
 // ============================================================================
 // TRADYX HIGH-END FINTECH SAAS LANDING PAGE (src/components/LandingPage.tsx)
-// Dark Luxury Palette, Glassmorphism, 3D Tilted Smartphone Mockup & Bento Grid
+// Dark Futuristic Luxury Palette, Glassmorphism, 3D Floating Smartphone & Bento Grid
 // ============================================================================
 
 import React, { useState } from 'react';
@@ -20,21 +20,17 @@ import {
     Layers, 
     BarChart3, 
     Bot, 
-    ExternalLink,
     LogIn,
     Activity,
-    Scale,
-    Calendar,
     Target,
     Smartphone,
     Lock,
     CheckCircle2,
     Star,
     Award,
-    TrendingDown,
-    ChevronRight,
     Users,
-    Shield
+    Shield,
+    ChevronRight
 } from 'lucide-react';
 
 import { UserAccount } from '../types/auth';
@@ -125,22 +121,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     const currentDemo = demoConfigs[activePreset];
 
     return (
-        <div className="min-h-screen bg-[#05070B] text-slate-100 selection:bg-cyan-500 selection:text-slate-950 font-sans pb-16 overflow-x-hidden relative">
+        <div className="min-h-screen min-h-[100dvh] bg-[#05070B] text-slate-100 selection:bg-cyan-500 selection:text-slate-950 font-sans pb-16 overflow-x-hidden relative">
             
-            {/* AMBIENT BACKGROUND GLOWS (Radial Gradients Dark Luxury) */}
+            {/* AMBIENT BACKGROUND GLOWS (Radial Gradients Dark Futuristic Luxury) */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-tr from-cyan-600/15 via-purple-600/15 to-rose-600/10 blur-[150px] rounded-full" />
-                <div className="absolute top-[40%] -left-40 w-[600px] h-[600px] bg-cyan-500/10 blur-[160px] rounded-full" />
-                <div className="absolute top-[70%] -right-40 w-[650px] h-[650px] bg-purple-600/10 blur-[170px] rounded-full" />
+                {/* Top Center Main Halo */}
+                <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1100px] h-[650px] bg-gradient-to-tr from-cyan-600/20 via-teal-500/15 to-indigo-600/15 blur-[160px] rounded-full" />
+                {/* Middle Left Cyan Glow */}
+                <div className="absolute top-[35%] -left-48 w-[650px] h-[650px] bg-cyan-500/10 blur-[170px] rounded-full" />
+                {/* Middle Right Purple Glow */}
+                <div className="absolute top-[65%] -right-48 w-[700px] h-[700px] bg-indigo-600/10 blur-[180px] rounded-full" />
+                {/* Bottom Center Subtle Glow */}
+                <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-cyan-500/10 blur-[150px] rounded-full" />
             </div>
 
             {/* STICKY GLASS NAVBAR */}
-            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#05070B]/80 border-b border-white/10 shadow-2xl transition-all duration-300">
+            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#05070B]/85 border-b border-white/10 shadow-2xl transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
                     
                     {/* Brand Logo */}
                     <a href="#" className="flex items-center gap-3.5 group">
-                        <div className="p-2.5 bg-gradient-to-tr from-cyan-400 via-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                        <div className="p-2.5 bg-gradient-to-tr from-cyan-400 via-teal-400 to-indigo-600 rounded-2xl shadow-lg shadow-cyan-500/30 group-hover:scale-105 group-hover:shadow-cyan-500/50 transition-all duration-300">
                             <BrainCircuit className="w-6 h-6 text-slate-950 font-black" />
                         </div>
                         <div>
@@ -166,8 +167,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <a href="#demo" className="hover:text-cyan-400 transition-colors">
                             Quasar 3D Demo
                         </a>
-                        <a href="#analytics" className="hover:text-cyan-400 transition-colors">
-                            Analytics
+                        <a href="#testimonials" className="hover:text-cyan-400 transition-colors">
+                            Social Proof
                         </a>
                         <a href="#pricing" className="hover:text-cyan-400 transition-colors">
                             Piani & Prezzi
@@ -195,7 +196,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 <button
                                     type="button"
                                     onClick={onOpenAuthModal}
-                                    className="hidden sm:flex items-center gap-2 px-4.5 py-2.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-xl text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer active:scale-95"
+                                    className="flex items-center gap-2 px-4.5 py-2.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 rounded-xl text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer active:scale-95"
                                 >
                                     <LogIn className="w-4 h-4 text-cyan-400" />
                                     <span>Accedi</span>
@@ -204,10 +205,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 <button
                                     type="button"
                                     onClick={onOpenAuthModal}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-400 via-blue-600 to-indigo-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-black text-xs rounded-xl shadow-xl shadow-cyan-500/25 transition-all cursor-pointer active:scale-95 group"
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all cursor-pointer active:scale-95 group"
                                 >
                                     <Sparkles className="w-4 h-4 text-slate-950 group-hover:rotate-12 transition-transform" />
-                                    <span>Inizia Gratis</span>
+                                    <span>Inizia Ora</span>
                                 </button>
                             </>
                         )}
@@ -222,19 +223,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     {/* Left Column: Value Proposition & CTAs */}
                     <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
                         
-                        {/* Status Badge */}
+                        {/* Status Badge with Live Pulsing Dot */}
                         <motion.div 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
-                            className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/[0.03] backdrop-blur-md border border-cyan-500/30 rounded-full text-cyan-300 text-xs font-mono font-bold shadow-2xl"
+                            className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/[0.03] backdrop-blur-md border border-cyan-500/30 rounded-full text-cyan-300 text-xs font-mono font-bold shadow-2xl hover:border-cyan-500/50 transition-colors"
                         >
-                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
+                            </span>
                             <Sparkles className="w-4 h-4 text-cyan-400" />
                             <span>Google Gemini AI & Behavioral Finance Analytics</span>
                         </motion.div>
 
-                        {/* Title */}
+                        {/* Magnetic Title with Bright Gradient */}
                         <motion.h1 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -243,12 +247,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         >
                             Il Sentiment del Trading <br className="hidden sm:inline" />
                             Potenziato dall'
-                            <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-rose-400 bg-clip-text text-transparent">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-500">
                                 Intelligenza Artificiale
                             </span>
                         </motion.h1>
 
-                        {/* Description */}
+                        {/* Subtitle */}
                         <motion.p 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -258,7 +262,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             Analizza la FOMO in tempo reale, azzera il Revenge Trading e trasforma la tua disciplina in profitti costanti con la prima <strong>Matrix 3D Comportamentale</strong> al mondo.
                         </motion.p>
 
-                        {/* Magnetic Action Buttons */}
+                        {/* Main Magnetic Action Buttons */}
                         <motion.div 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -268,7 +272,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             <button
                                 type="button"
                                 onClick={onOpenAuthModal}
-                                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-400 via-blue-600 to-indigo-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-2xl shadow-cyan-500/30 active:scale-95 flex items-center justify-center gap-3 cursor-pointer group"
+                                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black text-sm rounded-2xl transition-all duration-300 shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 cursor-pointer group"
                             >
                                 <span>Inizia Gratis Ora</span>
                                 <ArrowRight className="w-4 h-4 text-slate-950 group-hover:translate-x-1 transition-transform" />
@@ -277,7 +281,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             <button
                                 type="button"
                                 onClick={onOpenDemo}
-                                className="w-full sm:w-auto px-8 py-4 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-cyan-500/50 text-white font-extrabold text-sm rounded-2xl transition-all backdrop-blur-md active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer group"
+                                className="w-full sm:w-auto px-8 py-4 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-cyan-500/50 text-white font-extrabold text-sm rounded-2xl transition-all backdrop-blur-md active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer group"
                             >
                                 <BrainCircuit className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
                                 <span>Prova la Dashboard Live</span>
@@ -316,7 +320,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 scale: 1, 
                                 rotateY: -12, 
                                 rotateX: 8,
-                                y: [0, -10, 0]
+                                y: [0, -12, 0]
                             }}
                             transition={{ 
                                 opacity: { duration: 0.8 },
@@ -326,7 +330,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
                             }}
                             whileHover={{ rotateY: 0, rotateX: 0, scale: 1.02 }}
-                            className="relative w-full max-w-[340px] h-[660px] bg-slate-950 rounded-[48px] border-[6px] border-slate-800 shadow-[0_25px_60px_-15px_rgba(0,240,255,0.25)] p-3 overflow-hidden transform-style-3d cursor-pointer group"
+                            className="relative w-full max-w-[340px] h-[660px] bg-slate-950 rounded-[48px] border-[6px] border-slate-800 shadow-[0_25px_60px_-15px_rgba(0,240,255,0.3)] p-3 overflow-hidden transform-style-3d cursor-pointer group"
                         >
                             {/* Smartphone Outer Titanium Frame Glow */}
                             <div className="absolute -inset-1 rounded-[52px] bg-gradient-to-b from-cyan-500/40 via-purple-500/20 to-transparent blur-sm pointer-events-none" />
@@ -337,7 +341,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 <div className="w-2 h-2 rounded-full bg-slate-800" />
                             </div>
 
-                            {/* Phone Display Screen (Live Tradyx Interface Preview) */}
+                            {/* Phone Display Screen (Live Tradyx Mobile Preview) */}
                             <div className="relative w-full h-full bg-[#090D16] rounded-[38px] overflow-hidden flex flex-col justify-between pt-8 pb-4 px-3 border border-white/10 text-white font-sans">
                                 
                                 {/* App Mobile Header */}
@@ -391,7 +395,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
             </section>
 
-            {/* STATS TICKER COUNTER */}
+            {/* STATS TICKER COUNTER BAR */}
             <section className="py-10 border-y border-white/10 bg-white/[0.01] backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center font-mono">
@@ -415,7 +419,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
             </section>
 
-            {/* BENTO GRID FUNZIONALITÀ (AS YMMETRIC MODULAR GRID) */}
+            {/* BENTO GRID FUNZIONALITÀ (ASYMMETRIC MODULAR GRID) */}
             <section id="features" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 relative z-10">
                 
                 {/* Section Header */}
@@ -444,7 +448,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                 <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl text-cyan-400">
                                     <BrainCircuit className="w-6 h-6" />
                                 </div>
-                                <span className="px-3 py-1 bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-full text-[10px] font-mono font-bold uppercase">
+                                <span className="px-3 py-1 bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-full text-[10px] font-mono font-bold uppercase flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                                     3D WebGL GLSL Shader
                                 </span>
                             </div>
@@ -715,7 +720,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </section>
 
             {/* SOCIAL PROOF & VERIFIED TESTIMONIALS */}
-            <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 z-10 relative">
+            <section id="testimonials" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 z-10 relative">
                 <div className="text-center space-y-4 max-w-2xl mx-auto">
                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-xs font-mono font-bold uppercase">
                         <Users className="w-4 h-4" />
@@ -744,7 +749,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             </p>
                         </div>
                         <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center font-bold text-slate-950 font-mono text-sm">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center font-bold text-slate-950 font-mono text-sm">
                                 MP
                             </div>
                             <div>
@@ -842,7 +847,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             <button
                                 type="button"
                                 onClick={onOpenAuthModal}
-                                className="w-full py-3.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                className="w-full py-3.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-white/20 text-white font-bold text-xs rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                             >
                                 <span>Inizia Gratis</span>
                                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
@@ -851,7 +856,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
                         {/* PLAN 2: Pro Trader (Featured) */}
                         <div className="glass-card rounded-3xl p-8 flex flex-col justify-between space-y-8 border-2 border-cyan-500 shadow-2xl shadow-cyan-500/20 relative">
-                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-cyan-400 to-blue-600 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-full shadow-lg">
+                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-cyan-400 to-indigo-600 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-full shadow-lg">
                                 PIÙ POPOLARE
                             </div>
 
@@ -874,7 +879,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             <button
                                 type="button"
                                 onClick={onOpenAuthModal}
-                                className="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-black text-xs rounded-xl shadow-xl shadow-cyan-500/25 transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                className="w-full py-4 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                             >
                                 <span>Attiva Pro Trader</span>
                                 <Sparkles className="w-4 h-4 text-slate-950" />
@@ -901,7 +906,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             <button
                                 type="button"
                                 onClick={onOpenAuthModal}
-                                className="w-full py-3.5 bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-700 font-bold text-xs rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                className="w-full py-3.5 bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-700 font-bold text-xs rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer active:scale-95 font-mono"
                             >
                                 <span>Diventa Quant VIP</span>
                                 <Sparkles className="w-3.5 h-3.5" />
