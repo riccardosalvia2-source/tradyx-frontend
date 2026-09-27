@@ -105,57 +105,57 @@ export const TradeForm: React.FC = () => {
     };
 
     return (
-        <div className="bg-slate-950/75 border border-slate-800/80 p-6 rounded-3xl backdrop-blur-xl shadow-[0_0_30px_rgba(0,240,255,0.06)] hover:border-cyan-500/40 transition-all duration-300 space-y-6">
+        <div className="bg-slate-950/75 border border-slate-800/80 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-[0_0_30px_rgba(0,240,255,0.06)] hover:border-cyan-500/40 transition-all duration-300 space-y-5 font-sans w-full">
             
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                    <PlusCircle className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+                    <PlusCircle className="w-5 h-5 text-cyan-400 shrink-0" />
                     Log New Trade Operation
                 </h3>
             </div>
 
             {/* Quick Test Presets */}
             <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase text-slate-400">Quick Test Preset Triggers (Click to test Quasar Bubble visual reaction):</div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="text-[11px] font-semibold uppercase text-slate-400">Quick Test Preset Triggers:</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
                         type="button"
                         onClick={triggerLossFomoPreset}
-                        className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-950/60 border border-rose-700/80 hover:bg-rose-900/80 text-rose-300 text-xs font-semibold rounded-xl transition shadow-lg"
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 min-h-[44px] bg-rose-950/60 border border-rose-700/80 hover:bg-rose-900/80 text-rose-300 text-xs font-semibold rounded-xl transition shadow-lg active:scale-95 cursor-pointer"
                     >
-                        <Flame className="w-4 h-4 text-rose-400 animate-bounce" />
-                        🔴 Test Loss + FOMO (-$2,250)
+                        <Flame className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+                        <span>🔴 Loss + FOMO (-$2,250)</span>
                     </button>
                     <button
                         type="button"
                         onClick={triggerCalmProfitPreset}
-                        className="flex items-center justify-center gap-2 px-3 py-2 bg-cyan-950/60 border border-cyan-700/80 hover:bg-cyan-900/80 text-cyan-300 text-xs font-semibold rounded-xl transition shadow-lg"
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 min-h-[44px] bg-cyan-950/60 border border-cyan-700/80 hover:bg-cyan-900/80 text-cyan-300 text-xs font-semibold rounded-xl transition shadow-lg active:scale-95 cursor-pointer"
                     >
-                        <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                        🟢 Test Profit + Calm (+$5,000)
+                        <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span>🟢 Profit + Calm (+$5,000)</span>
                     </button>
                     <button
                         type="button"
                         onClick={triggerGreedyPreset}
-                        className="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-950/60 border border-emerald-700/80 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold rounded-xl transition shadow-lg"
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 min-h-[44px] bg-emerald-950/60 border border-emerald-700/80 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold rounded-xl transition shadow-lg active:scale-95 cursor-pointer"
                     >
-                        <Zap className="w-4 h-4 text-amber-400" />
-                        🟡 Test Euphoria + Greedy (+$3,000)
+                        <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>🟡 Euphoria + Greedy (+$3,000)</span>
                     </button>
                 </div>
             </div>
 
             {/* Manual Entry Form */}
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Asset Pair</label>
                         <input
                             type="text"
                             value={assetPair}
                             onChange={(e) => setAssetPair(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                             required
                         />
                     </div>
@@ -164,7 +164,7 @@ export const TradeForm: React.FC = () => {
                         <select
                             value={direction}
                             onChange={(e) => setDirection(e.target.value as TradeDirection)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                         >
                             <option value="LONG">LONG</option>
                             <option value="SHORT">SHORT</option>
@@ -176,7 +176,7 @@ export const TradeForm: React.FC = () => {
                             type="number"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
@@ -187,20 +187,20 @@ export const TradeForm: React.FC = () => {
                             step="0.1"
                             value={positionSize}
                             onChange={(e) => setPositionSize(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Exit Price ($)</label>
                         <input
                             type="number"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
                         />
                     </div>
                     <div>
@@ -209,7 +209,7 @@ export const TradeForm: React.FC = () => {
                             type="number"
                             value={pnl}
                             onChange={(e) => setPnl(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm font-mono focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm font-mono focus:border-cyan-500 outline-none w-full"
                         />
                     </div>
                     <div>
@@ -217,7 +217,7 @@ export const TradeForm: React.FC = () => {
                         <select
                             value={emotionalState}
                             onChange={(e) => setEmotionalState(e.target.value as EmotionalState)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                         >
                             <option value="Calm">Calm (Cool/Disciplined)</option>
                             <option value="Disciplined">Disciplined</option>
@@ -236,13 +236,13 @@ export const TradeForm: React.FC = () => {
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Log psychological notes or setup triggers..."
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                     />
                 </div>
 
                 <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.99]"
+                    className="w-full min-h-[44px] py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.99] cursor-pointer"
                 >
                     Log Trade & Update Quasar Bubble
                 </button>

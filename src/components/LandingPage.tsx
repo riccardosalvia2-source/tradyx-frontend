@@ -398,7 +398,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* STATS TICKER COUNTER BAR */}
             <section className="py-10 border-y border-white/10 bg-white/[0.01] backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center font-mono">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center font-mono">
                         <div className="space-y-1">
                             <div className="text-3xl sm:text-4xl font-black text-cyan-400">$2.8M+</div>
                             <div className="text-xs text-slate-400 font-sans">Perdite da FOMO Evitate</div>
@@ -463,7 +463,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         </div>
 
                         {/* Interactive Metric Pills */}
-                        <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-4 border-t border-white/10">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs pt-4 border-t border-white/10">
                             <div className="p-3 bg-white/[0.02] border border-white/10 rounded-2xl">
                                 <div className="text-slate-400 text-[10px]">TURBOLENZA:</div>
                                 <div className="text-cyan-400 font-bold text-sm">0.15 (Stabile)</div>
@@ -551,7 +551,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs">
                             <div className="p-3 bg-white/[0.02] border border-white/10 rounded-xl">
                                 <span className="text-[10px] text-slate-400">WIN RATE</span>
                                 <div className="text-white font-black text-sm">68.4%</div>
@@ -698,7 +698,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                                     <p className="text-slate-200 font-sans">{currentDemo.advice}</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
                                     <div className="p-3 bg-white/[0.02] border border-white/10 rounded-xl">
                                         <span className="text-[10px] text-slate-400">PNL STIMATO</span>
                                         <div className={`font-extrabold text-sm ${currentDemo.pnl.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>

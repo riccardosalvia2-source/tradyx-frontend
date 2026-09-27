@@ -33,12 +33,12 @@ export const MacroCalendar: React.FC = () => {
     const filteredEvents = filterEventsByImpact(events, selectedImpact);
 
     return (
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4">
+        <div className="bg-slate-900/80 border border-slate-800 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4 w-full">
             
             {/* Header & Filter Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20 text-slate-950">
+                    <div className="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20 text-slate-950 shrink-0">
                         <Calendar className="w-5 h-5 font-bold" />
                     </div>
                     <div>
@@ -52,13 +52,13 @@ export const MacroCalendar: React.FC = () => {
                 </div>
 
                 {/* Impact Filter Badges */}
-                <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+                <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs w-full sm:w-auto">
                     {(['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((impact) => (
                         <button
                             key={impact}
                             type="button"
                             onClick={() => setSelectedImpact(impact)}
-                            className={`px-3 py-1 rounded-xl font-semibold transition ${
+                            className={`flex-1 sm:flex-none px-3 py-1.5 min-h-[36px] rounded-xl font-semibold transition cursor-pointer text-center ${
                                 selectedImpact === impact
                                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold shadow'
                                     : 'text-slate-400 hover:text-slate-200'
@@ -71,13 +71,13 @@ export const MacroCalendar: React.FC = () => {
             </div>
 
             {/* Event List */}
-            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="h-16 bg-slate-950/60 border border-slate-800/80 rounded-2xl animate-pulse" />
                     ))
                 ) : filteredEvents.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500 text-xs">
+                    <div className="text-center py-8 text-slate-500 text-xs font-mono">
                         Nessun evento macroeconomico trovato per il filtro selezionato.
                     </div>
                 ) : (
@@ -105,26 +105,26 @@ export const MacroCalendar: React.FC = () => {
                         return (
                             <div
                                 key={evt.id}
-                                className="bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group shadow-md"
+                                className="bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 p-3 sm:p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group shadow-md min-w-0 break-words"
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className="flex flex-col items-center justify-center min-w-[54px] px-2 py-1 bg-slate-900 border border-slate-800 rounded-xl text-center">
-                                        <Clock className="w-3 h-3 text-cyan-400 mb-0.5" />
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex flex-col items-center justify-center min-w-[50px] px-2 py-1 bg-slate-900 border border-slate-800 rounded-xl text-center shrink-0">
+                                        <Clock className="w-3 h-3 text-cyan-400 mb-0.5 shrink-0" />
                                         <span className="text-[11px] font-mono font-bold text-slate-200">{timeString}</span>
                                         <span className="text-[9px] text-slate-500 font-mono uppercase">{dateString}</span>
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm">{evt.flagEmoji || '🌐'}</span>
-                                            <span className="font-bold text-sm text-slate-100 group-hover:text-cyan-400 transition">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="text-sm shrink-0">{evt.flagEmoji || '🌐'}</span>
+                                            <span className="font-bold text-xs sm:text-sm text-slate-100 group-hover:text-cyan-400 transition truncate">
                                                 {evt.title}
                                             </span>
                                         </div>
 
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${impactBadge.color}`}>
-                                                {evt.impact === 'HIGH' && <AlertCircle className="w-3 h-3 inline mr-1" />}
+                                                {evt.impact === 'HIGH' && <AlertCircle className="w-3 h-3 inline mr-1 shrink-0" />}
                                                 {impactBadge.label}
                                             </span>
                                         </div>
@@ -132,18 +132,18 @@ export const MacroCalendar: React.FC = () => {
                                 </div>
 
                                 {/* Macro Values Comparison */}
-                                <div className="flex items-center gap-4 text-xs font-mono self-end sm:self-center bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800/60">
+                                <div className="flex items-center gap-3 sm:gap-4 text-xs font-mono self-start sm:self-center bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800/60 shrink-0">
                                     <div>
                                         <div className="text-[9px] uppercase text-slate-500 font-sans">Attuale</div>
-                                        <div className="font-extrabold text-cyan-400">{evt.actual || '-'}</div>
+                                        <div className="font-extrabold text-cyan-400 tracking-tight">{evt.actual || '-'}</div>
                                     </div>
                                     <div>
                                         <div className="text-[9px] uppercase text-slate-500 font-sans">Previsto</div>
-                                        <div className="font-bold text-slate-300">{evt.forecast || '-'}</div>
+                                        <div className="font-bold text-slate-300 tracking-tight">{evt.forecast || '-'}</div>
                                     </div>
                                     <div>
                                         <div className="text-[9px] uppercase text-slate-500 font-sans">Precedente</div>
-                                        <div className="text-slate-400">{evt.previous || '-'}</div>
+                                        <div className="text-slate-400 tracking-tight">{evt.previous || '-'}</div>
                                     </div>
                                 </div>
                             </div>

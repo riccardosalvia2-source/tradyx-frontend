@@ -134,13 +134,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* Header / Navbar */}
             {!hideTopHeader && (
                 <header className="border-b border-slate-800/80 bg-[#090D16]/90 backdrop-blur-xl sticky top-0 z-40 w-full">
-                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
-                            <BrainCircuit className="w-6 h-6 text-slate-950 font-bold" />
+                <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20 shrink-0">
+                            <BrainCircuit className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950 font-bold" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-cyan-200 to-blue-400 bg-clip-text text-transparent">
+                            <h1 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-cyan-200 to-blue-400 bg-clip-text text-transparent">
                                 TRADYX
                             </h1>
                             <div className="text-[10px] text-cyan-400 font-mono tracking-widest uppercase font-semibold hidden sm:block">
@@ -154,17 +154,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             onClick={() => setIsAICoachOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950 to-indigo-950 border border-purple-700/80 text-xs font-bold text-purple-300 hover:text-white transition shadow-lg active:scale-95 cursor-pointer"
+                            className="flex items-center gap-1.5 px-3 py-2 min-h-[42px] rounded-full bg-gradient-to-r from-purple-950 to-indigo-950 border border-purple-700/80 text-xs font-bold text-purple-300 hover:text-white transition shadow-lg active:scale-95 cursor-pointer shrink-0"
                         >
-                            <BrainCircuit className="w-4 h-4 text-cyan-400 animate-pulse" />
+                            <BrainCircuit className="w-4 h-4 text-cyan-400 animate-pulse shrink-0" />
                             <span>AI Coach</span>
                         </button>
 
                         {/* Auth User Status / Login Trigger Button */}
                         {authUser ? (
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs">
-                                <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                                <span className="font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">{authUser.full_name || authUser.email}</span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 min-h-[42px] rounded-full bg-slate-900 border border-slate-800 text-xs shrink-0">
+                                <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+                                <span className="font-bold text-slate-200 truncate max-w-[100px] sm:max-w-none">{authUser.full_name || authUser.email}</span>
                                 {isMasterAdmin ? (
                                     <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-purple-950 text-purple-300 border border-purple-800 uppercase">
                                         ADMIN
@@ -177,7 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setAuthUser(null)}
-                                    className="ml-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                                    className="ml-1 text-slate-400 hover:text-rose-400 transition cursor-pointer p-1"
                                     title="Disconnetti"
                                 >
                                     <LogOut className="w-3.5 h-3.5" />
@@ -187,9 +187,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsAuthModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer"
+                                className="flex items-center gap-2 px-4 py-2 min-h-[42px] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer shrink-0"
                             >
-                                <LogIn className="w-4 h-4" />
+                                <LogIn className="w-4 h-4 shrink-0" />
                                 <span>Accedi</span>
                             </button>
                         )}
@@ -200,7 +200,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 📣 GLOBAL SYSTEM BROADCAST BANNER */}
             {broadcast && broadcast.active && dismissedBroadcastId !== broadcast.id && (
-                <div className={`border-b py-3 px-4 sm:px-6 text-xs flex items-center justify-between shadow-2xl transition animate-in slide-in-from-top duration-300 w-full ${
+                <div className={`border-b py-3 px-3 sm:px-6 text-xs flex items-center justify-between shadow-2xl transition animate-in slide-in-from-top duration-300 w-full ${
                     broadcast.style === 'PROMO'
                         ? 'bg-gradient-to-r from-emerald-950 via-teal-950 to-emerald-950 border-emerald-500/80 text-emerald-100'
                         : broadcast.style === 'WARNING'
@@ -222,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                         type="button"
                         onClick={() => setDismissedBroadcastId(broadcast.id)}
-                        className="p-1 rounded-lg hover:bg-slate-800/80 text-slate-400 hover:text-white transition ml-3 cursor-pointer"
+                        className="p-1.5 rounded-lg hover:bg-slate-800/80 text-slate-400 hover:text-white transition ml-3 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                         title="Chiudi annuncio"
                     >
                         <X className="w-4 h-4" />
@@ -232,7 +232,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 🚫 ACCESS DENIED TOAST BANNER */}
             {accessDeniedNotice && (
-                <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 border-b border-rose-500/80 py-3.5 px-4 sm:px-6 text-rose-100 text-xs flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 w-full">
+                <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 border-b border-rose-500/80 py-3.5 px-3 sm:px-6 text-rose-100 text-xs flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 w-full">
                     <div className="flex items-center gap-3 max-w-5xl mx-auto">
                         <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 animate-bounce" />
                         <div>
@@ -243,7 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                         type="button"
                         onClick={onDismissNotice}
-                        className="p-1 rounded-lg hover:bg-rose-900 text-rose-300 hover:text-white transition cursor-pointer"
+                        className="p-1.5 rounded-lg hover:bg-rose-900 text-rose-300 hover:text-white transition cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -252,7 +252,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Email Verification Warning Banner */}
             {authUser && !authUser.email_confirmed && (
-                <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-b border-amber-500/60 py-3 px-4 sm:px-6 text-amber-200 text-xs flex items-center justify-between shadow-xl w-full">
+                <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-b border-amber-500/60 py-3 px-3 sm:px-6 text-amber-200 text-xs flex items-center justify-between shadow-xl w-full">
                     <div className="flex items-center gap-3 max-w-5xl mx-auto">
                         <Clock className="w-5 h-5 text-amber-400 shrink-0 animate-pulse" />
                         <div>
@@ -264,7 +264,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
 
             {/* Main Content Layout - Full Width Responsive Grid */}
-            <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
+            <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
                 
                 {/* Desktop Navigation Toggle */}
                 <div className="hidden md:flex items-center justify-between border-b border-slate-800/80 pb-4 w-full">

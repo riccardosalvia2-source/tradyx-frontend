@@ -56,12 +56,12 @@ export const CryptoWidget: React.FC = () => {
 
 
     return (
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4">
+        <div className="bg-slate-900/80 border border-slate-800 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4 w-full">
             
             {/* Widget Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-tr from-amber-500 to-yellow-600 rounded-xl shadow-lg shadow-amber-500/20 text-slate-950">
+                    <div className="p-2 bg-gradient-to-tr from-amber-500 to-yellow-600 rounded-xl shadow-lg shadow-amber-500/20 text-slate-950 shrink-0">
                         <Coins className="w-5 h-5 font-bold" />
                     </div>
                     <div>
@@ -74,12 +74,12 @@ export const CryptoWidget: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 self-end sm:self-auto">
                     {/* Fallback / Offline Notice */}
                     {isFallback && (
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-800 text-[10px] text-amber-300 font-semibold shadow">
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                            Modalità Cache / Offline
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span>Cache / Offline</span>
                         </div>
                     )}
 
@@ -90,7 +90,7 @@ export const CryptoWidget: React.FC = () => {
                             type="button"
                             onClick={() => loadPrices(true)}
                             disabled={isRefreshing || isLoading}
-                            className="p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 transition active:scale-95 disabled:opacity-50"
+                            className="p-2.5 min-w-[44px] min-h-[44px] bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 transition active:scale-95 disabled:opacity-50 flex items-center justify-center cursor-pointer"
                             title="Forza Aggiornamento Prezzi"
                         >
                             <RefreshCw className={`w-4 h-4 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -100,7 +100,7 @@ export const CryptoWidget: React.FC = () => {
             </div>
 
             {/* Asset Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="h-24 bg-slate-950/60 border border-slate-800/80 rounded-2xl animate-pulse" />
@@ -112,36 +112,36 @@ export const CryptoWidget: React.FC = () => {
                         return (
                             <div
                                 key={asset.id}
-                                className="bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 p-4 rounded-2xl flex flex-col justify-between transition shadow-lg group"
+                                className="bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between transition shadow-lg group min-w-0 break-words"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
                                         {asset.image ? (
-                                            <img src={asset.image} alt={asset.name} className="w-7 h-7 rounded-full shadow" />
+                                            <img src={asset.image} alt={asset.name} className="w-7 h-7 rounded-full shadow shrink-0" />
                                         ) : (
-                                            <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
+                                            <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
                                                 {asset.symbol.toUpperCase().slice(0, 2)}
                                             </div>
                                         )}
-                                        <div>
-                                            <div className="font-extrabold text-sm text-slate-100 group-hover:text-cyan-400 transition">
+                                        <div className="min-w-0">
+                                            <div className="font-extrabold text-sm text-slate-100 group-hover:text-cyan-400 transition truncate">
                                                 {asset.symbol.toUpperCase()}
                                             </div>
-                                            <div className="text-[10px] text-slate-500 font-medium">{asset.name}</div>
+                                            <div className="text-[10px] text-slate-500 font-medium truncate">{asset.name}</div>
                                         </div>
                                     </div>
 
                                     {/* 24h Change Badge */}
-                                    <div className={`px-2 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1 ${
+                                    <div className={`px-2 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1 shrink-0 ${
                                         isPositive ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
                                     }`}>
-                                        {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                        {isPositive ? `+${asset.price_change_percentage_24h.toFixed(2)}%` : `${asset.price_change_percentage_24h.toFixed(2)}%`}
+                                        {isPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
+                                        <span>{isPositive ? `+${asset.price_change_percentage_24h.toFixed(2)}%` : `${asset.price_change_percentage_24h.toFixed(2)}%`}</span>
                                     </div>
                                 </div>
 
                                 <div className="mt-3">
-                                    <div className="text-lg font-black font-mono text-slate-100 tracking-tight">
+                                    <div className="text-base sm:text-lg font-black font-mono text-slate-100 tracking-tight break-words min-w-0">
                                         ${asset.current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                 </div>

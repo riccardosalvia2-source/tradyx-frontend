@@ -67,12 +67,12 @@ export const CostOfEmotionWidget: React.FC<CostOfEmotionWidgetProps> = ({ trades
     );
 
     return (
-        <div className="bg-slate-950/75 border border-slate-800/80 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(0,240,255,0.06)] hover:border-cyan-500/40 transition-all duration-300 space-y-5 font-sans">
+        <div className="bg-slate-950/75 border border-slate-800/80 rounded-3xl p-4 sm:p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(0,240,255,0.06)] hover:border-cyan-500/40 transition-all duration-300 space-y-5 font-sans w-full">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-gradient-to-br from-rose-950 to-indigo-950 border border-rose-500/40 rounded-2xl text-rose-400">
+                    <div className="p-2.5 bg-gradient-to-br from-rose-950 to-indigo-950 border border-rose-500/40 rounded-2xl text-rose-400 shrink-0">
                         <Brain className="w-6 h-6" />
                     </div>
                     <div>
@@ -92,34 +92,34 @@ export const CostOfEmotionWidget: React.FC<CostOfEmotionWidgetProps> = ({ trades
 
             {/* High Level Key Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 bg-slate-950 border border-rose-950 rounded-2xl space-y-1">
+                <div className="p-4 bg-slate-950 border border-rose-950/80 rounded-2xl space-y-1 min-w-0 break-words">
                     <div className="text-[10px] font-bold uppercase text-slate-400 font-mono flex items-center gap-1.5">
-                        <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
-                        Perdite da Bias Emotivo
+                        <TrendingDown className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span>Perdite da Bias Emotivo</span>
                     </div>
-                    <div className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
+                    <div className="text-lg sm:text-2xl font-black text-rose-400 font-mono tracking-tight break-words min-w-0">
                         -${totalEmotionalLoss.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">FOMO, Revenge & Avidità</div>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-emerald-950 rounded-2xl space-y-1">
+                <div className="p-4 bg-slate-950 border border-emerald-950/80 rounded-2xl space-y-1 min-w-0 break-words">
                     <div className="text-[10px] font-bold uppercase text-slate-400 font-mono flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                        Profitto da Disciplina
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>Profitto da Disciplina</span>
                     </div>
-                    <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                    <div className="text-lg sm:text-2xl font-black text-emerald-400 font-mono tracking-tight break-words min-w-0">
                         +${totalDisciplinedProfit.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">Trade conforme al Plan</div>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1">
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1 min-w-0 break-words">
                     <div className="text-[10px] font-bold uppercase text-slate-400 font-mono flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                        Impatto Emotivo Netto
+                        <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>Impatto Emotivo Netto</span>
                     </div>
-                    <div className={`text-xl sm:text-2xl font-black font-mono ${netEmotionalImpact >= 0 ? 'text-cyan-300' : 'text-amber-400'}`}>
+                    <div className={`text-lg sm:text-2xl font-black font-mono tracking-tight break-words min-w-0 ${netEmotionalImpact >= 0 ? 'text-cyan-300' : 'text-amber-400'}`}>
                         {netEmotionalImpact >= 0 ? '+' : ''}${netEmotionalImpact.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">Delta PnL Comportamentale</div>
@@ -139,15 +139,15 @@ export const CostOfEmotionWidget: React.FC<CostOfEmotionWidgetProps> = ({ trades
                         const barPercent = Math.min(Math.round((Math.abs(pnl) / maxPnlAbs) * 100), 100);
 
                         return (
-                            <div key={key} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-1.5">
-                                <div className="flex items-center justify-between text-xs font-mono">
-                                    <span className="flex items-center gap-2 font-bold text-slate-200">
+                            <div key={key} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-1.5 min-w-0 break-words">
+                                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-mono min-w-0 break-words">
+                                    <span className="flex items-center gap-1.5 font-bold text-slate-200 min-w-0">
                                         {icon}
-                                        {label}
+                                        <span className="truncate">{label}</span>
                                     </span>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                         <span className="text-[11px] text-slate-400">({stat.count} trade)</span>
-                                        <span className={`font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className={`font-bold tracking-tight ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}
                                         </span>
                                     </div>

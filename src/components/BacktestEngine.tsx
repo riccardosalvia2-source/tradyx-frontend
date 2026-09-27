@@ -71,27 +71,27 @@ export const BacktestStudio: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8 w-full">
             
             {/* Top Control Panel: Strategy Config Form */}
-            <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-6">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                        <Sliders className="w-5 h-5 text-cyan-400" />
-                        Quantitative Backtest Parameters
+            <div className="bg-slate-900/80 border border-slate-800 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-5 sm:space-y-6 w-full">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-cyan-400 shrink-0" />
+                        <span>Quantitative Backtest Parameters</span>
                     </h3>
-                    <span className="text-xs text-slate-500 font-mono">150 Historical Candles • Vectorized Engine</span>
+                    <span className="text-[11px] text-slate-500 font-mono">150 Historical Candles • Vectorized Engine</span>
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); handleRunBacktest(); }} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                         <div>
                             <label className="block text-xs font-medium text-slate-400 mb-1">Strategy Name</label>
                             <input
                                 type="text"
                                 value={config.strategyName}
                                 onChange={(e) => setConfig({ ...config, strategyName: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                                 required
                             />
                         </div>
@@ -102,7 +102,7 @@ export const BacktestStudio: React.FC = () => {
                                 type="number"
                                 value={config.initialCapital}
                                 onChange={(e) => setConfig({ ...config, initialCapital: Number(e.target.value) })}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm font-mono focus:border-cyan-500 outline-none"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm font-mono focus:border-cyan-500 outline-none w-full"
                                 required
                             />
                         </div>
@@ -112,7 +112,7 @@ export const BacktestStudio: React.FC = () => {
                             <select
                                 value={config.asset}
                                 onChange={(e) => setConfig({ ...config, asset: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                             >
                                 <option value="BTC/USDT">BTC/USDT</option>
                                 <option value="ETH/USDT">ETH/USDT</option>
@@ -125,7 +125,7 @@ export const BacktestStudio: React.FC = () => {
                             <select
                                 value={config.timeframe}
                                 onChange={(e) => setConfig({ ...config, timeframe: e.target.value as any })}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                             >
                                 <option value="1h">1 Hour (1h)</option>
                                 <option value="4h">4 Hours (4h)</option>
@@ -135,7 +135,7 @@ export const BacktestStudio: React.FC = () => {
                     </div>
 
                     {/* Entry/Exit Rule Triggers */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-2">
                         <div>
                             <label className="block text-xs font-medium text-slate-400 mb-1">
                                 Buy Dip % (Entry Condition)
@@ -146,7 +146,7 @@ export const BacktestStudio: React.FC = () => {
                                     step="0.1"
                                     value={config.buyDipPercentage}
                                     onChange={(e) => setConfig({ ...config, buyDipPercentage: Number(e.target.value) })}
-                                    className="bg-slate-900 border border-slate-700 text-cyan-400 font-mono rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                    className="bg-slate-900 border border-slate-700 text-cyan-400 font-mono rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                                     required
                                 />
                                 <span className="absolute right-3 top-3 text-xs text-slate-500">%</span>
@@ -163,7 +163,7 @@ export const BacktestStudio: React.FC = () => {
                                     step="0.1"
                                     value={config.takeProfitPercentage}
                                     onChange={(e) => setConfig({ ...config, takeProfitPercentage: Number(e.target.value) })}
-                                    className="bg-slate-900 border border-slate-700 text-emerald-400 font-mono rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                    className="bg-slate-900 border border-slate-700 text-emerald-400 font-mono rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                                     required
                                 />
                                 <span className="absolute right-3 top-3 text-xs text-slate-500">%</span>
@@ -180,7 +180,7 @@ export const BacktestStudio: React.FC = () => {
                                     step="0.1"
                                     value={config.stopLossPercentage}
                                     onChange={(e) => setConfig({ ...config, stopLossPercentage: Number(e.target.value) })}
-                                    className="bg-slate-900 border border-slate-700 text-rose-400 font-mono rounded-lg p-3 w-full text-sm focus:border-cyan-500 outline-none"
+                                    className="bg-slate-900 border border-slate-700 text-rose-400 font-mono rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
                                     required
                                 />
                                 <span className="absolute right-3 top-3 text-xs text-slate-500">%</span>
@@ -189,29 +189,29 @@ export const BacktestStudio: React.FC = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4">
                         <button
                             type="submit"
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.99]"
+                            className="flex items-center justify-center gap-2 px-6 py-3 min-h-[44px] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.99] cursor-pointer"
                         >
-                            <Play className="w-4 h-4 fill-slate-950" />
-                            Run Quantitative Backtest
+                            <Play className="w-4 h-4 fill-slate-950 shrink-0" />
+                            <span>Run Quantitative Backtest</span>
                         </button>
 
                         <button
                             type="button"
                             onClick={handleSaveStrategy}
                             disabled={isSaving || !results}
-                            className="flex items-center gap-2 px-5 py-3 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm font-semibold rounded-2xl transition active:scale-95 disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm font-semibold rounded-2xl transition active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                             {saveSuccess ? (
                                 <>
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                                     <span className="text-emerald-400">Strategy Saved to Supabase!</span>
                                 </>
                             ) : (
                                 <>
-                                    <Save className="w-4 h-4 text-cyan-400" />
+                                    <Save className="w-4 h-4 text-cyan-400 shrink-0" />
                                     <span>Save Strategy to Supabase</span>
                                 </>
                             )}
@@ -222,13 +222,13 @@ export const BacktestStudio: React.FC = () => {
 
             {/* Results Performance Metrics Grid */}
             {results && (
-                <div className="space-y-8">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="space-y-6 sm:space-y-8 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                         
                         {/* Net Profit & ROI */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Net Profit</div>
-                            <div className={`text-lg font-bold font-mono tracking-tight mt-1 ${results.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <div className={`text-base sm:text-lg font-bold font-mono tracking-tight mt-1 min-w-0 break-words ${results.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                 {results.netProfit >= 0 ? `+$${results.netProfit.toLocaleString()}` : `-$${Math.abs(results.netProfit).toLocaleString()}`}
                             </div>
                             <div className={`text-xs font-mono font-bold mt-1 ${results.roiPercentage >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -237,31 +237,31 @@ export const BacktestStudio: React.FC = () => {
                         </div>
 
                         {/* Final Capital */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Final Equity</div>
-                            <div className="text-lg font-bold font-mono tracking-tight text-white mt-1">
+                            <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-white mt-1 min-w-0 break-words">
                                 ${results.finalCapital.toLocaleString()}
                             </div>
-                            <div className="text-xs text-slate-400 font-mono mt-1">
+                            <div className="text-xs text-slate-400 font-mono mt-1 truncate">
                                 Start: ${results.initialCapital.toLocaleString()}
                             </div>
                         </div>
 
                         {/* Win Rate */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Win Rate</div>
-                            <div className="text-lg font-bold font-mono tracking-tight text-cyan-400 mt-1">
+                            <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-cyan-400 mt-1">
                                 {results.winRate}%
                             </div>
-                            <div className="text-xs text-slate-400 font-mono mt-1">
-                                {results.winningTrades}W / {results.losingTrades}L ({results.totalTrades} Total)
+                            <div className="text-xs text-slate-400 font-mono mt-1 truncate">
+                                {results.winningTrades}W / {results.losingTrades}L ({results.totalTrades})
                             </div>
                         </div>
 
                         {/* Profit Factor */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Profit Factor</div>
-                            <div className="text-lg font-bold font-mono tracking-tight text-amber-400 mt-1">
+                            <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-amber-400 mt-1">
                                 {results.profitFactor}
                             </div>
                             <div className="text-xs text-slate-400 font-mono mt-1">
@@ -270,21 +270,21 @@ export const BacktestStudio: React.FC = () => {
                         </div>
 
                         {/* Max Drawdown % */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Max Drawdown</div>
-                            <div className="text-lg font-bold font-mono tracking-tight text-rose-400 mt-1 flex items-center gap-1">
-                                <ShieldAlert className="w-4 h-4 text-rose-500" />
-                                -{results.maxDrawdown}%
+                            <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-rose-400 mt-1 flex items-center gap-1">
+                                <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+                                <span>-{results.maxDrawdown}%</span>
                             </div>
-                            <div className="text-xs text-slate-400 font-mono mt-1">
+                            <div className="text-xs text-slate-400 font-mono mt-1 truncate">
                                 -${results.maxDrawdownAmount.toLocaleString()} Peak
                             </div>
                         </div>
 
                         {/* Total Trades */}
-                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                        <div className="bg-slate-900/80 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between shadow-lg min-w-0 break-words">
                             <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 tracking-wider">Simulated Trades</div>
-                            <div className="text-lg font-bold font-mono tracking-tight text-purple-400 mt-1">
+                            <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-purple-400 mt-1">
                                 {results.totalTrades}
                             </div>
                             <div className="text-xs text-slate-400 font-mono mt-1">
@@ -393,16 +393,16 @@ export const BacktestStudio: React.FC = () => {
                     </div>
 
                     {/* Simulated Trades Table */}
-                    <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4">
+                    <div className="bg-slate-900/80 border border-slate-800 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-2xl space-y-4 w-full">
                         <div className="flex items-center justify-between">
                             <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                                <PieChart className="w-4 h-4 text-cyan-400" />
-                                Simulated Trades Log ({results?.tradesList?.length || 0})
+                                <PieChart className="w-4 h-4 text-cyan-400 shrink-0" />
+                                <span>Simulated Trades Log ({results?.tradesList?.length || 0})</span>
                             </h4>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs font-mono">
+                        <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-thin">
+                            <table className="w-full min-w-[540px] text-left text-xs font-mono">
                                 <thead>
                                     <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
                                         <th className="py-2.5 px-3">Trade ID</th>

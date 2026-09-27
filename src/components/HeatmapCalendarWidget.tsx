@@ -226,24 +226,24 @@ export const HeatmapCalendarWidget: React.FC<HeatmapCalendarWidgetProps> = ({ tr
             )}
 
             {/* Summary Footer Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800 font-mono text-xs">
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-800 font-mono text-xs">
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-0.5 min-w-0 break-words">
                     <div className="text-[10px] text-slate-400 uppercase font-bold">Giorni Vincenti</div>
-                    <div className="text-lg font-bold text-emerald-400">{winningDaysCount} giorni</div>
+                    <div className="text-base sm:text-lg font-bold text-emerald-400 tracking-tight">{winningDaysCount} giorni</div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-0.5 min-w-0 break-words">
                     <div className="text-[10px] text-slate-400 uppercase font-bold">Giorni Perdenti</div>
-                    <div className="text-lg font-bold text-rose-400">{losingDaysCount} giorni</div>
+                    <div className="text-base sm:text-lg font-bold text-rose-400 tracking-tight">{losingDaysCount} giorni</div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-0.5 min-w-0 break-words">
                     <div className="text-[10px] text-slate-400 uppercase font-bold">Best Day PnL</div>
-                    <div className="text-lg font-bold text-emerald-300">
+                    <div className="text-base sm:text-lg font-bold text-emerald-300 tracking-tight">
                         {bestDayPnl !== -Infinity ? `+$${bestDayPnl.toLocaleString()}` : '$0'}
                     </div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-0.5 min-w-0 break-words">
                     <div className="text-[10px] text-slate-400 uppercase font-bold">Worst Day PnL</div>
-                    <div className="text-lg font-bold text-rose-300">
+                    <div className="text-base sm:text-lg font-bold text-rose-300 tracking-tight">
                         {worstDayPnl !== Infinity ? `-$${Math.abs(worstDayPnl).toLocaleString()}` : '$0'}
                     </div>
                 </div>
