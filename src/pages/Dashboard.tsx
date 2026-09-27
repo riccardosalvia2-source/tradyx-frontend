@@ -77,8 +77,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     };
     
     // Auth & Modal States
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(!authUser);
     const [isAICoachOpen, setIsAICoachOpen] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (!authUser) {
+            setIsAuthModalOpen(true);
+        }
+    }, [authUser]);
 
     // Global System Broadcast State
     const [broadcast, setBroadcast] = useState<SystemBroadcast | null>(null);
