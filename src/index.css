@@ -139,20 +139,67 @@ canvas {
 
 /* Cosmic Glassmorphism & Astrophysical UI Classes */
 .cosmic-glass {
-  background-color: rgba(2, 6, 23, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.7);
+  background-color: rgba(5, 7, 11, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 30px rgba(0, 240, 255, 0.06);
 }
 
 .cosmic-glass-hover {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cosmic-glass-hover:hover {
-  border-color: rgba(0, 240, 255, 0.4);
+  border-color: rgba(0, 240, 255, 0.3);
   box-shadow: 0 0 35px rgba(0, 240, 255, 0.15), 0 0 15px rgba(255, 215, 0, 0.08);
 }
+
+/* User Specific Glassmorphism Spec */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 20px 50px -10px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Dark Luxury Theme Background */
+.bg-dark-luxury {
+  background-color: #05070B !important;
+}
+
+/* 3D Phone Perspective utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+/* Glowing text gradients */
+.text-gradient-hero {
+  background: linear-gradient(135deg, #FFFFFF 0%, #00F0FF 45%, #A855F7 85%, #EC4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan-blue {
+  background: linear-gradient(135deg, #38BDF8 0%, #00F0FF 50%, #6366F1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 
 
