@@ -1,130 +1,82 @@
 // ============================================================================
-// TRADYX MOBILE BOTTOM NAVIGATION BAR (src/components/BottomNavBar.tsx)
+// TRADYX MOBILE-FIRST BOTTOM NAVIGATION BAR (src/components/BottomNavBar.tsx)
+// Tailored for iPhone / Safari PWA with iOS Home Indicator Safe Area
 // ============================================================================
 
 import React from 'react';
 import { 
     Home, 
-    PlusCircle, 
-    History, 
-    BarChart3, 
-    Wallet, 
+    TrendingUp, 
     BrainCircuit, 
-    Sparkles 
+    History, 
+    Wallet
 } from 'lucide-react';
 
+export type AppTab = 'home' | 'trade' | 'coach' | 'history' | 'wallet';
+
 interface BottomNavBarProps {
-    activeTab: 'JOURNAL' | 'BACKTEST';
-    setActiveTab: (tab: 'JOURNAL' | 'BACKTEST') => void;
-    onOpenAICoach: () => void;
-    onFocusQuasar: () => void;
-    onFocusTradeForm: () => void;
-    onFocusHistory?: () => void;
-    onFocusStats?: () => void;
-    onFocusWallet?: () => void;
-    onFocusHome?: () => void;
+    activeTab: AppTab;
+    setActiveTab: (tab: AppTab) => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     activeTab,
-    setActiveTab,
-    onOpenAICoach,
-    onFocusQuasar,
-    onFocusTradeForm,
-    onFocusHistory,
-    onFocusStats,
-    onFocusWallet,
-    onFocusHome
+    setActiveTab
 }) => {
-    const handleNavigation = (action?: () => void) => {
-        if (activeTab !== 'JOURNAL') {
-            setActiveTab('JOURNAL');
-        }
-        if (action) {
-            setTimeout(() => action(), 50);
-        }
-    };
+    const navItems: { id: AppTab; label: string; icon: React.FC<{ className?: string }> }[] = [
+        { id: 'home', label: 'Home', icon: Home },
+        { id: 'trade', label: 'Trade', icon: TrendingUp },
+        { id: 'coach', label: 'AI Coach', icon: BrainCircuit },
+        { id: 'history', label: 'History', icon: History },
+        { id: 'wallet', label: 'Wallet', icon: Wallet },
+    ];
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1115]/95 backdrop-blur border-t border-white/10 flex justify-around items-center py-2 pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl">
-            
-            {/* 1. Home */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusHome)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
-                title="Home"
-            >
-                <Home className="w-5 h-5 mb-0.5 text-slate-300" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Home</span>
-            </button>
+        <nav 
+            className="fixed bottom-0 left-0 right-0 z-50 w-full max-w-md mx-auto bg-[#05070B]/95 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-1 h-20 pb-[env(safe-area-inset-bottom,16px)] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]"
+            role="navigation"
+            aria-label="Navigazione Mobile"
+        >
+            {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
 
-            {/* 2. Trade */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusTradeForm)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-emerald-400 transition active:scale-95 cursor-pointer"
-                title="Nuovo Trade"
-            >
-                <PlusCircle className="w-5 h-5 mb-0.5 text-emerald-400" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Trade</span>
-            </button>
+                return (
+                    <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                            setActiveTab(item.id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`flex flex-col items-center justify-center flex-1 h-14 relative transition-all duration-200 active:scale-95 cursor-pointer select-none ${
+                            isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        aria-selected={isActive}
+                    >
+                        {/* Glowing pill behind active icon */}
+                        {isActive && (
+                            <span className="absolute -top-1 w-8 h-1 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full shadow-[0_0_12px_rgba(0,240,255,0.8)] animate-pulse" />
+                        )}
 
-            {/* 3. History */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusHistory)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
-                title="Storico Trade"
-            >
-                <History className="w-5 h-5 mb-0.5 text-cyan-400" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">History</span>
-            </button>
+                        <div className={`p-1.5 rounded-xl transition-all ${
+                            isActive 
+                                ? 'bg-cyan-500/10 text-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.2)]' 
+                                : 'text-slate-400'
+                        }`}>
+                            <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
+                        </div>
 
-            {/* 4. Stats */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusStats)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-purple-300 transition active:scale-95 cursor-pointer"
-                title="Statistiche Analytics"
-            >
-                <BarChart3 className="w-5 h-5 mb-0.5 text-purple-400" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Stats</span>
-            </button>
-
-            {/* 5. Wallet */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusWallet)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-amber-300 transition active:scale-95 cursor-pointer"
-                title="Mercato & Wallet"
-            >
-                <Wallet className="w-5 h-5 mb-0.5 text-amber-400" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Wallet</span>
-            </button>
-
-            {/* 6. Coach */}
-            <button
-                type="button"
-                onClick={onOpenAICoach}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
-                title="Tradyx AI Coach"
-            >
-                <BrainCircuit className="w-5 h-5 mb-0.5 text-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Coach</span>
-            </button>
-
-            {/* 7. Bolla (Quasar 3D) */}
-            <button
-                type="button"
-                onClick={() => handleNavigation(onFocusQuasar)}
-                className="flex flex-col items-center justify-center min-w-[42px] min-h-[44px] text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer"
-                title="Quasar 3D Bolla"
-            >
-                <Sparkles className="w-5 h-5 mb-0.5 text-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono tracking-tight font-medium">Bolla</span>
-            </button>
-
+                        <span className={`text-[10px] tracking-tight font-medium mt-0.5 ${
+                            isActive ? 'font-bold text-cyan-300' : 'text-slate-400'
+                        }`}>
+                            {item.label}
+                        </span>
+                    </button>
+                );
+            })}
         </nav>
     );
 };
+
+export default BottomNavBar;
