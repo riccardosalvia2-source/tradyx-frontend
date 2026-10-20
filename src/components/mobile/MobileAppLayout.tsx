@@ -1,6 +1,7 @@
 // ============================================================================
 // TRADYX MOBILE-FIRST APP LAYOUT (src/components/mobile/MobileAppLayout.tsx)
-// Main Mobile-First Shell with iOS Dynamic Island & Home Bar Safe Areas
+// 7 Core Institutional Views: HOME, TRADE, HISTORY, STATS, WALLET, COACH, BOLLA
+// Native Mobile-First PWA for iOS Safari & iPhone Notch / Safe Areas
 // ============================================================================
 
 import React, { useState } from 'react';
@@ -8,9 +9,11 @@ import { UserAccount } from '../../types/auth';
 import { BottomNavBar, AppTab } from '../BottomNavBar';
 import { TabHome } from '../tabs/TabHome';
 import { TabTrade } from '../tabs/TabTrade';
-import { TabAICoach } from '../tabs/TabAICoach';
 import { TabHistory } from '../tabs/TabHistory';
+import { TabStats } from '../tabs/TabStats';
 import { TabWallet } from '../tabs/TabWallet';
+import { TabAICoach } from '../tabs/TabAICoach';
+import { TabBubble } from '../tabs/TabBubble';
 
 interface MobileAppLayoutProps {
     authUser: UserAccount | null;
@@ -24,9 +27,9 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     const [activeTab, setActiveTab] = useState<AppTab>('home');
 
     return (
-        <div className="w-full min-h-[100dvh] bg-[#05070B] flex justify-center items-start selection:bg-cyan-500 selection:text-slate-950">
-            {/* Centered Mobile Container */}
-            <div className="w-full max-w-md mx-auto min-h-[100dvh] bg-slate-950 text-white overflow-x-hidden relative flex flex-col pt-[env(safe-area-inset-top,16px)] shadow-2xl">
+        <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#00E599] selection:text-[#08090C]">
+            {/* Centered Mobile Container with Safe Areas */}
+            <div className="w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C] text-white overflow-x-hidden relative flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl">
                 
                 {/* Active Tab Content Screen */}
                 <main className="w-full flex-1">
@@ -36,18 +39,24 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     {activeTab === 'trade' && (
                         <TabTrade />
                     )}
-                    {activeTab === 'coach' && (
-                        <TabAICoach />
-                    )}
                     {activeTab === 'history' && (
                         <TabHistory />
+                    )}
+                    {activeTab === 'stats' && (
+                        <TabStats />
                     )}
                     {activeTab === 'wallet' && (
                         <TabWallet authUser={authUser} onLogout={onLogout} />
                     )}
+                    {activeTab === 'coach' && (
+                        <TabAICoach />
+                    )}
+                    {activeTab === 'bubble' && (
+                        <TabBubble />
+                    )}
                 </main>
 
-                {/* Fixed Mobile Bottom Navigation Bar (with iOS safe area) */}
+                {/* Fixed Mobile Bottom Navigation Bar (7 Tabs, with iOS Safe Area) */}
                 <BottomNavBar 
                     activeTab={activeTab} 
                     setActiveTab={setActiveTab} 

