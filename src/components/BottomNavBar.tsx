@@ -38,7 +38,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
     return (
         <nav 
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0E12]/95 backdrop-blur-lg border-t border-white/10 pb-[env(safe-area-inset-bottom,16px)] h-16 sm:h-20 flex justify-around items-center px-1"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D111A]/60 backdrop-blur-xl border-t border-white/[0.08] shadow-[0_-8px_32px_0_rgba(0,0,0,0.37)] pb-[env(safe-area-inset-bottom,16px)] h-16 sm:h-20 flex justify-around items-center px-1"
             role="navigation"
             aria-label="Mobile Bottom Navigation"
         >

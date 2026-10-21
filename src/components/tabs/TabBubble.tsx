@@ -188,11 +188,11 @@ export const TabBubble: React.FC = () => {
                 <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-3 pb-28 animate-in slide-in-from-bottom-3 duration-300">
                     
                     {/* Top Navigation Bar with Back Button */}
-                    <div className="w-full flex items-center justify-between py-2 border-b border-white/5">
+                    <div className="w-full flex items-center justify-between py-2.5 px-3 rounded-2xl glass-header">
                         <button
                             type="button"
                             onClick={handleBackToBubble}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white transition cursor-pointer text-xs font-mono font-bold active:scale-95"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition cursor-pointer text-xs font-mono font-bold active:scale-95"
                         >
                             <ArrowLeft className="w-4 h-4 text-[#2ECC71]" />
                             <span>Indietro</span>
@@ -207,8 +207,8 @@ export const TabBubble: React.FC = () => {
                     </div>
 
                     {/* Section Header */}
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#2ECC71]/40 flex items-center justify-center shadow-lg shrink-0">
+                    <div className="flex items-center gap-2.5 px-1">
+                        <div className="w-9 h-9 rounded-xl glass-panel flex items-center justify-center shadow-lg shrink-0">
                             <Globe className="w-5 h-5 text-[#2ECC71]" />
                         </div>
                         <div>
@@ -222,8 +222,8 @@ export const TabBubble: React.FC = () => {
                     </div>
 
                     {/* RIQUADRO DI SINTESI: GLOBAL SENTIMENT • 70% LOSS / FEAR */}
-                    <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-3.5">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                    <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3.5">
+                        <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
                             <div className="flex items-center gap-2">
                                 <Activity className="w-4 h-4 text-[#DC2626]" />
                                 <span className="text-xs font-mono font-bold text-slate-300 uppercase">
@@ -247,7 +247,7 @@ export const TabBubble: React.FC = () => {
                         </div>
 
                         {/* Box Informativo: Posizionamento Rispetto al Mercato */}
-                        <div className="p-3 rounded-xl bg-[#08090C] border border-white/5 space-y-1">
+                        <div className="p-3 rounded-xl glass-subcard space-y-1">
                             <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400">
                                 <Compass className="w-3.5 h-3.5 text-cyan-400" />
                                 <span>Posizionamento Rispetto al Mercato:</span>
@@ -258,7 +258,7 @@ export const TabBubble: React.FC = () => {
                         </div>
 
                         {/* Box Informativo: Coach Tip */}
-                        <div className="p-3 rounded-xl bg-[#08090C] border border-[#10B981]/20 flex items-start gap-2.5 text-[11px] font-mono">
+                        <div className="p-3 rounded-xl glass-subcard border border-[#10B981]/20 flex items-start gap-2.5 text-[11px] font-mono">
                             <Bot className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
                             <span className="text-slate-200">
                                 <strong className="text-[#10B981]">Coach Tip: </strong>
@@ -270,10 +270,10 @@ export const TabBubble: React.FC = () => {
                     {/* ============================================================================ */}
                     {/* AGGREGATORE NEWS (MINIMO 50 NOTIZIE & AUTO-REFRESH OGNI 5 MINUTI)              */}
                     {/* ============================================================================ */}
-                    <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-3.5">
+                    <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3.5">
                         
                         {/* Feed Bar: Auto-Refresh Timer & Manual Refresh Button */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
                             <div className="flex items-center gap-2">
                                 <Radio className="w-4 h-4 text-[#10B981] animate-pulse" />
                                 <h3 className="text-xs font-mono font-black text-white uppercase">
@@ -282,7 +282,7 @@ export const TabBubble: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono text-slate-400 bg-[#08090C] px-2.5 py-1 rounded-lg border border-white/5">
+                                <span className="text-[10px] font-mono text-slate-400 glass-subcard px-2.5 py-1 rounded-lg">
                                     Auto-refresh: {formatCountdown(secondsRemaining)}
                                 </span>
 
@@ -290,7 +290,7 @@ export const TabBubble: React.FC = () => {
                                     type="button"
                                     onClick={loadNewsData}
                                     disabled={isLoadingNews}
-                                    className="px-3 py-1 rounded-lg bg-[#08090C] hover:bg-white/10 border border-white/5 text-[10px] font-mono font-bold text-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                                    className="px-3 py-1 rounded-lg glass-subcard hover:bg-white/10 text-[10px] font-mono font-bold text-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
                                     title="Aggiorna Notizie Immediatamente"
                                 >
                                     <RefreshCw className={`w-3 h-3 text-[#10B981] ${isLoadingNews ? 'animate-spin' : ''}`} />
@@ -308,8 +308,8 @@ export const TabBubble: React.FC = () => {
                                     onClick={() => setNewsCategory(cat)}
                                     className={`px-2.5 py-1 rounded-lg shrink-0 font-bold transition-all cursor-pointer border ${
                                         newsCategory === cat
-                                            ? 'bg-[#10B981] text-[#08090C] border-[#10B981]'
-                                            : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                            ? 'bg-[#10B981] text-[#08090C] border-[#10B981] shadow-sm'
+                                            : 'glass-subcard text-slate-400 hover:text-white'
                                     }`}
                                 >
                                     {cat}
@@ -325,36 +325,33 @@ export const TabBubble: React.FC = () => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Cerca tra le 50+ notizie per titolo, fonte o asset..."
-                                className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#08090C] border border-white/5 text-xs text-white font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none"
+                                className="w-full h-10 pl-9 pr-3 rounded-xl glass-subcard text-xs text-white font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none"
                             />
                         </div>
 
-                        {/* 50+ News Items List */}
-                        <div className="space-y-2.5">
+                        {/* 50+ News Items List: EACH ITEM IS A DIRECT LINK TO THE ARTICLE */}
+                        <div className="space-y-3">
                             {isLoadingNews && liveNews.length === 0 ? (
-                                <div className="p-10 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2 bg-[#08090C] rounded-xl border border-white/5">
+                                <div className="p-10 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2 glass-subcard rounded-xl">
                                     <RefreshCw className="w-4 h-4 text-[#10B981] animate-spin" />
                                     <span>Caricamento aggregatore 50+ notizie in tempo reale...</span>
                                 </div>
                             ) : filteredNews.length === 0 ? (
-                                <div className="p-8 text-center text-xs text-slate-500 font-mono bg-[#08090C] rounded-xl border border-white/5">
+                                <div className="p-8 text-center text-xs text-slate-500 font-mono glass-subcard rounded-xl">
                                     Nessuna notizia corrisponde ai filtri selezionati.
                                 </div>
                             ) : (
                                 filteredNews.map((news) => {
-                                    const isSelected = news.id === selectedNewsId;
-
                                     return (
-                                        <div
+                                        <a
                                             key={news.id}
-                                            onClick={() => setSelectedNewsId(news.id)}
-                                            className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                                                isSelected
-                                                    ? 'bg-[#08090C] border-[#10B981]/60 shadow-lg'
-                                                    : 'bg-[#08090C]/80 border-white/5 hover:border-white/15'
-                                            }`}
+                                            href={news.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block p-4 rounded-2xl glass-panel hover:border-white/20 transition-all cursor-pointer space-y-2.5 group text-left"
+                                            title="Tocca per aprire l'articolo reale sul sito della fonte"
                                         >
-                                            {/* Card Top: Thematic Badge, Source, Relative Time */}
+                                            {/* Card Top: Thematic Badge, Source, Relative Time, External Icon */}
                                             <div className="flex items-center justify-between text-[10px] font-mono">
                                                 <div className="flex items-center gap-2">
                                                     {/* Thematic Badge (Macro, Crypto, FED, etc.) */}
@@ -371,45 +368,38 @@ export const TabBubble: React.FC = () => {
                                                     <span className="text-white font-bold uppercase">{news.source}</span>
                                                 </div>
 
-                                                <span className="text-slate-400 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3 text-slate-500" />
-                                                    {news.timeAgo}
-                                                </span>
+                                                <div className="flex items-center gap-1.5 text-slate-400">
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3 text-slate-500" />
+                                                        {news.timeAgo}
+                                                    </span>
+                                                    <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#10B981] transition shrink-0 ml-1" />
+                                                </div>
                                             </div>
 
-                                            {/* Prominent Title: Clickable Link to Original Source in New Tab */}
-                                            <a
-                                                href={news.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="text-xs sm:text-sm font-bold text-slate-100 hover:text-[#10B981] transition flex items-start justify-between gap-2 leading-snug group/link"
-                                                title="Apri articolo originale sulla fonte"
-                                            >
-                                                <span>{news.title}</span>
-                                                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover/link:text-[#10B981] shrink-0 mt-0.5" />
-                                            </a>
+                                            {/* Prominent Title */}
+                                            <h4 className="text-xs sm:text-sm font-bold text-slate-100 group-hover:text-[#10B981] transition leading-snug">
+                                                {news.title}
+                                            </h4>
 
-                                            {/* Expandable summary & AI Predictive comment */}
-                                            {isSelected && (
-                                                <div className="space-y-2 pt-2 border-t border-white/5 animate-in fade-in">
-                                                    <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
-                                                        {news.summary}
-                                                    </p>
-                                                    <div className="p-2.5 rounded-lg bg-[#111318] border border-white/5 text-[10px] font-mono text-cyan-300 flex items-start gap-1.5">
-                                                        <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                                                        <span>{news.aiPrediction}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                            {/* Article Summary */}
+                                            <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                                                {news.summary}
+                                            </p>
+
+                                            {/* AI Predictive Insight */}
+                                            <div className="p-2.5 rounded-lg glass-subcard text-[10px] font-mono text-cyan-300 flex items-start gap-1.5 border border-white/5">
+                                                <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                                                <span>{news.aiPrediction}</span>
+                                            </div>
+                                        </a>
                                     );
                                 })
                             )}
                         </div>
 
                         {/* Footer Status */}
-                        <div className="p-3 text-center text-[10px] font-mono text-slate-500 border-t border-white/5 flex items-center justify-between">
+                        <div className="p-3 text-center text-[10px] font-mono text-slate-500 border-t border-white/[0.08] flex items-center justify-between">
                             <span>Sorgenti attive: {activeSourcesCount} canali</span>
                             <span>Ultimo sync: {lastUpdatedTime}</span>
                         </div>

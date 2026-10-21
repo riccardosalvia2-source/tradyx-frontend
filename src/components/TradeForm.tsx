@@ -105,12 +105,12 @@ export const TradeForm: React.FC = () => {
     };
 
     return (
-        <div className="bg-slate-950/75 border border-slate-800/80 p-4 sm:p-6 rounded-3xl backdrop-blur-xl shadow-[0_0_30px_rgba(0,240,255,0.06)] hover:border-cyan-500/40 transition-all duration-300 space-y-5 font-sans w-full">
+        <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 font-sans w-full shadow-2xl">
             
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
-                    <PlusCircle className="w-5 h-5 text-cyan-400 shrink-0" />
+                    <PlusCircle className="w-5 h-5 text-emerald-400 shrink-0" />
                     Log New Trade Operation
                 </h3>
             </div>
@@ -155,7 +155,7 @@ export const TradeForm: React.FC = () => {
                             type="text"
                             value={assetPair}
                             onChange={(e) => setAssetPair(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
@@ -164,7 +164,7 @@ export const TradeForm: React.FC = () => {
                         <select
                             value={direction}
                             onChange={(e) => setDirection(e.target.value as TradeDirection)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                         >
                             <option value="LONG">LONG</option>
                             <option value="SHORT">SHORT</option>
@@ -176,7 +176,7 @@ export const TradeForm: React.FC = () => {
                             type="number"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
@@ -187,7 +187,7 @@ export const TradeForm: React.FC = () => {
                             step="0.1"
                             value={positionSize}
                             onChange={(e) => setPositionSize(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
@@ -200,7 +200,7 @@ export const TradeForm: React.FC = () => {
                             type="number"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full font-mono"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                         />
                     </div>
                     <div>
@@ -209,7 +209,7 @@ export const TradeForm: React.FC = () => {
                             type="number"
                             value={pnl}
                             onChange={(e) => setPnl(Number(e.target.value))}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm font-mono focus:border-cyan-500 outline-none w-full"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm font-mono focus:border-emerald-500 outline-none w-full"
                         />
                     </div>
                     <div>
@@ -217,7 +217,7 @@ export const TradeForm: React.FC = () => {
                         <select
                             value={emotionalState}
                             onChange={(e) => setEmotionalState(e.target.value as EmotionalState)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                         >
                             <option value="Calm">Calm (Cool/Disciplined)</option>
                             <option value="Disciplined">Disciplined</option>
@@ -236,13 +236,13 @@ export const TradeForm: React.FC = () => {
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Log psychological notes or setup triggers..."
-                        className="bg-slate-900 border border-slate-700 text-white rounded-xl h-11 px-3 text-sm focus:border-cyan-500 outline-none w-full"
+                        className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                     />
                 </div>
 
                 <button
                     type="submit"
-                    className="w-full min-h-[44px] py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-2xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.99] cursor-pointer"
+                    className="w-full min-h-[44px] py-3 bg-[#10B981] hover:bg-[#059669] text-white font-mono font-bold rounded-2xl transition shadow-lg shadow-[#10B981]/20 active:scale-[0.99] cursor-pointer"
                 >
                     Log Trade & Update Quasar Bubble
                 </button>

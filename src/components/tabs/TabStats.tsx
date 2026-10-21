@@ -143,10 +143,10 @@ export const TabStats: React.FC = () => {
     return (
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
-            {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            {/* Top Sticky Glass Header */}
+            <header className="glass-header sticky top-0 z-30 px-3 py-2.5 rounded-2xl flex items-center justify-between shadow-xl">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-md shrink-0">
+                    <div className="w-9 h-9 rounded-xl glass-subcard border border-[#10B981]/40 flex items-center justify-center shadow-md shrink-0">
                         <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
@@ -160,7 +160,7 @@ export const TabStats: React.FC = () => {
                 </div>
 
                 {/* SWITCH "LINE / CANDLE" */}
-                <div className="flex items-center bg-[#111318] p-0.5 rounded-xl border border-white/5 font-mono text-[10px]">
+                <div className="flex items-center glass-subcard p-0.5 rounded-xl border border-white/[0.08] font-mono text-[10px]">
                     <button
                         type="button"
                         onClick={() => setChartMode('LINE')}
@@ -187,7 +187,7 @@ export const TabStats: React.FC = () => {
             </header>
 
             {/* 1. CARD "NET PROFIT" CON METRICHE ISTITUZIONALI */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
                 <div className="space-y-0.5">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] font-bold block">
                         NET PROFIT
@@ -217,8 +217,8 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 2. CIAMBELLA GRAFICA "WIN / LOSS RATIO" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase">
                         WIN / LOSS RATIO
                     </span>
@@ -298,7 +298,7 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 3. GRAFICO "EQUITY PERFORMANCE" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-white uppercase">
                         EQUITY PERFORMANCE ({chartMode} MODE)
@@ -309,14 +309,14 @@ export const TabStats: React.FC = () => {
                 </div>
 
                 {/* Interactive Tooltip bar */}
-                <div className="px-3 py-1.5 rounded-lg bg-[#08090C] border border-white/5 flex items-center justify-between font-mono text-[11px]">
+                <div className="px-3 py-1.5 rounded-lg glass-subcard flex items-center justify-between font-mono text-[11px]">
                     <span className="text-[#9CA3AF]">Punto Attivo:</span>
                     <span className="text-[#10B981] font-bold tabular-nums">
                         {activePoint.session} • {formatMoney(activePoint.equity, false)}
                     </span>
                 </div>
 
-                <div className="w-full h-44 bg-[#08090C] rounded-xl border border-white/5 p-2 relative flex items-center justify-center overflow-hidden">
+                <div className="w-full h-44 glass-subcard rounded-xl p-2 relative flex items-center justify-center overflow-hidden">
                     {chartMode === 'LINE' ? (
                         <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-full overflow-visible">
                             <defs>
@@ -394,8 +394,8 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 4. PERFORMANCE HEATMAP */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-cyan-400" />
                         PERFORMANCE HEATMAP (MONTHLY INTENSITY)
@@ -412,7 +412,7 @@ export const TabStats: React.FC = () => {
 
                 {/* Day preview box when clicked */}
                 {activeDayInfo && activeDayInfo.pnl !== 0 && (
-                    <div className="p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between font-mono text-xs animate-in fade-in">
+                    <div className="p-2.5 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs animate-in fade-in">
                         <span className="text-[#9CA3AF]">Giorno {activeDayInfo.day} Ottobre:</span>
                         <strong className={activeDayInfo.pnl > 0 ? 'text-[#10B981]' : 'text-[#DC2626]'}>
                             {formatMoney(activeDayInfo.pnl, true)}
@@ -427,7 +427,7 @@ export const TabStats: React.FC = () => {
                         </span>
                     ))}
                     {heatmapDays.map((d) => {
-                        let bgStyle = 'bg-[#08090C] text-slate-600 border-white/5';
+                        let bgStyle = 'glass-subcard text-slate-500 border-white/[0.06]';
                         
                         if (d.intensity === 'HIGH_WIN') {
                             bgStyle = 'bg-[#10B981] text-[#08090C] font-black border-[#10B981] shadow-md';
@@ -460,8 +460,8 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 5. ISTOGRAMMA "HOURLY DISTRIBUTION" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-purple-400" />
                         HOURLY DISTRIBUTION (EXECUTION EFFICIENCY)
@@ -473,7 +473,7 @@ export const TabStats: React.FC = () => {
                     {hourlyDistribution.map((h, i) => {
                         const height = h.count === 0 ? 8 : h.count === 1 ? 52 : 88;
                         const barColor = h.count === 0 
-                            ? 'bg-[#08090C] border border-white/5' 
+                            ? 'glass-subcard border-white/5' 
                             : h.isWin 
                             ? 'bg-[#10B981]' 
                             : 'bg-[#DC2626]';
@@ -500,8 +500,8 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 6. GRAFICO A GRADINI "DRAWDOWN ANALYSIS" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <TrendingDown className="w-4 h-4 text-[#DC2626]" />
                         DRAWDOWN ANALYSIS (STEPPED GEOMETRIC CURVE)
@@ -511,7 +511,7 @@ export const TabStats: React.FC = () => {
                     </span>
                 </div>
 
-                <div className="w-full h-32 bg-[#08090C] rounded-xl border border-white/5 p-2 flex items-center justify-center relative overflow-hidden">
+                <div className="w-full h-32 glass-subcard rounded-xl p-2 flex items-center justify-center relative overflow-hidden">
                     <svg viewBox="0 0 320 80" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
@@ -544,8 +544,8 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 7. GRAFICO A BARRE "IMPACT OF ERRORS" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
                         IMPACT OF ERRORS (LEAKAGE AUDIT)
@@ -562,7 +562,7 @@ export const TabStats: React.FC = () => {
                                     {formatMoney(item.avgLoss, true)}
                                 </span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-[#08090C] overflow-hidden border border-white/5">
+                            <div className="w-full h-2 rounded-full glass-subcard overflow-hidden">
                                 <div
                                     className="h-full bg-[#DC2626] rounded-full transition-all duration-500"
                                     style={{ width: item.barWidth }}
@@ -574,7 +574,7 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 8. CARD BLU RISALTO "CONSISTENCY FACTOR" (#2563EB) */}
-            <section className="w-full rounded-2xl bg-[#2563EB] p-4 sm:p-5 shadow-2xl text-white space-y-2.5 relative overflow-hidden">
+            <section className="w-full rounded-2xl bg-gradient-to-r from-blue-600/70 to-blue-700/70 backdrop-blur-xl border border-blue-400/25 p-4 sm:p-5 shadow-2xl text-white space-y-2.5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full pointer-events-none" />
 
                 <div className="flex items-center justify-between relative z-10">

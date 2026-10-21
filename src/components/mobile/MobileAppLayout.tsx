@@ -27,9 +27,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     const [activeTab, setActiveTab] = useState<AppTab>('home');
 
     return (
-        <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#10B981] selection:text-white">
+        <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#10B981] selection:text-white relative">
+            {/* Soft Ambient Radial Background Lights for Glassmorphism Depth */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+                <div className="absolute -top-[12%] left-1/2 -translate-x-1/2 w-[550px] h-[450px] bg-gradient-to-b from-[#10B981]/[0.035] via-[#2563EB]/[0.025] to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-[35%] -right-36 w-[400px] h-[400px] bg-gradient-to-br from-[#2563EB]/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-24 -left-36 w-[400px] h-[400px] bg-gradient-to-tr from-[#10B981]/[0.025] to-transparent rounded-full blur-3xl pointer-events-none" />
+            </div>
+
             {/* Centered Mobile Container with Safe Areas */}
-            <div className="w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C] text-white overflow-x-hidden relative flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl">
+            <div className="w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C]/80 text-white overflow-x-hidden relative z-10 flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl">
                 
                 {/* Active Tab Content Screen */}
                 <main className="w-full flex-1">

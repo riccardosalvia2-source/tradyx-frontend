@@ -65,10 +65,10 @@ export const TabHistory: React.FC = () => {
     return (
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
-            {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            {/* Top Sticky Glass Header */}
+            <header className="glass-header sticky top-0 z-30 px-3 py-2.5 rounded-2xl flex items-center justify-between shadow-xl">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-md shrink-0">
+                    <div className="w-9 h-9 rounded-xl glass-subcard border border-[#10B981]/40 flex items-center justify-center shadow-md shrink-0">
                         <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
@@ -81,7 +81,7 @@ export const TabHistory: React.FC = () => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/5 text-[10px] font-mono text-[#10B981] font-bold">
+                <span className="px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-[#10B981] font-bold">
                     {safeTrades.length} RECORDED
                 </span>
             </header>
@@ -94,7 +94,7 @@ export const TabHistory: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search assets, strategies or notes..."
-                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111318] border border-white/5 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors"
+                    className="w-full h-11 pl-10 pr-4 rounded-xl glass-subcard text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors"
                 />
                 {searchQuery && (
                     <button
@@ -118,7 +118,7 @@ export const TabHistory: React.FC = () => {
                         <div
                             key={trade.id}
                             onClick={() => setSelectedTrade(trade)}
-                            className="w-full rounded-2xl border border-white/5 bg-[#111318] p-3.5 sm:p-4 hover:border-white/20 transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-lg flex flex-col space-y-2.5 group"
+                            className="w-full rounded-2xl glass-panel glass-card-hover p-3.5 sm:p-4 transition-all duration-200 cursor-pointer active:scale-[0.99] flex flex-col space-y-2.5 group"
                         >
                             {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
                             <div className="flex items-center justify-between">
@@ -168,7 +168,7 @@ export const TabHistory: React.FC = () => {
                             </div>
 
                             {/* Card Bottom Row: Strategy & Trigger preview */}
-                            <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px] font-mono text-[#9CA3AF]">
+                            <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF]">
                                 <span className="text-slate-300 truncate max-w-[200px] sm:max-w-xs">
                                     {trade.strategy || 'Tactical Trend Setup'}
                                 </span>
@@ -182,15 +182,14 @@ export const TabHistory: React.FC = () => {
                 })}
 
                 {filteredTrades.length === 0 && (
-                    <div className="w-full p-8 text-center rounded-2xl bg-[#111318] border border-white/5 text-[#9CA3AF] font-mono text-xs">
+                    <div className="w-full p-8 text-center rounded-2xl glass-panel text-[#9CA3AF] font-mono text-xs">
                         No trade logs found matching "{searchQuery}"
                     </div>
                 )}
             </div>
 
             {/* ============================================================================ */}
-            {/* RESOLUTION OF TRADE HISTORY DETAIL DRAWER / MODAL (MOBILE ZERO-OVERFLOW)    */}
-            {/* Features: max-h-[90dvh] overflow-y-auto pb-12 w-full flex flex-col gap-3     */}
+            {/* RESOLUTION OF TRADE HISTORY DETAIL DRAWER / MODAL (GLASSMORPHISM FINTECH)   */}
             {/* ============================================================================ */}
             {selectedTrade && (
                 <div 
@@ -198,11 +197,11 @@ export const TabHistory: React.FC = () => {
                     onClick={() => setSelectedTrade(null)}
                 >
                     <div 
-                        className="w-full max-w-lg bg-[#08090C] border-t sm:border border-white/5 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto pb-12 w-full flex flex-col gap-3 scroll-smooth text-slate-100 overscroll-contain"
+                        className="w-full max-w-lg bg-[#0D111A]/95 backdrop-blur-2xl border-t sm:border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-h-[90dvh] overflow-y-auto pb-12 w-full flex flex-col gap-3 scroll-smooth text-slate-100 overscroll-contain"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Drawer Header */}
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
+                        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 shrink-0">
                             <div className="flex items-center gap-2">
                                 <span className="text-base sm:text-lg font-black text-white font-mono">
                                     {selectedTrade.asset_pair}
@@ -222,7 +221,7 @@ export const TabHistory: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setSelectedTrade(null)}
-                                className="w-8 h-8 rounded-full bg-[#111318] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer active:scale-95 shrink-0"
+                                className="w-8 h-8 rounded-full glass-subcard flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer active:scale-95 shrink-0"
                                 title="Chiudi Scheda Trade"
                             >
                                 <X className="w-4 h-4" />
@@ -232,7 +231,7 @@ export const TabHistory: React.FC = () => {
                         {/* COMPACT SINGLE-COLUMN LAYOUT: Every row visible with zero clipping */}
 
                         {/* ROW 1: Net Performance Big Banner */}
-                        <div className="w-full p-4 rounded-xl bg-[#111318] border border-white/5 text-center space-y-1">
+                        <div className="w-full p-4 rounded-xl glass-subcard text-center space-y-1">
                             <span className="text-[10px] font-mono text-[#9CA3AF] uppercase tracking-widest block font-bold">
                                 NET PERFORMANCE
                             </span>
@@ -255,7 +254,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 2: Entry Price */}
-                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/5 flex items-center justify-between font-mono text-xs">
+                        <div className="w-full p-3 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs">
                             <span className="text-[#9CA3AF]">Entry Price:</span>
                             <span className="font-extrabold text-white tabular-nums text-sm">
                                 {formatMoney(selectedTrade.entry_price, false)}
@@ -263,7 +262,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 3: Exit Price */}
-                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/5 flex items-center justify-between font-mono text-xs">
+                        <div className="w-full p-3 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs">
                             <span className="text-[#9CA3AF]">Exit Price:</span>
                             <span className="font-extrabold text-white tabular-nums text-sm">
                                 {selectedTrade.exit_price ? formatMoney(selectedTrade.exit_price, false) : 'In Execution / Active'}
@@ -271,7 +270,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 4: Position Size & Risk/Reward */}
-                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/5 flex items-center justify-between font-mono text-xs">
+                        <div className="w-full p-3 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-[#9CA3AF]">Position Size:</span>
                                 <strong className="text-white">{selectedTrade.position_size}</strong>
@@ -283,7 +282,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 5: Emotion State */}
-                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/5 flex items-center justify-between font-mono text-xs">
+                        <div className="w-full p-3 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs">
                             <span className="text-[#9CA3AF]">Emotional State:</span>
                             <span className="px-2.5 py-1 rounded-lg font-bold bg-[#2563EB]/20 text-cyan-300 border border-[#2563EB]/40 uppercase text-[11px]">
                                 {selectedTrade.psychology || selectedTrade.emotional_state || 'CONFIDENCE'}
@@ -291,7 +290,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 6: Discipline Error */}
-                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/5 flex items-center justify-between font-mono text-xs">
+                        <div className="w-full p-3 rounded-xl glass-subcard flex items-center justify-between font-mono text-xs">
                             <span className="text-[#9CA3AF]">Discipline Error:</span>
                             <div className="flex items-center gap-1.5">
                                 {selectedTrade.errors && selectedTrade.errors.length > 0 ? (
@@ -310,7 +309,7 @@ export const TabHistory: React.FC = () => {
                         </div>
 
                         {/* ROW 7: Strategic Reason & Notes */}
-                        <div className="w-full p-3.5 rounded-xl bg-[#111318] border border-white/5 space-y-1.5 font-mono">
+                        <div className="w-full p-3.5 rounded-xl glass-subcard space-y-1.5 font-mono">
                             <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF] uppercase font-bold">
                                 <FileText className="w-3.5 h-3.5 text-[#10B981]" />
                                 <span>Strategic Reason & Notes</span>
@@ -324,7 +323,7 @@ export const TabHistory: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => setSelectedTrade(null)}
-                            className="w-full h-12 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer active:scale-[0.99] mt-1 shrink-0"
+                            className="w-full h-12 rounded-xl glass-subcard hover:bg-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer active:scale-[0.99] mt-1 shrink-0"
                         >
                             Chiudi Scheda Trade
                         </button>

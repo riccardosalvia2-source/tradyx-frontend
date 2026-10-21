@@ -109,7 +109,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* 1. TOP HEADER WITH CIRCULAR AVATAR & SUBTLE NEON RING */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            <header className="w-full flex items-center justify-between py-2.5 px-3 rounded-2xl glass-header">
                 <div className="flex items-center gap-3">
                     {/* AVATAR TRIGGER IN TOP-LEFT: Clicking opens PROFILE & PROTOCOL SETTINGS */}
                     <button
@@ -150,7 +150,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111318] border border-white/5 hover:border-[#10B981]/40 text-[10px] font-mono transition-all cursor-pointer group"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-subcard hover:border-[#10B981]/40 text-[10px] font-mono transition-all cursor-pointer group"
                 >
                     <Settings className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#10B981] transition-transform group-hover:rotate-45" />
                     <span className="text-[#10B981] font-bold">{selectedPlan.toUpperCase()}</span>
@@ -158,7 +158,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
             </header>
 
             {/* 2. CARD PRINCIPALE SALDO: AVAILABLE BALANCE */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-44 h-44 bg-[#10B981]/5 blur-[60px] rounded-full pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-36 h-36 bg-[#2563EB]/10 blur-[50px] rounded-full pointer-events-none" />
 
@@ -194,20 +194,20 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                     </div>
 
                     {/* MINI METRICHE AFFIANCATE RESPONSIVE */}
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5 font-mono">
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center">
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/[0.08] font-mono">
+                        <div className="p-2 sm:p-2.5 rounded-xl glass-subcard flex flex-col justify-center">
                             <span className="text-[9px] sm:text-[10px] text-[#9CA3AF] uppercase tracking-tight">PNL TOTALE</span>
                             <span className="text-xs sm:text-sm font-extrabold text-[#10B981] truncate tabular-nums">
                                 {formatMoney(totalPnl, true)}
                             </span>
                         </div>
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center text-center">
+                        <div className="p-2 sm:p-2.5 rounded-xl glass-subcard flex flex-col justify-center text-center">
                             <span className="text-[9px] sm:text-[10px] text-[#9CA3AF] uppercase tracking-tight">TRADE TOTALI</span>
                             <span className="text-xs sm:text-sm font-extrabold text-white tabular-nums">
                                 {totalTradeCount}
                             </span>
                         </div>
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center text-right">
+                        <div className="p-2 sm:p-2.5 rounded-xl glass-subcard flex flex-col justify-center text-right">
                             <span className="text-[9px] sm:text-[10px] text-[#9CA3AF] uppercase tracking-tight">WIN RATE</span>
                             <span className="text-xs sm:text-sm font-extrabold text-[#10B981] tabular-nums">
                                 {winRate}%
@@ -217,7 +217,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
 
                     {/* METRICHE DI RISCHIO: PROFIT FACTOR & DRAWDOWN */}
                     <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between">
+                        <div className="p-2 sm:p-2.5 rounded-xl glass-subcard flex items-center justify-between">
                             <div className="flex flex-col">
                                 <span className="text-[9px] sm:text-[10px] text-[#9CA3AF] uppercase">PROFIT FACTOR</span>
                                 <span className="text-xs sm:text-sm font-black text-[#10B981] tabular-nums">5.50</span>
@@ -227,7 +227,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                             </span>
                         </div>
 
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between">
+                        <div className="p-2 sm:p-2.5 rounded-xl glass-subcard flex items-center justify-between">
                             <div className="flex flex-col">
                                 <span className="text-[9px] sm:text-[10px] text-[#9CA3AF] uppercase">DRAWDOWN</span>
                                 <span className="text-xs sm:text-sm font-black text-[#DC2626] tabular-nums">
@@ -243,8 +243,8 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
             </section>
 
             {/* 3. MONTHLY ALLOCATION - BUDGET & WALLET PROTOCOL */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-300">
                         <Layers className="w-3.5 h-3.5 text-[#10B981]" />
                         <span>MONTHLY ALLOCATION - BUDGET & WALLET PROTOCOL</span>
@@ -285,7 +285,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
             </section>
 
             {/* 4. GRAFICO "PERFORMANCE FLOW" ISTITUZIONALE */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
                         <BarChart3 className="w-4 h-4 text-[#10B981]" />
@@ -300,7 +300,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 </div>
 
                 {/* Vector SVG Chart with Smooth Gradient Underfill */}
-                <div className="w-full h-36 bg-[#08090C] rounded-xl border border-white/5 p-2 relative flex items-center justify-center">
+                <div className="w-full h-36 glass-subcard rounded-xl p-2 relative flex items-center justify-center">
                     <svg 
                         viewBox={`0 0 ${chartWidth} ${chartHeight}`} 
                         className="w-full h-full overflow-visible"
@@ -366,7 +366,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
             {/* 5. FLOATING QUASAR BUBBLE QUICK LAUNCHER (JADE GREEN) */}
             <section 
                 onClick={() => setActiveTab('bubble')}
-                className="w-full rounded-2xl border border-white/5 bg-[#111318] hover:border-[#10B981]/40 p-4 shadow-xl flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group relative overflow-hidden"
+                className="w-full rounded-2xl glass-panel hover:border-[#10B981]/40 p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group relative overflow-hidden"
             >
                 <div className="flex items-center gap-3 relative z-10">
                     <div className="relative w-11 h-11 flex items-center justify-center">
@@ -401,7 +401,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 <button
                     type="button"
                     onClick={() => setActiveTab('coach')}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#111318] border border-white/5 hover:border-[#2563EB] text-left transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-lg"
+                    className="w-full min-h-[48px] px-4 py-3 rounded-xl glass-panel hover:border-[#2563EB] text-left transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-[#2563EB]/20 border border-[#2563EB]/40 flex items-center justify-center shrink-0">
@@ -422,7 +422,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 <button
                     type="button"
                     onClick={() => setActiveTab('trade')}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-lg"
+                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-black/20 flex items-center justify-center shrink-0">

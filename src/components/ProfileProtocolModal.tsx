@@ -128,15 +128,15 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-            {/* Modal Surface: High-End Anthracite & Border */}
+            {/* Modal Surface: Glassmorphism Dark Fintech */}
             <div 
-                className="w-full max-w-2xl bg-[#08090C] border-t sm:border border-white/[0.08] rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden text-slate-100"
+                className="w-full max-w-2xl bg-[#0D111A]/95 backdrop-blur-2xl border-t sm:border border-white/[0.08] rounded-t-3xl sm:rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden text-slate-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. MODAL TOP HEADER */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-[#111318]/90 shrink-0">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-[#0D111A]/80 backdrop-blur-xl shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#08090C] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)]">
+                        <div className="w-10 h-10 rounded-xl glass-subcard border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)]">
                             <span className="font-sans font-black text-lg text-[#10B981]">T</span>
                         </div>
                         <div>
@@ -157,7 +157,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="p-2 sm:px-3 sm:py-1.5 rounded-xl glass-subcard hover:bg-white/10 text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                         title="Chiudi Scheda"
                     >
                         <span className="text-xs font-mono font-bold hidden sm:inline">Chiudi</span>
@@ -174,7 +174,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                 )}
 
                 {/* 2. SECTION NAVIGATION CHIPS */}
-                <div className="px-4 py-2.5 border-b border-white/[0.06] bg-[#0c0e13] flex items-center gap-1.5 overflow-x-auto no-scrollbar font-mono text-[11px] shrink-0">
+                <div className="px-4 py-2.5 border-b border-white/[0.06] bg-[#0A0D14]/80 backdrop-blur-lg flex items-center gap-1.5 overflow-x-auto no-scrollbar font-mono text-[11px] shrink-0">
                     {[
                         { id: 'IDENTITY', label: 'Identity & Protocol', icon: User },
                         { id: 'BUDGET', label: 'Budget Allocation', icon: Sliders },
@@ -192,7 +192,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                 className={`px-3 py-1.5 rounded-xl shrink-0 font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                                     isActive
                                         ? 'bg-[#10B981] text-[#08090C] border-[#10B981] shadow-[0_0_12px_rgba(0,229,153,0.3)]'
-                                        : 'bg-[#111318] text-slate-400 border-white/[0.06] hover:text-white'
+                                        : 'glass-subcard text-slate-400 border-white/[0.06] hover:text-white'
                                 }`}
                             >
                                 <Icon className="w-3.5 h-3.5" />

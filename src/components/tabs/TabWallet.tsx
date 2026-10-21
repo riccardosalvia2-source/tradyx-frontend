@@ -54,9 +54,9 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
+            <header className="w-full flex items-center justify-between py-2.5 px-3 rounded-2xl glass-header">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0">
+                    <div className="w-9 h-9 rounded-xl glass-subcard flex items-center justify-center shadow-md shrink-0">
                         <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
@@ -69,7 +69,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/5 text-[10px] font-mono text-[#10B981] font-bold">
+                <span className="px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-[#10B981] font-bold">
                     VAULT SECURED
                 </span>
             </header>
@@ -83,8 +83,8 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
             )}
 
             {/* 1. BOX "DEPOSITO FONDO MENSILE" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-2">
                         <Coins className="w-4 h-4 text-[#10B981]" />
                         DEPOSITO FONDO MENSILE ({baseCurrency.symbol})
@@ -105,7 +105,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                             value={monthlyBudgetInput}
                             onChange={(e) => setMonthlyBudgetInput(e.target.value)}
                             placeholder="10000"
-                            className="w-full h-12 px-3.5 rounded-xl bg-[#08090C] border border-white/10 text-white text-sm font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3.5 rounded-xl glass-subcard text-white text-sm font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
                             required
                         />
                     </div>
@@ -121,7 +121,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
             </section>
 
             {/* 2. CARD "SALDO RIMANENTE" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden space-y-3">
                 <div className="space-y-0.5">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
                         SALDO RIMANENTE
@@ -131,15 +131,15 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 font-mono">
-                    <div className="p-2.5 rounded-xl bg-[#08090C] border border-white/5">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.08] font-mono">
+                    <div className="p-2.5 rounded-xl glass-subcard">
                         <span className="text-[10px] text-slate-400 uppercase block">Utilized:</span>
                         <span className="text-sm font-black text-white tabular-nums">
                             {formatMoney(utilizedCapital, false)}
                         </span>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-[#08090C] border border-white/5">
+                    <div className="p-2.5 rounded-xl glass-subcard">
                         <span className="text-[10px] text-slate-400 uppercase block">Monthly Limit:</span>
                         <span className="text-sm font-black text-[#10B981] tabular-nums">
                             {formatMoney(monthlyBudget, true)}
@@ -163,8 +163,8 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
             </section>
 
             {/* 4. BOX "ACTIVE MONTH ALLOCATIONS" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-2">
                         <Database className="w-4 h-4 text-[#2563EB]" />
                         ACTIVE MONTH ALLOCATIONS
@@ -174,7 +174,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                     </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#08090C] border border-white/5 text-center font-mono space-y-1">
+                <div className="p-4 rounded-xl glass-subcard text-center font-mono space-y-1">
                     <span className="text-xs font-bold text-slate-300 block">
                         Zero protocol allocations
                     </span>
@@ -185,7 +185,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
             </section>
 
             {/* 5. BADGE INFORMATIVO "ENCRYPTED LIQUIDITY" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl flex items-center gap-3">
+            <section className="w-full rounded-2xl glass-panel p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#2563EB]/20 border border-[#2563EB]/40 flex items-center justify-center shrink-0">
                     <Lock className="w-5 h-5 text-[#2563EB]" />
                 </div>
@@ -209,7 +209,7 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                 <button
                     type="button"
                     onClick={onLogout}
-                    className="w-full h-11 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white font-mono text-xs font-bold uppercase transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    className="w-full h-11 rounded-xl glass-subcard hover:bg-white/10 text-slate-400 hover:text-white font-mono text-xs font-bold uppercase transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                     <LogOut className="w-4 h-4" />
                     <span>Disconnetti Terminale</span>

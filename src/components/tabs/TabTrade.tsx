@@ -150,9 +150,9 @@ export const TabTrade: React.FC = () => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            <header className="w-full flex items-center justify-between py-2.5 px-3 rounded-2xl glass-header">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0">
+                    <div className="w-9 h-9 rounded-xl glass-subcard flex items-center justify-center shadow-md shrink-0">
                         <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
@@ -165,7 +165,7 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/5 text-[10px] font-mono text-[#10B981] font-bold">
+                <span className="px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-[#10B981] font-bold">
                     PROTOCOL 4.2 ({baseCurrency.code})
                 </span>
             </header>
@@ -179,7 +179,7 @@ export const TabTrade: React.FC = () => {
             )}
 
             {/* Main Institutional Journaling Card */}
-            <form onSubmit={handleSubmit} className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-4">
+            <form onSubmit={handleSubmit} className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-4">
                 
                 {/* 1. SELETTORI ASSET / SYMBOL & STRATEGY */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
@@ -190,7 +190,7 @@ export const TabTrade: React.FC = () => {
                         <select
                             value={assetPair}
                             onChange={(e) => setAssetPair(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
                         >
                             {assetOptions.map(opt => (
                                 <option key={opt} value={opt} className="bg-[#08090C] text-white">
@@ -207,7 +207,7 @@ export const TabTrade: React.FC = () => {
                         <select
                             value={strategy}
                             onChange={(e) => setStrategy(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
                         >
                             {strategyOptions.map(opt => (
                                 <option key={opt} value={opt} className="bg-[#08090C] text-white">
@@ -230,7 +230,7 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[48px] h-12 rounded-xl font-sans font-black text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
                                 direction === 'LONG'
                                     ? 'bg-[#10B981] text-white border-[#10B981] shadow-lg shadow-[#10B981]/25'
-                                    : 'bg-[#08090C] text-slate-400 border-white/10 hover:text-white'
+                                    : 'glass-subcard text-slate-400 hover:text-white'
                             }`}
                         >
                             <TrendingUp className="w-4 h-4" />
@@ -243,7 +243,7 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[48px] h-12 rounded-xl font-sans font-black text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
                                 direction === 'SHORT'
                                     ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-lg shadow-[#DC2626]/25'
-                                    : 'bg-[#08090C] text-slate-400 border-white/10 hover:text-white'
+                                    : 'glass-subcard text-slate-400 hover:text-white'
                             }`}
                         >
                             <TrendingDown className="w-4 h-4" />
@@ -263,7 +263,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="64250.00"
                             required
                         />
@@ -278,7 +278,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="67985.00"
                         />
                     </div>
@@ -292,7 +292,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={positionSize}
                             onChange={(e) => setPositionSize(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="1.0"
                             required
                         />
@@ -306,7 +306,7 @@ export const TabTrade: React.FC = () => {
                             type="text"
                             value={riskReward}
                             onChange={(e) => setRiskReward(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="1:3.2"
                         />
                     </div>
@@ -321,13 +321,13 @@ export const TabTrade: React.FC = () => {
                         step="any"
                         value={fees}
                         onChange={(e) => setFees(e.target.value)}
-                        className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
+                        className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                         placeholder="15.00"
                     />
                 </div>
 
                 {/* Pre-calculated PnL summary badge */}
-                <div className="p-3.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between font-mono">
+                <div className="p-3.5 rounded-xl glass-subcard flex items-center justify-between font-mono">
                     <span className="text-[10px] text-slate-400 uppercase">Estimated Net P&L:</span>
                     <span className={`text-xs sm:text-sm font-black tabular-nums ${calculatedPnl >= 0 ? 'text-[#10B981]' : 'text-[#DC2626]'}`}>
                         {formatMoney(calculatedPnl, true)} ({calculatedRoi}%)
@@ -350,7 +350,7 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'CONFIDENCE'
                                     ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    : 'glass-subcard text-slate-400 hover:text-white'
                             }`}
                         >
                             <Smile className="w-4 h-4" />
@@ -363,7 +363,7 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'NEUTRAL'
                                     ? 'bg-[#2563EB]/20 text-[#60A5FA] border-[#2563EB]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    : 'glass-subcard text-slate-400 hover:text-white'
                             }`}
                         >
                             <Meh className="w-4 h-4" />
@@ -376,7 +376,7 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'FEAR'
                                     ? 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    : 'glass-subcard text-slate-400 hover:text-white'
                             }`}
                         >
                             <Frown className="w-4 h-4" />
@@ -405,7 +405,7 @@ export const TabTrade: React.FC = () => {
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                                         isSelected
                                             ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-md shadow-[#DC2626]/25'
-                                            : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-slate-200'
+                                            : 'glass-subcard text-slate-400 hover:text-slate-200'
                                     }`}
                                 >
                                     {err}
@@ -425,7 +425,7 @@ export const TabTrade: React.FC = () => {
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Descrivi la logica di ingresso, il trigger tecnico e la gestione del rischio..."
-                        className="w-full p-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors resize-none"
+                        className="w-full p-3 rounded-xl glass-subcard text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors resize-none"
                     />
                 </div>
 
