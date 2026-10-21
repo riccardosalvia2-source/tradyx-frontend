@@ -1,7 +1,7 @@
 // ============================================================================
 // TRADYX MOBILE TAB 4: STATS (Performance Analytics)
 // Institutional Standard / Dark Fintech Terminal
-// Linear, Raycast & Bloomberg Terminal Aesthetics
+// Calibrated Palette: #10B981 Emerald, #DC2626 Crimson, #2563EB Navy
 // ============================================================================
 
 import React, { useState } from 'react';
@@ -144,13 +144,13 @@ export const TabStats: React.FC = () => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
+            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)] shrink-0">
-                        <span className="font-sans font-black text-base text-[#00E599]">T</span>
+                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-md shrink-0">
+                        <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
+                        <span className="text-[10px] font-mono text-[#9CA3AF] tracking-wider uppercase font-semibold">
                             QUANT ANALYTICS TERMINAL
                         </span>
                         <h1 className="text-sm font-extrabold text-white tracking-tight font-mono">
@@ -160,14 +160,14 @@ export const TabStats: React.FC = () => {
                 </div>
 
                 {/* SWITCH "LINE / CANDLE" */}
-                <div className="flex items-center bg-[#111318] p-0.5 rounded-xl border border-white/[0.08] font-mono text-[10px]">
+                <div className="flex items-center bg-[#111318] p-0.5 rounded-xl border border-white/5 font-mono text-[10px]">
                     <button
                         type="button"
                         onClick={() => setChartMode('LINE')}
                         className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                             chartMode === 'LINE'
-                                ? 'bg-[#00E599] text-[#08090C] shadow-md shadow-[#00E599]/20'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-[#10B981] text-[#08090C] shadow-md'
+                                : 'text-[#9CA3AF] hover:text-white'
                         }`}
                     >
                         LINE
@@ -177,8 +177,8 @@ export const TabStats: React.FC = () => {
                         onClick={() => setChartMode('CANDLE')}
                         className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                             chartMode === 'CANDLE'
-                                ? 'bg-[#00E599] text-[#08090C] shadow-md shadow-[#00E599]/20'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-[#10B981] text-[#08090C] shadow-md'
+                                : 'text-[#9CA3AF] hover:text-white'
                         }`}
                     >
                         CANDLE
@@ -187,29 +187,29 @@ export const TabStats: React.FC = () => {
             </header>
 
             {/* 1. CARD "NET PROFIT" CON METRICHE ISTITUZIONALI */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
                 <div className="space-y-0.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] font-bold block">
                         NET PROFIT
                     </span>
-                    <div className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-[#00E599] tabular-nums">
+                    <div className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-[#10B981] tabular-nums">
                         {formatMoney(totalPnl, true)}
                     </div>
                 </div>
 
                 {/* Badges: Consistency 60%, Profit Factor 5.50, Max Drawdown */}
                 <div className="flex flex-wrap gap-2 pt-1 font-mono text-xs">
-                    <span className="px-2.5 py-1 rounded-lg bg-[#1D68BD] text-white font-bold text-[11px] flex items-center gap-1 shadow-md">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#2563EB] text-white font-bold text-[11px] flex items-center gap-1 shadow-md">
                         <span>Consistency</span>
                         <strong className="tabular-nums">60%</strong>
                     </span>
 
-                    <span className="px-2.5 py-1 rounded-lg bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30 font-bold text-[11px] flex items-center gap-1">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 font-bold text-[11px] flex items-center gap-1">
                         <span>Profit Factor</span>
                         <strong className="tabular-nums">5.50</strong>
                     </span>
 
-                    <span className="px-2.5 py-1 rounded-lg bg-[#FF4D4D]/15 text-[#FF4D4D] border border-[#FF4D4D]/30 font-bold text-[11px] flex items-center gap-1">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#DC2626]/15 text-[#DC2626] border border-[#DC2626]/30 font-bold text-[11px] flex items-center gap-1">
                         <span>Max Drawdown</span>
                         <strong className="tabular-nums">{formatMoney(520, true)}</strong>
                     </span>
@@ -217,12 +217,12 @@ export const TabStats: React.FC = () => {
             </section>
 
             {/* 2. CIAMBELLA GRAFICA "WIN / LOSS RATIO" */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase">
                         WIN / LOSS RATIO
                     </span>
-                    <span className="text-[10px] font-mono text-[#00E599] font-bold tabular-nums">
+                    <span className="text-[10px] font-mono text-[#10B981] font-bold tabular-nums">
                         {winRate}% EXPECTANCY
                     </span>
                 </div>
@@ -240,13 +240,13 @@ export const TabStats: React.FC = () => {
                                 stroke="#08090C"
                                 strokeWidth="12"
                             />
-                            {/* Win segment (Neon Green) */}
+                            {/* Win segment (Emerald Green) */}
                             <circle
                                 cx="50"
                                 cy="50"
                                 r={radius}
                                 fill="transparent"
-                                stroke="#00E599"
+                                stroke="#10B981"
                                 strokeWidth="12"
                                 strokeDasharray={`${winDash} ${circumference}`}
                                 strokeDashoffset="0"
@@ -258,7 +258,7 @@ export const TabStats: React.FC = () => {
                                 cy="50"
                                 r={radius}
                                 fill="transparent"
-                                stroke="#FF4D4D"
+                                stroke="#DC2626"
                                 strokeWidth="12"
                                 strokeDasharray={`${lossDash} ${circumference}`}
                                 strokeDashoffset={`-${winDash}`}
@@ -268,27 +268,27 @@ export const TabStats: React.FC = () => {
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                             <span className="text-xs font-black text-white font-mono tabular-nums">{winRate}%</span>
-                            <span className="text-[8px] text-slate-400 font-mono uppercase">WIN RATE</span>
+                            <span className="text-[8px] text-[#9CA3AF] font-mono uppercase">WIN RATE</span>
                         </div>
                     </div>
 
                     {/* Legend Details */}
                     <div className="space-y-2 font-mono text-xs">
                         <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-md bg-[#00E599] shrink-0" />
+                            <span className="w-3 h-3 rounded-md bg-[#10B981] shrink-0" />
                             <div>
                                 <span className="text-white font-bold tabular-nums">Wins: {winCount}</span>
-                                <span className="text-[10px] text-slate-400 block tabular-nums">
+                                <span className="text-[10px] text-[#9CA3AF] block tabular-nums">
                                     {formatMoney(grossProfit, true)}
                                 </span>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-md bg-[#FF4D4D] shrink-0" />
+                            <span className="w-3 h-3 rounded-md bg-[#DC2626] shrink-0" />
                             <div>
                                 <span className="text-white font-bold tabular-nums">Losses: {lossCount}</span>
-                                <span className="text-[10px] text-slate-400 block tabular-nums">
+                                <span className="text-[10px] text-[#9CA3AF] block tabular-nums">
                                     -{formatMoney(grossLoss, false)}
                                 </span>
                             </div>
@@ -297,48 +297,48 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 3. GRAFICO "EQUITY PERFORMANCE" (VETTORIALE FLUIDO CON GRADIENTE SFUMATO VERSO IL NERO) */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
+            {/* 3. GRAFICO "EQUITY PERFORMANCE" */}
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-white uppercase">
                         EQUITY PERFORMANCE ({chartMode} MODE)
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400 tabular-nums">
+                    <span className="text-[10px] font-mono text-[#9CA3AF] tabular-nums">
                         Peak: {formatMoney(14975, false)}
                     </span>
                 </div>
 
                 {/* Interactive Tooltip bar */}
-                <div className="px-3 py-1.5 rounded-lg bg-[#08090C] border border-white/[0.06] flex items-center justify-between font-mono text-[11px]">
-                    <span className="text-slate-400">Punto Attivo:</span>
-                    <span className="text-[#00E599] font-bold tabular-nums">
+                <div className="px-3 py-1.5 rounded-lg bg-[#08090C] border border-white/5 flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-[#9CA3AF]">Punto Attivo:</span>
+                    <span className="text-[#10B981] font-bold tabular-nums">
                         {activePoint.session} • {formatMoney(activePoint.equity, false)}
                     </span>
                 </div>
 
-                <div className="w-full h-44 bg-[#08090C] rounded-xl border border-white/[0.06] p-2 relative flex items-center justify-center overflow-hidden">
+                <div className="w-full h-44 bg-[#08090C] rounded-xl border border-white/5 p-2 relative flex items-center justify-center overflow-hidden">
                     {chartMode === 'LINE' ? (
                         <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-full overflow-visible">
                             <defs>
                                 <linearGradient id="equityUnderfillGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#00E599" stopOpacity="0.4" />
+                                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
                                     <stop offset="100%" stopColor="#08090C" stopOpacity="0.0" />
                                 </linearGradient>
                             </defs>
 
                             {/* Crisp grid lines */}
-                            <line x1="0" y1="25" x2={chartW} y2="25" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                            <line x1="0" y1="65" x2={chartW} y2="65" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                            <line x1="0" y1="105" x2={chartW} y2="105" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                            <line x1="0" y1="25" x2={chartW} y2="25" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                            <line x1="0" y1="65" x2={chartW} y2="65" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                            <line x1="0" y1="105" x2={chartW} y2="105" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
 
                             {/* Underfill Gradient */}
                             <path d={areaFill} fill="url(#equityUnderfillGrad)" />
 
-                            {/* 2px Crisp Line */}
+                            {/* Crisp 2px Line */}
                             <path 
                                 d={pathLine} 
                                 fill="none" 
-                                stroke="#00E599" 
+                                stroke="#10B981" 
                                 strokeWidth="2.5" 
                                 strokeLinecap="round" 
                                 strokeLinejoin="round" 
@@ -357,8 +357,8 @@ export const TabStats: React.FC = () => {
                                             cx={pt.x}
                                             cy={pt.y}
                                             r={isSel ? 6 : 3.5}
-                                            fill={isSel ? '#00E599' : '#08090C'}
-                                            stroke="#00E599"
+                                            fill={isSel ? '#10B981' : '#08090C'}
+                                            stroke="#10B981"
                                             strokeWidth={isSel ? '2.5' : '1.5'}
                                         />
                                         {isSel && (
@@ -366,7 +366,7 @@ export const TabStats: React.FC = () => {
                                                 cx={pt.x}
                                                 cy={pt.y}
                                                 r="12"
-                                                fill="#00E599"
+                                                fill="#10B981"
                                                 opacity="0.25"
                                             />
                                         )}
@@ -375,15 +375,15 @@ export const TabStats: React.FC = () => {
                             })}
                         </svg>
                     ) : (
-                        /* Candle Simulation with Institutional Wicks & Bodies */
+                        /* Candle Simulation */
                         <div className="w-full h-full flex items-center justify-around px-2 pt-2">
                             {equityData.slice(1).map((candle, idx) => {
                                 const isGreen = candle.close >= candle.open;
                                 return (
                                     <div key={idx} className="flex flex-col items-center h-full justify-center w-8">
-                                        <div className={`w-[1.5px] h-3 ${isGreen ? 'bg-[#00E599]' : 'bg-[#FF4D4D]'}`} />
-                                        <div className={`w-4 h-14 rounded-sm ${isGreen ? 'bg-[#00E599]' : 'bg-[#FF4D4D]'}`} />
-                                        <div className={`w-[1.5px] h-3 ${isGreen ? 'bg-[#00E599]' : 'bg-[#FF4D4D]'}`} />
+                                        <div className={`w-[1.5px] h-3 ${isGreen ? 'bg-[#10B981]' : 'bg-[#DC2626]'}`} />
+                                        <div className={`w-4 h-14 rounded-sm ${isGreen ? 'bg-[#10B981]' : 'bg-[#DC2626]'}`} />
+                                        <div className={`w-[1.5px] h-3 ${isGreen ? 'bg-[#10B981]' : 'bg-[#DC2626]'}`} />
                                         <span className="text-[8px] font-mono text-slate-500 mt-1">{candle.session.split(' ')[0]}</span>
                                     </div>
                                 );
@@ -393,28 +393,28 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 4. PERFORMANCE HEATMAP (GRIGLIA MENSILE A INTENSITÀ GRADIENTE) */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            {/* 4. PERFORMANCE HEATMAP */}
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-cyan-400" />
                         PERFORMANCE HEATMAP (MONTHLY INTENSITY)
                     </span>
                     <div className="flex items-center gap-2 text-[9px] font-mono">
                         <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded bg-[#00E599]" /> Win
+                            <span className="w-2 h-2 rounded bg-[#10B981]" /> Win
                         </span>
                         <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded bg-[#FF4D4D]" /> Loss
+                            <span className="w-2 h-2 rounded bg-[#DC2626]" /> Loss
                         </span>
                     </div>
                 </div>
 
                 {/* Day preview box when clicked */}
                 {activeDayInfo && activeDayInfo.pnl !== 0 && (
-                    <div className="p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex items-center justify-between font-mono text-xs animate-in fade-in">
-                        <span className="text-slate-400">Giorno {activeDayInfo.day} Ottobre:</span>
-                        <strong className={activeDayInfo.pnl > 0 ? 'text-[#00E599]' : 'text-[#FF4D4D]'}>
+                    <div className="p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between font-mono text-xs animate-in fade-in">
+                        <span className="text-[#9CA3AF]">Giorno {activeDayInfo.day} Ottobre:</span>
+                        <strong className={activeDayInfo.pnl > 0 ? 'text-[#10B981]' : 'text-[#DC2626]'}>
                             {formatMoney(activeDayInfo.pnl, true)}
                         </strong>
                     </div>
@@ -427,18 +427,18 @@ export const TabStats: React.FC = () => {
                         </span>
                     ))}
                     {heatmapDays.map((d) => {
-                        let bgStyle = 'bg-[#08090C] text-slate-600 border-white/[0.04]';
+                        let bgStyle = 'bg-[#08090C] text-slate-600 border-white/5';
                         
                         if (d.intensity === 'HIGH_WIN') {
-                            bgStyle = 'bg-[#00E599] text-[#08090C] font-black border-[#00E599] shadow-[0_0_10px_rgba(0,229,153,0.5)]';
+                            bgStyle = 'bg-[#10B981] text-[#08090C] font-black border-[#10B981] shadow-md';
                         } else if (d.intensity === 'MED_WIN') {
-                            bgStyle = 'bg-[#00B377] text-[#08090C] font-bold border-[#00B377]';
+                            bgStyle = 'bg-[#059669] text-white font-bold border-[#059669]';
                         } else if (d.intensity === 'LOW_WIN') {
-                            bgStyle = 'bg-[#00E599]/30 text-[#00E599] font-bold border-[#00E599]/40';
+                            bgStyle = 'bg-[#10B981]/25 text-[#10B981] font-bold border-[#10B981]/40';
                         } else if (d.intensity === 'HIGH_LOSS') {
-                            bgStyle = 'bg-[#FF4D4D] text-white font-black border-[#FF4D4D] shadow-[0_0_10px_rgba(255,77,77,0.5)]';
+                            bgStyle = 'bg-[#DC2626] text-white font-black border-[#DC2626] shadow-md';
                         } else if (d.intensity === 'MED_LOSS') {
-                            bgStyle = 'bg-[#FF4D4D]/60 text-white font-bold border-[#FF4D4D]/70';
+                            bgStyle = 'bg-[#DC2626]/60 text-white font-bold border-[#DC2626]/70';
                         }
 
                         const isSelected = selectedHeatmapDay === d.day;
@@ -459,29 +459,29 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 5. ISTOGRAMMA "HOURLY DISTRIBUTION" CON BARRE ARROTONDATE E COLORE DINAMICO */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            {/* 5. ISTOGRAMMA "HOURLY DISTRIBUTION" */}
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-purple-400" />
                         HOURLY DISTRIBUTION (EXECUTION EFFICIENCY)
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">SESSION AUDIT</span>
+                    <span className="text-[10px] font-mono text-[#9CA3AF]">SESSION AUDIT</span>
                 </div>
 
                 <div className="flex items-end justify-between h-32 pt-2 px-1 font-mono">
                     {hourlyDistribution.map((h, i) => {
                         const height = h.count === 0 ? 8 : h.count === 1 ? 52 : 88;
                         const barColor = h.count === 0 
-                            ? 'bg-[#08090C] border border-white/[0.06]' 
+                            ? 'bg-[#08090C] border border-white/5' 
                             : h.isWin 
-                            ? 'bg-[#00E599] shadow-[0_0_10px_rgba(0,229,153,0.3)]' 
-                            : 'bg-[#FF4D4D] shadow-[0_0_10px_rgba(255,77,77,0.3)]';
+                            ? 'bg-[#10B981]' 
+                            : 'bg-[#DC2626]';
 
                         return (
                             <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
                                 <span className={`text-[9px] font-bold tabular-nums ${
-                                    h.count > 0 ? (h.isWin ? 'text-[#00E599]' : 'text-[#FF4D4D]') : 'text-slate-600'
+                                    h.count > 0 ? (h.isWin ? 'text-[#10B981]' : 'text-[#DC2626]') : 'text-slate-600'
                                 }`}>
                                     {h.count > 0 ? `${h.count}t` : ''}
                                 </span>
@@ -492,37 +492,37 @@ export const TabStats: React.FC = () => {
                                     title={h.count > 0 ? `${h.hour} - PnL: ${h.pnl} (${h.count} trades)` : `${h.hour} - No activity`}
                                 />
 
-                                <span className="text-[8px] text-slate-400 font-semibold">{h.hour}</span>
+                                <span className="text-[8px] text-[#9CA3AF] font-semibold">{h.hour}</span>
                             </div>
                         );
                     })}
                 </div>
             </section>
 
-            {/* 6. GRAFICO A GRADINI "DRAWDOWN ANALYSIS" (STEP LINE IN TONALITÀ ROSSO/ARANCIO) */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            {/* 6. GRAFICO A GRADINI "DRAWDOWN ANALYSIS" */}
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
-                        <TrendingDown className="w-4 h-4 text-[#FF4D4D]" />
+                        <TrendingDown className="w-4 h-4 text-[#DC2626]" />
                         DRAWDOWN ANALYSIS (STEPPED GEOMETRIC CURVE)
                     </span>
-                    <span className="text-[10px] font-mono text-[#FF4D4D] font-bold tabular-nums">
+                    <span className="text-[10px] font-mono text-[#DC2626] font-bold tabular-nums">
                         PEAK DD: {formatMoney(520, true)}
                     </span>
                 </div>
 
-                <div className="w-full h-32 bg-[#08090C] rounded-xl border border-white/[0.06] p-2 flex items-center justify-center relative overflow-hidden">
+                <div className="w-full h-32 bg-[#08090C] rounded-xl border border-white/5 p-2 flex items-center justify-center relative overflow-hidden">
                     <svg viewBox="0 0 320 80" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#FF4D4D" stopOpacity="0.3" />
+                                <stop offset="0%" stopColor="#DC2626" stopOpacity="0.3" />
                                 <stop offset="100%" stopColor="#08090C" stopOpacity="0.0" />
                             </linearGradient>
                         </defs>
 
                         {/* Subtle Gridlines */}
-                        <line x1="0" y1="20" x2="320" y2="20" stroke="rgba(255,255,255,0.06)" />
-                        <line x1="0" y1="50" x2="320" y2="50" stroke="rgba(255,255,255,0.06)" />
+                        <line x1="0" y1="20" x2={320} y2="20" stroke="rgba(255,255,255,0.05)" />
+                        <line x1="0" y1="50" x2={320} y2="50" stroke="rgba(255,255,255,0.05)" />
 
                         {/* Underfill polygon for stepped path */}
                         <path
@@ -530,11 +530,11 @@ export const TabStats: React.FC = () => {
                             fill="url(#drawdownGradient)"
                         />
 
-                        {/* Stepped line path in crisp red/orange */}
+                        {/* Stepped line path in sober crimson */}
                         <path
                             d="M 10 15 L 70 15 L 70 45 L 130 45 L 130 20 L 190 20 L 190 10 L 250 10 L 250 65 L 310 65"
                             fill="none"
-                            stroke="#FF4D4D"
+                            stroke="#DC2626"
                             strokeWidth="2.5"
                             strokeLinecap="round"
                             strokeLinejoin="miter"
@@ -543,14 +543,14 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 7. GRAFICO A BARRE "IMPACT OF ERRORS (AVG P&L)" */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            {/* 7. GRAFICO A BARRE "IMPACT OF ERRORS" */}
+            <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-1.5">
-                        <ShieldAlert className="w-4 h-4 text-[#FF4D4D]" />
+                        <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
                         IMPACT OF ERRORS (LEAKAGE AUDIT)
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">DISCIPLINE PENALTY</span>
+                    <span className="text-[10px] font-mono text-[#9CA3AF]">DISCIPLINE PENALTY</span>
                 </div>
 
                 <div className="space-y-2.5 font-mono">
@@ -558,13 +558,13 @@ export const TabStats: React.FC = () => {
                         <div key={idx} className="space-y-1">
                             <div className="flex justify-between text-[10px]">
                                 <span className="font-bold text-slate-300">{item.error} ({item.count})</span>
-                                <span className="font-extrabold text-[#FF4D4D] tabular-nums">
+                                <span className="font-extrabold text-[#DC2626] tabular-nums">
                                     {formatMoney(item.avgLoss, true)}
                                 </span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-[#08090C] overflow-hidden border border-white/[0.06]">
+                            <div className="w-full h-2 rounded-full bg-[#08090C] overflow-hidden border border-white/5">
                                 <div
-                                    className="h-full bg-[#FF4D4D] rounded-full transition-all duration-500"
+                                    className="h-full bg-[#DC2626] rounded-full transition-all duration-500"
                                     style={{ width: item.barWidth }}
                                 />
                             </div>
@@ -573,8 +573,8 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 8. CARD BLU RISALTO "CONSISTENCY FACTOR" (#1D68BD) */}
-            <section className="w-full rounded-2xl bg-[#1D68BD] p-4 sm:p-5 shadow-2xl text-white space-y-2.5 relative overflow-hidden">
+            {/* 8. CARD BLU RISALTO "CONSISTENCY FACTOR" (#2563EB) */}
+            <section className="w-full rounded-2xl bg-[#2563EB] p-4 sm:p-5 shadow-2xl text-white space-y-2.5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full pointer-events-none" />
 
                 <div className="flex items-center justify-between relative z-10">
@@ -584,7 +584,7 @@ export const TabStats: React.FC = () => {
                             CONSISTENCY FACTOR
                         </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-white text-[#1D68BD] font-mono font-black text-xs shadow-md">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white text-[#2563EB] font-mono font-black text-xs shadow-md">
                         82 / 100 EXCELLENT
                     </span>
                 </div>

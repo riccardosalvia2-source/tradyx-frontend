@@ -102,8 +102,8 @@ export const TabAICoach: React.FC = () => {
             {/* Top Compact Section Header */}
             <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#12141A] border border-[#00E599]/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.15)] shrink-0">
-                        <span className="font-sans font-black text-base text-[#00E599]">T</span>
+                    <div className="w-9 h-9 rounded-xl bg-[#12141A] border border-[#10B981]/30 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0">
+                        <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
@@ -115,8 +115,8 @@ export const TabAICoach: React.FC = () => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#12141A] border border-white/5 text-[10px] font-mono text-[#00E599] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E599] animate-ping" />
+                <span className="px-2.5 py-1 rounded-full bg-[#12141A] border border-white/5 text-[10px] font-mono text-[#10B981] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
                     GEMINI
                 </span>
             </header>
@@ -127,8 +127,8 @@ export const TabAICoach: React.FC = () => {
                 {/* Initial Welcome Screen when no messages */}
                 {messages.length === 0 && (
                     <div className="w-full py-10 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className="w-16 h-16 rounded-3xl bg-[#12141A] border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(0,229,153,0.2)]">
-                            <Star className="w-8 h-8 text-[#00E599] fill-[#00E599]/20 animate-pulse" />
+                        <div className="w-16 h-16 rounded-3xl bg-[#12141A] border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                            <Star className="w-8 h-8 text-[#10B981] fill-[#10B981]/20 animate-pulse" />
                         </div>
 
                         <div className="space-y-1 max-w-xs">
@@ -153,7 +153,7 @@ export const TabAICoach: React.FC = () => {
                                     className="w-full p-2.5 rounded-xl bg-[#12141A] hover:bg-[#181b23] border border-white/5 text-left text-xs font-mono text-slate-300 hover:text-white transition flex items-center justify-between cursor-pointer active:scale-98"
                                 >
                                     <span>{prompt}</span>
-                                    <ArrowUpRight className="w-3.5 h-3.5 text-[#00E599] shrink-0" />
+                                    <ArrowUpRight className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
                                 </button>
                             ))}
                         </div>
@@ -167,19 +167,19 @@ export const TabAICoach: React.FC = () => {
                         className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         {msg.sender === 'assistant' && (
-                            <div className="w-7 h-7 rounded-lg bg-[#12141A] border border-[#00E599]/40 flex items-center justify-center shrink-0 mt-0.5">
-                                <Bot className="w-4 h-4 text-[#00E599]" />
+                            <div className="w-7 h-7 rounded-lg bg-[#12141A] border border-[#10B981]/40 flex items-center justify-center shrink-0 mt-0.5">
+                                <Bot className="w-4 h-4 text-[#10B981]" />
                             </div>
                         )}
 
                         <div className={`max-w-[85%] rounded-2xl p-3.5 shadow-lg text-xs leading-relaxed ${
                             msg.sender === 'user'
-                                ? 'bg-[#00E599] text-[#08090C] font-semibold rounded-br-xs'
+                                ? 'bg-[#10B981] text-white font-semibold rounded-br-xs'
                                 : 'bg-[#12141A] border border-white/5 text-slate-200 rounded-bl-xs font-sans'
                         }`}>
                             <div className="whitespace-pre-wrap">{msg.content}</div>
                             <span className={`text-[9px] font-mono mt-1 block ${
-                                msg.sender === 'user' ? 'text-[#08090C]/60 text-right' : 'text-slate-500'
+                                msg.sender === 'user' ? 'text-white/70 text-right' : 'text-slate-500'
                             }`}>
                                 {msg.timestamp}
                             </span>
@@ -191,7 +191,7 @@ export const TabAICoach: React.FC = () => {
                 {isTyping && (
                     <div className="flex gap-2.5 items-center text-xs font-mono text-slate-400">
                         <div className="w-7 h-7 rounded-lg bg-[#12141A] border border-white/10 flex items-center justify-center shrink-0">
-                            <Bot className="w-4 h-4 text-[#00E599] animate-spin" />
+                            <Bot className="w-4 h-4 text-[#10B981] animate-spin" />
                         </div>
                         <span className="animate-pulse">Analisi quantitativa in corso...</span>
                     </div>
@@ -214,15 +214,15 @@ export const TabAICoach: React.FC = () => {
                         value={inputPrompt}
                         onChange={(e) => setInputPrompt(e.target.value)}
                         placeholder="Chiedi al tuo coach..."
-                        className="flex-1 h-12 px-4 rounded-xl bg-[#12141A] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none transition-colors"
+                        className="flex-1 h-12 px-4 rounded-xl bg-[#12141A] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors"
                     />
 
                     <button
                         type="submit"
                         disabled={!inputPrompt.trim() || isTyping}
-                        className="w-12 h-12 rounded-xl bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 transition-all active:scale-95 shadow-md shadow-[#00E599]/20"
+                        className="w-12 h-12 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 transition-all active:scale-95 shadow-md shadow-[#10B981]/20"
                     >
-                        <Send className="w-5 h-5 text-[#08090C]" />
+                        <Send className="w-5 h-5 text-white" />
                     </button>
                 </form>
             </div>

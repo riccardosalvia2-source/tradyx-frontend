@@ -136,15 +136,15 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                 {/* 1. MODAL TOP HEADER */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-[#111318]/90 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#08090C] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)]">
-                            <span className="font-sans font-black text-lg text-[#00E599]">T</span>
+                        <div className="w-10 h-10 rounded-xl bg-[#08090C] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)]">
+                            <span className="font-sans font-black text-lg text-[#10B981]">T</span>
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-sm sm:text-base font-extrabold text-white tracking-tight uppercase font-mono">
                                     PROFILE & PROTOCOL SETTINGS
                                 </h2>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30">
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
                                     {selectedPlan.toUpperCase()}
                                 </span>
                             </div>
@@ -167,8 +167,8 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
 
                 {/* Toast Notification Alert */}
                 {toastMessage && (
-                    <div className="px-5 py-2.5 bg-[#00E599]/15 border-b border-[#00E599]/30 text-[#00E599] text-xs font-mono font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4 shrink-0 text-[#00E599]" />
+                    <div className="px-5 py-2.5 bg-[#10B981]/15 border-b border-[#10B981]/30 text-[#10B981] text-xs font-mono font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-[#10B981]" />
                         <span>{toastMessage}</span>
                     </div>
                 )}
@@ -191,7 +191,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                 onClick={() => setActiveSection(tab.id as any)}
                                 className={`px-3 py-1.5 rounded-xl shrink-0 font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                                     isActive
-                                        ? 'bg-[#00E599] text-[#08090C] border-[#00E599] shadow-[0_0_12px_rgba(0,229,153,0.3)]'
+                                        ? 'bg-[#10B981] text-[#08090C] border-[#10B981] shadow-[0_0_12px_rgba(0,229,153,0.3)]'
                                         : 'bg-[#111318] text-slate-400 border-white/[0.06] hover:text-white'
                                 }`}
                             >
@@ -212,7 +212,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             {/* Protocol Name */}
                             <div className="p-4 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-2">
                                 <label className="text-[11px] font-mono uppercase text-slate-400 font-bold flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5 text-[#00E599]" />
+                                    <User className="w-3.5 h-3.5 text-[#10B981]" />
                                     <span>Protocol Trader Name</span>
                                 </label>
                                 <input
@@ -220,7 +220,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                     value={protocolName}
                                     onChange={(e) => setProtocolName(e.target.value)}
                                     placeholder="Nome e cognome del trader..."
-                                    className="w-full h-11 px-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] text-white font-mono text-sm focus:border-[#00E599] focus:outline-none transition-colors"
+                                    className="w-full h-11 px-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] text-white font-mono text-sm focus:border-[#10B981] focus:outline-none transition-colors"
                                 />
                                 <span className="text-[10px] text-slate-400 font-mono">
                                     Il nome mostrato nell'Institutional Header e nei report PDF generati.
@@ -230,14 +230,14 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             {/* User Email */}
                             <div className="p-4 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-2">
                                 <label className="text-[11px] font-mono uppercase text-slate-400 font-bold flex items-center gap-1.5">
-                                    <Mail className="w-3.5 h-3.5 text-[#00E599]" />
+                                    <Mail className="w-3.5 h-3.5 text-[#10B981]" />
                                     <span>Identity & Auth Email</span>
                                 </label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full h-11 px-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] text-white font-mono text-sm focus:border-[#00E599] focus:outline-none transition-colors"
+                                    className="w-full h-11 px-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] text-white font-mono text-sm focus:border-[#10B981] focus:outline-none transition-colors"
                                 />
                                 <span className="text-[10px] text-slate-400 font-mono">
                                     Email protetta con crittografia client-side di livello istituzionale.
@@ -248,10 +248,10 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             <div className="p-4 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-2 relative">
                                 <label className="text-[11px] font-mono uppercase text-slate-400 font-bold flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
-                                        <Globe className="w-3.5 h-3.5 text-[#00E599]" />
+                                        <Globe className="w-3.5 h-3.5 text-[#10B981]" />
                                         <span>Base Currency (Aggiornamento Globale Simboli)</span>
                                     </span>
-                                    <span className="text-[#00E599] font-mono font-bold text-xs">
+                                    <span className="text-[#10B981] font-mono font-bold text-xs">
                                         {baseCurrency.code} ({baseCurrency.symbol})
                                     </span>
                                 </label>
@@ -265,7 +265,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         <span className="font-bold text-white">{baseCurrency.code}</span>
                                         <span className="text-slate-400">({baseCurrency.symbol}) - {baseCurrency.name}</span>
                                     </div>
-                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isCurrencyDropdownOpen ? 'rotate-180 text-[#00E599]' : ''}`} />
+                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isCurrencyDropdownOpen ? 'rotate-180 text-[#10B981]' : ''}`} />
                                 </div>
 
                                 {/* Dropdown Menu with Instant Search */}
@@ -278,7 +278,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                 value={currencySearch}
                                                 onChange={(e) => setCurrencySearch(e.target.value)}
                                                 placeholder="Cerca valuta (EUR, USD, GBP, JPY, CHF, BTC...)"
-                                                className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#111318] border border-white/10 text-xs text-white font-mono placeholder:text-slate-400 focus:border-[#00E599] focus:outline-none"
+                                                className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#111318] border border-white/10 text-xs text-white font-mono placeholder:text-slate-400 focus:border-[#10B981] focus:outline-none"
                                                 autoFocus
                                             />
                                         </div>
@@ -296,7 +296,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                         }}
                                                         className={`px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
                                                             isSel 
-                                                                ? 'bg-[#00E599]/20 text-[#00E599] font-bold border border-[#00E599]/30' 
+                                                                ? 'bg-[#10B981]/20 text-[#10B981] font-bold border border-[#10B981]/30' 
                                                                 : 'hover:bg-white/5 text-slate-200'
                                                         }`}
                                                     >
@@ -306,7 +306,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                             <span className="text-slate-400">({curr.symbol})</span>
                                                             <span className="text-[11px] text-slate-400">• {curr.name}</span>
                                                         </div>
-                                                        {isSel && <Check className="w-4 h-4 text-[#00E599]" />}
+                                                        {isSel && <Check className="w-4 h-4 text-[#10B981]" />}
                                                     </div>
                                                 );
                                             })}
@@ -319,7 +319,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             <div className="p-4 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Zap className="w-4 h-4 text-[#00E599]" />
+                                        <Zap className="w-4 h-4 text-[#10B981]" />
                                         <span className="text-xs font-mono font-bold text-white uppercase">
                                             Reinvest Profits (Interesse Composto)
                                         </span>
@@ -334,7 +334,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         }}
                                         className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 border ${
                                             reinvestProfits 
-                                                ? 'bg-[#00E599] border-[#00E599]' 
+                                                ? 'bg-[#10B981] border-[#10B981]' 
                                                 : 'bg-slate-800 border-white/10'
                                         }`}
                                     >
@@ -362,12 +362,12 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             <div className="p-5 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-4">
                                 <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
                                     <div className="flex items-center gap-2">
-                                        <Coins className="w-4 h-4 text-[#00E599]" />
+                                        <Coins className="w-4 h-4 text-[#10B981]" />
                                         <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                                             Capitale Allocato Mensile
                                         </h3>
                                     </div>
-                                    <span className="text-xs font-black font-mono text-[#00E599]">
+                                    <span className="text-xs font-black font-mono text-[#10B981]">
                                         {formatMoney(monthlyBudget, false)}
                                     </span>
                                 </div>
@@ -385,7 +385,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         step="500"
                                         value={monthlyBudget}
                                         onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                                        className="w-full accent-[#00E599] cursor-pointer"
+                                        className="w-full accent-[#10B981] cursor-pointer"
                                     />
 
                                     <div className="flex gap-2 pt-1 font-mono text-[10px]">
@@ -396,7 +396,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                 onClick={() => setMonthlyBudget(val)}
                                                 className={`px-2.5 py-1 rounded-lg border transition-all ${
                                                     monthlyBudget === val 
-                                                        ? 'bg-[#00E599] text-[#08090C] border-[#00E599] font-black' 
+                                                        ? 'bg-[#10B981] text-[#08090C] border-[#10B981] font-black' 
                                                         : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
                                                 }`}
                                             >
@@ -496,14 +496,14 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                 {/* 1. FREE PLAN */}
                                 <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
                                     selectedPlan === 'Free' 
-                                        ? 'bg-[#111318] border-[#00E599]/60 shadow-[0_0_20px_rgba(0,229,153,0.15)]' 
+                                        ? 'bg-[#111318] border-[#10B981]/60 shadow-[0_0_20px_rgba(0,229,153,0.15)]' 
                                         : 'bg-[#111318]/70 border-white/[0.08]'
                                 }`}>
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-mono font-bold uppercase text-slate-300">Free</span>
                                             {selectedPlan === 'Free' && (
-                                                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black bg-[#00E599]/20 text-[#00E599]">
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black bg-[#10B981]/20 text-[#10B981]">
                                                     ATTIVO
                                                 </span>
                                             )}
@@ -516,19 +516,19 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
 
                                         <ul className="space-y-2 text-[11px] font-mono text-slate-300 border-t border-white/5 pt-3">
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Accesso base al journal</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Fino a 30 trade/mese</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Quasar Bubble oraria</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Statistiche essenziali</span>
                                             </li>
                                         </ul>
@@ -554,18 +554,18 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                 {/* 2. PLUS PLAN (RECOMMENDED) */}
                                 <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between relative ${
                                     selectedPlan === 'Plus' 
-                                        ? 'bg-[#111318] border-[#00E599] shadow-[0_0_25px_rgba(0,229,153,0.25)]' 
+                                        ? 'bg-[#111318] border-[#10B981] shadow-[0_0_25px_rgba(0,229,153,0.25)]' 
                                         : 'bg-[#111318] border-white/20'
                                 }`}>
-                                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-[#00E599] text-[#08090C] rounded-full text-[9px] font-black uppercase font-mono tracking-wider shadow-md">
+                                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-[#10B981] text-[#08090C] rounded-full text-[9px] font-black uppercase font-mono tracking-wider shadow-md">
                                         POPOLARE
                                     </div>
 
                                     <div className="space-y-3 pt-1">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-mono font-bold uppercase text-[#00E599]">Plus</span>
+                                            <span className="text-xs font-mono font-bold uppercase text-[#10B981]">Plus</span>
                                             {selectedPlan === 'Plus' && (
-                                                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black bg-[#00E599]/20 text-[#00E599]">
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black bg-[#10B981]/20 text-[#10B981]">
                                                     ATTIVO
                                                 </span>
                                             )}
@@ -578,23 +578,23 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
 
                                         <ul className="space-y-2 text-[11px] font-mono text-slate-200 border-t border-white/5 pt-3">
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <strong className="text-white">Trade illimitati</strong>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Quasar Bubble live real-time</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>AI Coach reattivo psicologia</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Rilevamento tilt di base</span>
                                             </li>
                                             <li className="flex items-start gap-1.5">
-                                                <Check className="w-3.5 h-3.5 text-[#00E599] shrink-0 mt-0.5" />
+                                                <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0 mt-0.5" />
                                                 <span>Supporto multi-asset crypto/stocks</span>
                                             </li>
                                         </ul>
@@ -609,8 +609,8 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         disabled={selectedPlan === 'Plus'}
                                         className={`w-full mt-4 py-2 rounded-xl text-xs font-mono font-bold transition-all ${
                                             selectedPlan === 'Plus'
-                                                ? 'bg-[#00E599] text-[#08090C] font-black cursor-not-allowed shadow-[0_0_15px_#00E599]'
-                                                : 'bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] font-black shadow-lg shadow-[#00E599]/20'
+                                                ? 'bg-[#10B981] text-[#08090C] font-black cursor-not-allowed shadow-[0_0_15px_#10B981]'
+                                                : 'bg-[#10B981] hover:bg-[#059669] text-[#08090C] font-black shadow-lg shadow-[#10B981]/20'
                                         }`}
                                     >
                                         {selectedPlan === 'Plus' ? 'Piano Attuale' : 'Attiva Plus'}
@@ -691,8 +691,8 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             {/* Security Badge */}
                             <div className="p-4 rounded-2xl bg-[#111318] border border-white/[0.08] flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-[#00E599]/10 border border-[#00E599]/30 flex items-center justify-center">
-                                        <ShieldCheck className="w-5 h-5 text-[#00E599]" />
+                                    <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center">
+                                        <ShieldCheck className="w-5 h-5 text-[#10B981]" />
                                     </div>
                                     <div>
                                         <div className="text-xs font-bold text-white font-mono">
@@ -704,8 +704,8 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                     </div>
                                 </div>
 
-                                <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#00E599]/20 text-[#00E599] border border-[#00E599]/40 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E599] animate-ping" />
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
                                     ATTIVO
                                 </span>
                             </div>
@@ -757,7 +757,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         <div className="flex gap-2 pt-1">
                                             <button
                                                 type="submit"
-                                                className="px-4 py-2 rounded-xl bg-[#00E599] text-[#08090C] font-black text-xs cursor-pointer"
+                                                className="px-4 py-2 rounded-xl bg-[#10B981] text-[#08090C] font-black text-xs cursor-pointer"
                                             >
                                                 Salva Password
                                             </button>
@@ -781,7 +781,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             <div className="p-5 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-3">
                                 <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                                     <div className="flex items-center gap-2">
-                                        <Smartphone className="w-4 h-4 text-[#00E599]" />
+                                        <Smartphone className="w-4 h-4 text-[#10B981]" />
                                         <span className="text-xs font-mono font-bold text-white uppercase">
                                             Sessioni Attive Dispositivi
                                         </span>
@@ -794,7 +794,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                 terminateOtherSessions();
                                                 showToast('Tutte le altre sessioni sono state terminate.');
                                             }}
-                                            className="text-[10px] font-mono text-[#FF4D4D] hover:underline"
+                                            className="text-[10px] font-mono text-[#DC2626] hover:underline"
                                         >
                                             Termina altre sessioni
                                         </button>
@@ -809,7 +809,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         >
                                             <div className="flex items-center gap-2.5">
                                                 {session.device.includes('iPhone') ? (
-                                                    <Smartphone className="w-4 h-4 text-[#00E599]" />
+                                                    <Smartphone className="w-4 h-4 text-[#10B981]" />
                                                 ) : (
                                                     <Laptop className="w-4 h-4 text-cyan-400" />
                                                 )}
@@ -817,7 +817,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                                     <div className="text-white font-bold flex items-center gap-1.5">
                                                         <span>{session.device}</span>
                                                         {session.isCurrent && (
-                                                            <span className="px-1.5 py-0.2 rounded text-[8px] bg-[#00E599]/20 text-[#00E599]">
+                                                            <span className="px-1.5 py-0.2 rounded text-[8px] bg-[#10B981]/20 text-[#10B981]">
                                                                 QUESTO DISPOSITIVO
                                                             </span>
                                                         )}
@@ -847,7 +847,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             <div className="p-5 rounded-2xl bg-[#111318] border border-white/[0.08] space-y-3">
                                 <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                                     <div className="flex items-center gap-2">
-                                        <CreditCard className="w-4 h-4 text-[#00E599]" />
+                                        <CreditCard className="w-4 h-4 text-[#10B981]" />
                                         <span className="text-xs font-mono font-bold text-white uppercase">
                                             Metodo di Pagamento Attivo
                                         </span>
@@ -872,7 +872,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                                         </div>
                                     </div>
 
-                                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#00E599]/15 text-[#00E599]">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#10B981]/15 text-[#10B981]">
                                         PREDEFINITO
                                     </span>
                                 </div>
@@ -940,7 +940,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
 
                                             <div className="text-right flex items-center gap-2.5">
                                                 <span className="text-white font-bold">{inv.amount}</span>
-                                                <span className="px-2 py-0.5 rounded text-[9px] font-black bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30">
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-black bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
                                                     {inv.status}
                                                 </span>
                                             </div>
@@ -957,13 +957,13 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                 {/* 4. MODAL FOOTER */}
                 <div className="p-4 border-t border-white/[0.08] bg-[#111318]/90 flex items-center justify-between shrink-0">
                     <span className="text-[10px] font-mono text-slate-400">
-                        VALUTA: <strong className="text-[#00E599]">{baseCurrency.code} ({baseCurrency.symbol})</strong> • PIANO: <strong className="text-white">{selectedPlan}</strong>
+                        VALUTA: <strong className="text-[#10B981]">{baseCurrency.code} ({baseCurrency.symbol})</strong> • PIANO: <strong className="text-white">{selectedPlan}</strong>
                     </span>
 
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] font-black font-mono text-xs transition active:scale-95 shadow-lg shadow-[#00E599]/20 cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-[#08090C] font-black font-mono text-xs transition active:scale-95 shadow-lg shadow-[#10B981]/20 cursor-pointer"
                     >
                         Salva & Chiudi
                     </button>

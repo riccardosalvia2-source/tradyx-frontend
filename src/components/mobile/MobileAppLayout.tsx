@@ -27,7 +27,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     const [activeTab, setActiveTab] = useState<AppTab>('home');
 
     return (
-        <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#00E599] selection:text-[#08090C]">
+        <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#10B981] selection:text-white">
             {/* Centered Mobile Container with Safe Areas */}
             <div className="w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C] text-white overflow-x-hidden relative flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl">
                 

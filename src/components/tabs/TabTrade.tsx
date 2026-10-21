@@ -150,10 +150,10 @@ export const TabTrade: React.FC = () => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
+            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)] shrink-0">
-                        <span className="font-sans font-black text-base text-[#00E599]">T</span>
+                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0">
+                        <span className="font-sans font-black text-base text-[#10B981]">T</span>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
@@ -165,21 +165,21 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/[0.08] text-[10px] font-mono text-[#00E599] font-bold">
+                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/5 text-[10px] font-mono text-[#10B981] font-bold">
                     PROTOCOL 4.2 ({baseCurrency.code})
                 </span>
             </header>
 
             {/* Notification Toast */}
             {feedbackMessage && (
-                <div className="w-full p-3 rounded-xl bg-[#00E599]/15 border border-[#00E599]/40 flex items-center gap-2 text-xs font-mono font-bold text-[#00E599] animate-in fade-in slide-in-from-top-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#00E599] shrink-0" />
+                <div className="w-full p-3 rounded-xl bg-[#10B981]/15 border border-[#10B981]/40 flex items-center gap-2 text-xs font-mono font-bold text-[#10B981] animate-in fade-in slide-in-from-top-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
                     <span>{feedbackMessage}</span>
                 </div>
             )}
 
             {/* Main Institutional Journaling Card */}
-            <form onSubmit={handleSubmit} className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-4">
+            <form onSubmit={handleSubmit} className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-4">
                 
                 {/* 1. SELETTORI ASSET / SYMBOL & STRATEGY */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
@@ -190,7 +190,7 @@ export const TabTrade: React.FC = () => {
                         <select
                             value={assetPair}
                             onChange={(e) => setAssetPair(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
                         >
                             {assetOptions.map(opt => (
                                 <option key={opt} value={opt} className="bg-[#08090C] text-white">
@@ -207,7 +207,7 @@ export const TabTrade: React.FC = () => {
                         <select
                             value={strategy}
                             onChange={(e) => setStrategy(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
                         >
                             {strategyOptions.map(opt => (
                                 <option key={opt} value={opt} className="bg-[#08090C] text-white">
@@ -229,7 +229,7 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setDirection('LONG')}
                             className={`min-h-[48px] h-12 rounded-xl font-sans font-black text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
                                 direction === 'LONG'
-                                    ? 'bg-[#00E599] text-[#08090C] border-[#00E599] shadow-[0_0_20px_rgba(0,229,153,0.3)]'
+                                    ? 'bg-[#10B981] text-white border-[#10B981] shadow-lg shadow-[#10B981]/25'
                                     : 'bg-[#08090C] text-slate-400 border-white/10 hover:text-white'
                             }`}
                         >
@@ -242,7 +242,7 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setDirection('SHORT')}
                             className={`min-h-[48px] h-12 rounded-xl font-sans font-black text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
                                 direction === 'SHORT'
-                                    ? 'bg-[#FF4D4D] text-white border-[#FF4D4D] shadow-[0_0_20px_rgba(255,77,77,0.3)]'
+                                    ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-lg shadow-[#DC2626]/25'
                                     : 'bg-[#08090C] text-slate-400 border-white/10 hover:text-white'
                             }`}
                         >
@@ -263,7 +263,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="64250.00"
                             required
                         />
@@ -278,7 +278,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="67985.00"
                         />
                     </div>
@@ -292,7 +292,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={positionSize}
                             onChange={(e) => setPositionSize(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="1.0"
                             required
                         />
@@ -306,7 +306,7 @@ export const TabTrade: React.FC = () => {
                             type="text"
                             value={riskReward}
                             onChange={(e) => setRiskReward(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                             placeholder="1:3.2"
                         />
                     </div>
@@ -321,15 +321,15 @@ export const TabTrade: React.FC = () => {
                         step="any"
                         value={fees}
                         onChange={(e) => setFees(e.target.value)}
-                        className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
+                        className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
                         placeholder="15.00"
                     />
                 </div>
 
                 {/* Pre-calculated PnL summary badge */}
-                <div className="p-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] flex items-center justify-between font-mono">
+                <div className="p-3.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between font-mono">
                     <span className="text-[10px] text-slate-400 uppercase">Estimated Net P&L:</span>
-                    <span className={`text-xs sm:text-sm font-black tabular-nums ${calculatedPnl >= 0 ? 'text-[#00E599]' : 'text-[#FF4D4D]'}`}>
+                    <span className={`text-xs sm:text-sm font-black tabular-nums ${calculatedPnl >= 0 ? 'text-[#10B981]' : 'text-[#DC2626]'}`}>
                         {formatMoney(calculatedPnl, true)} ({calculatedRoi}%)
                     </span>
                 </div>
@@ -340,7 +340,7 @@ export const TabTrade: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                             PSYCHOLOGY (EMOTIONAL STATE)
                         </label>
-                        <span className="text-[9px] text-cyan-400">BEHAVIORAL AUDIT</span>
+                        <span className="text-[9px] text-[#2563EB]">BEHAVIORAL AUDIT</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -349,8 +349,8 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setPsychology('CONFIDENCE')}
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'CONFIDENCE'
-                                    ? 'bg-[#00E599]/15 text-[#00E599] border-[#00E599]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
+                                    ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]'
+                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
                             }`}
                         >
                             <Smile className="w-4 h-4" />
@@ -362,8 +362,8 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setPsychology('NEUTRAL')}
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'NEUTRAL'
-                                    ? 'bg-[#1D68BD]/20 text-cyan-300 border-[#1D68BD]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
+                                    ? 'bg-[#2563EB]/20 text-[#60A5FA] border-[#2563EB]'
+                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
                             }`}
                         >
                             <Meh className="w-4 h-4" />
@@ -375,8 +375,8 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setPsychology('FEAR')}
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'FEAR'
-                                    ? 'bg-[#FF4D4D]/15 text-[#FF4D4D] border-[#FF4D4D]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
+                                    ? 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]'
+                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
                             }`}
                         >
                             <Frown className="w-4 h-4" />
@@ -391,7 +391,7 @@ export const TabTrade: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                             DISCIPLINE PROTOCOL (ERROR TRACKER)
                         </label>
-                        <span className="text-[9px] text-[#FF4D4D]">SELECT IF APPLICABLE</span>
+                        <span className="text-[9px] text-[#DC2626]">SELECT IF APPLICABLE</span>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
@@ -404,8 +404,8 @@ export const TabTrade: React.FC = () => {
                                     onClick={() => toggleError(err)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                                         isSelected
-                                            ? 'bg-[#FF4D4D] text-white border-[#FF4D4D] shadow-md shadow-[#FF4D4D]/25'
-                                            : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                                            ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-md shadow-[#DC2626]/25'
+                                            : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-slate-200'
                                     }`}
                                 >
                                     {err}
@@ -425,7 +425,7 @@ export const TabTrade: React.FC = () => {
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Descrivi la logica di ingresso, il trigger tecnico e la gestione del rischio..."
-                        className="w-full p-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none transition-colors resize-none"
+                        className="w-full p-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors resize-none"
                     />
                 </div>
 
@@ -433,9 +433,9 @@ export const TabTrade: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full min-h-[50px] h-12 rounded-xl bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] font-sans font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.98] shadow-lg shadow-[#00E599]/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full min-h-[50px] h-12 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-sans font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.98] shadow-lg shadow-[#10B981]/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                    <Zap className="w-4 h-4 text-[#08090C]" />
+                    <Zap className="w-4 h-4 text-white" />
                     <span>{isSubmitting ? 'COMMITTING TO VAULT...' : 'COMMIT ORDER RECORD'}</span>
                 </button>
 

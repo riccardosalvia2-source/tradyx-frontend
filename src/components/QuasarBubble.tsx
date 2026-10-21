@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 
 import { fetchMultiSourceRealTimeNews, RealNewsItem } from '../services/multiSourceNewsService';
-import { CosmicFluid3D } from './CosmicFluid3D';
 
 interface QuasarBubbleProps {
     config?: BubbleConfig;
@@ -233,33 +232,34 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                 </div>
             </div>
 
-            {/* 2. CENTRAL ORGANIC 3D FLUID BUBBLE ORB (THREE.JS WEBGL + GLSL SHADER) */}
+            {/* 2. CENTRAL ORGANIC JADE FLUID BUBBLE ORB */}
             <div 
                 className="relative w-full h-[280px] sm:h-[300px] flex items-center justify-center z-10 cursor-pointer my-auto select-none group/bubble" 
                 onClick={handleBubbleClick}
             >
-                {/* Outer Atmosphere Pulsing Emerald Glow */}
+                {/* Outer Atmosphere Pulsing Jade Glow */}
                 <div 
-                    className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full animate-pulse transition-all duration-700 opacity-80 pointer-events-none"
+                    className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full animate-pulse transition-all duration-700 opacity-60 pointer-events-none"
                     style={{
-                        background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.35) 0%, rgba(6, 182, 212, 0.2) 60%, transparent 100%)',
-                        filter: 'blur(25px)'
+                        background: 'radial-gradient(circle at center, rgba(46, 204, 113, 0.3) 0%, rgba(39, 174, 96, 0.15) 55%, transparent 75%)',
+                        filter: 'blur(30px)'
                     }}
                 />
 
-                {/* 3D WebGL Three.js Canvas Container */}
-                <div className="absolute inset-0 flex items-center justify-center transition-transform duration-500 group-hover/bubble:scale-105 active:scale-95">
-                    <CosmicFluid3D />
-                </div>
+                {/* Organic Jade Fluid Sphere */}
+                <div 
+                    className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover/bubble:scale-105 active:scale-95 border border-white/20"
+                >
+                    {/* Organic Specular Highlight */}
+                    <div className="absolute top-4 left-7 w-16 h-8 rounded-full bg-white/20 blur-sm pointer-events-none transform -rotate-12" />
 
-                {/* Central Floating Overlay Badges & AI Brain Icon */}
-                <div className="relative z-20 flex flex-col items-center justify-center pointer-events-none">
-                    <div className="p-2.5 sm:p-3 bg-slate-950/60 rounded-2xl border border-emerald-400/40 shadow-2xl backdrop-blur-sm mb-2 group-hover/bubble:rotate-6 transition-transform">
-                        <BrainCircuit className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-400 animate-pulse" />
+                    {/* Central Floating Overlay Badges & AI Brain Icon */}
+                    <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shadow-xl backdrop-blur-sm mb-2 group-hover/bubble:rotate-6 transition-transform">
+                        <BrainCircuit className="w-8 h-8 text-white drop-shadow" />
                     </div>
 
-                    <div className="px-3 py-1 bg-slate-950/85 border border-emerald-400/80 rounded-full text-[10px] sm:text-xs font-mono font-black text-emerald-300 uppercase tracking-widest shadow-xl flex items-center gap-1.5 group-hover/bubble:bg-emerald-400 group-hover/bubble:text-slate-950 transition-colors">
-                        <Sparkles className="w-3 h-3 text-emerald-400 group-hover/bubble:text-slate-950" />
+                    <div className="px-3 py-1 bg-black/40 border border-white/30 rounded-full text-[10px] sm:text-xs font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-white" />
                         <span>TAP TO SYNC</span>
                     </div>
                 </div>
@@ -267,7 +267,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
 
             {/* FLOATING BOTTOM HUD */}
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-around text-[10px] sm:text-[11px] font-mono text-slate-400 bg-slate-950/80 border border-slate-800 backdrop-blur-md py-1.5 px-3 rounded-2xl pointer-events-none z-20">
-                <div>ORB: <span className="text-emerald-400 font-bold">THREE.JS 3D GLSL</span></div>
+                <div>ORB: <span className="text-[#2ECC71] font-bold">ORGANIC JADE</span></div>
                 <div>STATE: <span className="text-white font-bold">{isProfitable ? 'HARMONIC' : 'RECOVERY'}</span></div>
                 <div>SYNC: <span className="text-cyan-400 font-bold">READY</span></div>
             </div>

@@ -88,6 +88,34 @@ canvas {
   animation: blob-morph 9s ease-in-out infinite;
 }
 
+/* Jade Quasar Organic Bubble Pulse & Natural Breathing */
+@keyframes jade-blob-breathe {
+  0% {
+    transform: scale(1);
+    border-radius: 58% 42% 52% 48% / 54% 46% 54% 46%;
+    box-shadow: 0 0 25px rgba(46, 204, 113, 0.25), inset 0 0 20px rgba(39, 174, 96, 0.3);
+  }
+  33% {
+    transform: scale(1.03);
+    border-radius: 48% 52% 44% 56% / 46% 54% 46% 54%;
+    box-shadow: 0 0 35px rgba(46, 204, 113, 0.35), inset 0 0 25px rgba(39, 174, 96, 0.4);
+  }
+  66% {
+    transform: scale(0.98);
+    border-radius: 54% 46% 58% 42% / 52% 48% 52% 48%;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.2), inset 0 0 15px rgba(39, 174, 96, 0.25);
+  }
+  100% {
+    transform: scale(1);
+    border-radius: 58% 42% 52% 48% / 54% 46% 54% 46%;
+    box-shadow: 0 0 25px rgba(46, 204, 113, 0.25), inset 0 0 20px rgba(39, 174, 96, 0.3);
+  }
+}
+
+.animate-jade-bubble {
+  animation: jade-blob-breathe 7s ease-in-out infinite;
+}
+
 @keyframes star-twinkle {
   0%, 100% { opacity: 0.15; transform: scale(0.8); }
   50% { opacity: 0.95; transform: scale(1.25); }

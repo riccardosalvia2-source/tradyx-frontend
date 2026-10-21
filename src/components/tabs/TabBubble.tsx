@@ -1,13 +1,15 @@
 // ============================================================================
 // TRADYX MOBILE TAB 7: BOLLA (Quasar Bubble - Sentiment Galaxy Explorer)
-// Ultra-Modern Dark Fintech / Institutional Terminal Design
+// Ultra-Clean Dark Fintech / Institutional Terminal Design
+// Background: #08090C solid, zero magenta canvas, pure jade organic bubble
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
-import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { fetchMultiSourceRealTimeNews, RealNewsItem, NewsImpact } from '../../services/multiSourceNewsService';
-import { CosmicFluid3D } from '../CosmicFluid3D';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+    fetchMultiSourceRealTimeNews, 
+    RealNewsItem, 
+    NewsCategory 
+} from '../../services/multiSourceNewsService';
 import { 
     Sparkles, 
     BrainCircuit, 
@@ -19,45 +21,39 @@ import {
     ExternalLink, 
     Bot, 
     Globe, 
-    ArrowUpRight,
-    TrendingUp,
+    ArrowLeft,
+    Compass,
     TrendingDown,
-    Zap,
-    ShieldAlert,
-    Compass
+    ShieldAlert
 } from 'lucide-react';
 
 export const TabBubble: React.FC = () => {
-    const { trades } = useTradeStore();
-    const { baseCurrency, formatMoney } = useSettingsStore();
-    const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
+    // 2-View State Flow: 'BUBBLE' (Initial Zen View) or 'EXPLORER' (Sentiment & News Feed)
+    const [viewMode, setViewMode] = useState<'BUBBLE' | 'EXPLORER'>('BUBBLE');
 
-    const [isShockwaveActive, setIsShockwaveActive] = useState<boolean>(false);
-    const [isSynced, setIsSynced] = useState<boolean>(true);
-    const [syncCount, setSyncCount] = useState<number>(1);
-
-    // Live news state
+    // News aggregator state
     const [liveNews, setLiveNews] = useState<RealNewsItem[]>([]);
-    const [newsCategory, setNewsCategory] = useState<'ALL' | 'CRYPTO' | 'MACRO' | 'FED' | 'ETF' | 'FOREX'>('ALL');
+    const [newsCategory, setNewsCategory] = useState<'ALL' | NewsCategory>('ALL');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isLoadingNews, setIsLoadingNews] = useState<boolean>(false);
     const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
     const [activeSourcesCount, setActiveSourcesCount] = useState<number>(4);
+    const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('Poco fa');
 
-    // Auto-refresh countdown
-    const [countdown, setCountdown] = useState<number>(60);
+    // 5-minute Auto-Refresh Countdown (300 seconds = 5 minutes)
+    const AUTO_REFRESH_INTERVAL_SEC = 300;
+    const [secondsRemaining, setSecondsRemaining] = useState<number>(AUTO_REFRESH_INTERVAL_SEC);
 
-    // Global Market Sentiment State
-    const [globalSentiment] = useState({
-        score: '70% Loss / Fear',
-        badgeColor: 'bg-[#FF4D4D]/15 text-[#FF4D4D] border-[#FF4D4D]/30',
-        headline: 'Global Sentiment: • 70% Loss / Fear (Institutional Deleveraging)',
+    // Global Market Sentiment Specification
+    const globalSentiment = {
+        title: 'Global Sentiment: • 70% Loss / Fear (Institutional Deleveraging)',
+        badge: '• 70% Loss / Fear',
         summary: 'Aggressive liquidity sweep across major digital assets and high-beta tech equities. Market participants are heavily de-risking as funding rates drop into neutral territory, creating asymmetric dip-buying opportunities for disciplined traders.',
-        positioningBox: 'Market Positioning: Extreme Fear & High Edge Reversal Zone. Dealer gamma is negative; wait for hourly absorption wicks before entering breakout positions.',
-        aiAdvice: 'Esegui trade esclusivamente sui livelli chiave di supporto con Risk:Reward minimo di 1:2.5. Non forzare ingressi in contro-trend impulsivo.'
-    });
+        positioning: 'Extreme Fear & High Edge Reversal Zone. Dealer gamma is negative; attendere candele di assorbimento volumetrico su time-frame 1H prima di eseguire ordini di breakout.',
+        coachTip: 'Esegui trade esclusivamente sui livelli chiave di supporto con Risk:Reward minimo di 1:2.5. Non forzare ingressi in contro-trend impulsivo (Revenge Trading).'
+    };
 
-    const loadNews = async () => {
+    const loadNewsData = async () => {
         setIsLoadingNews(true);
         try {
             const data = await fetchMultiSourceRealTimeNews();
@@ -66,39 +62,49 @@ export const TabBubble: React.FC = () => {
             if (data.news.length > 0 && !selectedNewsId) {
                 setSelectedNewsId(data.news[0].id);
             }
+            const now = new Date();
+            setLastUpdatedTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
         } catch (e) {
-            console.warn('News fetch notice:', e);
+            console.warn('Failed to load market news feed:', e);
         } finally {
             setIsLoadingNews(false);
         }
     };
 
+    // Initial load
     useEffect(() => {
-        loadNews();
+        loadNewsData();
     }, []);
 
-    // Countdown timer for auto-refresh
+    // 5-minute automatic background refresh interval (300,000 ms)
     useEffect(() => {
         const timer = setInterval(() => {
-            setCountdown(prev => {
+            setSecondsRemaining(prev => {
                 if (prev <= 1) {
-                    loadNews();
-                    return 60;
+                    loadNewsData();
+                    return AUTO_REFRESH_INTERVAL_SEC;
                 }
                 return prev - 1;
             });
         }, 1000);
+
         return () => clearInterval(timer);
     }, []);
 
-    const handleSync = () => {
-        setIsShockwaveActive(true);
-        setTimeout(() => {
-            setIsShockwaveActive(false);
-            setIsSynced(true);
-            setSyncCount(prev => prev + 1);
-            loadNews();
-        }, 500);
+    const formatCountdown = (totalSec: number) => {
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    };
+
+    const handleBubbleClick = () => {
+        setViewMode('EXPLORER');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleBackToBubble = () => {
+        setViewMode('BUBBLE');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const filteredNews = liveNews.filter(n => {
@@ -111,273 +117,307 @@ export const TabBubble: React.FC = () => {
     });
 
     return (
-        <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
+        <div className="w-full min-h-[calc(100dvh-5rem)] bg-[#08090C] text-slate-100 flex flex-col select-none overflow-x-hidden">
             
-            {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)] shrink-0">
-                        <span className="font-sans font-black text-base text-[#00E599]">T</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
-                            QUANTUM INTELLIGENCE
-                        </span>
-                        <h1 className="text-sm font-extrabold text-white tracking-tight font-mono">
+            {/* ============================================================================ */}
+            {/* VISTA 1: INITIAL CLEAN VIEW (ESCLUSIVAMENTE LA BOLLA AL CENTRO)               */}
+            {/* ============================================================================ */}
+            {viewMode === 'BUBBLE' && (
+                <div className="w-full flex-1 flex flex-col items-center justify-center px-4 py-8 relative animate-in fade-in duration-300">
+                    
+                    {/* Top Minimal Brand Indicator */}
+                    <div className="absolute top-4 left-4 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[#111318] border border-white/5 flex items-center justify-center">
+                            <span className="font-sans font-black text-xs text-[#2ECC71]">T</span>
+                        </div>
+                        <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
                             QUASAR BUBBLE
-                        </h1>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#111318] border border-white/[0.08] text-[10px] font-mono text-[#00E599] font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E599] animate-ping" />
-                    <span>REAL-TIME GLSL</span>
-                </div>
-            </header>
-
-            {/* 1. CERCHIO ORGANICO FLUTTUANTE CENTRALE CON ANIMAZIONE FLUIDA CONTINUA */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-5 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] group">
-                
-                {/* Floating Top Badge */}
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090C] border border-white/10 text-[9px] font-mono text-[#00E599]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E599] animate-ping" />
-                    <span>SENTIMENT GALAXY</span>
-                </div>
-
-                <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090C] border border-white/10 text-[9px] font-mono text-slate-400">
-                    <span>SYNC #{syncCount}</span>
-                </div>
-
-                {/* Pulsing Emerald Neon Glow Ambient Aura */}
-                <div 
-                    className="absolute w-64 h-64 rounded-full pointer-events-none transition-all duration-1000 animate-pulse"
-                    style={{
-                        background: 'radial-gradient(circle at center, rgba(0, 229, 153, 0.35) 0%, rgba(29, 104, 189, 0.18) 55%, transparent 75%)',
-                        filter: 'blur(35px)'
-                    }}
-                />
-
-                {/* Secondary Ripple Wave Effect */}
-                <div className="absolute w-72 h-72 rounded-full border border-[#00E599]/20 animate-ping pointer-events-none opacity-40" />
-
-                {/* 3D WebGL Canvas + Morphing Organic Sphere Container */}
-                <div 
-                    onClick={handleSync}
-                    className="relative w-full h-60 flex items-center justify-center cursor-pointer transition-transform duration-300 active:scale-95 z-10 select-none"
-                    title="Tocca per Sincronizzare la Bolla Quasar"
-                >
-                    <CosmicFluid3D />
-
-                    {/* Central Brain Icon & "TAP TO SYNC" Indicator */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-                        <div className={`p-3 rounded-2xl bg-[#08090C]/80 border border-[#00E599]/50 shadow-[0_0_20px_rgba(0,229,153,0.35)] backdrop-blur-md mb-2.5 transition-transform duration-300 ${
-                            isShockwaveActive ? 'scale-125 rotate-12' : 'group-hover:scale-110'
-                        }`}>
-                            <BrainCircuit className="w-8 h-8 text-[#00E599] animate-pulse" />
-                        </div>
-
-                        <div className="px-3.5 py-1.5 rounded-full bg-[#08090C]/90 border border-[#00E599] text-[10px] font-mono font-black text-[#00E599] uppercase tracking-widest shadow-[0_0_15px_rgba(0,229,153,0.4)] flex items-center gap-1.5 group-hover:bg-[#00E599] group-hover:text-[#08090C] transition-colors">
-                            <Sparkles className="w-3.5 h-3.5 text-[#00E599] group-hover:text-[#08090C]" />
-                            <span>TAP TO SYNC</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sphere Bottom HUD Status */}
-                <div className="w-full flex items-center justify-between pt-3 border-t border-white/[0.06] text-[10px] font-mono text-slate-400">
-                    <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00E599]" />
-                        <span>ENGINE: THREE.JS GLSL</span>
-                    </span>
-                    <span className="text-[#00E599] font-bold">
-                        {isSynced ? 'SYNCHRONIZED' : 'READY TO SYNC'}
-                    </span>
-                </div>
-            </section>
-
-            {/* 2. VISTA ESPANSA: QUASAR BUBBLE - SENTIMENT GALAXY EXPLORER */}
-            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-4">
-                
-                {/* Section Title */}
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                    <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-[#00E599]" />
-                        <h2 className="text-xs font-mono font-black text-white uppercase tracking-wider">
-                            QUASAR BUBBLE - SENTIMENT GALAXY EXPLORER
-                        </h2>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-[#1D68BD] text-white uppercase">
-                        INSTITUTIONAL
-                    </span>
-                </div>
-
-                {/* CARD STATO: "Global Sentiment: • 70% Loss / Fear" */}
-                <div className="p-4 rounded-xl bg-[#08090C] border border-white/[0.08] space-y-3 relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-300">
-                            <Activity className="w-4 h-4 text-[#FF4D4D]" />
-                            <span>Global Sentiment:</span>
-                        </div>
-
-                        <span className="px-3 py-0.5 rounded-full text-[10px] font-mono font-black bg-[#FF4D4D]/15 text-[#FF4D4D] border border-[#FF4D4D]/30 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FF4D4D] animate-ping" />
-                            • 70% Loss / Fear
                         </span>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
-                            {globalSentiment.headline}
-                        </h3>
-                        <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
-                            {globalSentiment.summary}
-                        </p>
-                    </div>
+                    {/* Central Organic Jade Fluid Bubble Orb */}
+                    <div 
+                        onClick={handleBubbleClick}
+                        className="relative flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 active:scale-95 group my-auto"
+                        title="Tocca per accedere al Sentiment Galaxy Explorer"
+                    >
+                        {/* Soft Natural Jade Ambient Glow (Non-fluorescent, subdued) */}
+                        <div 
+                            className="absolute w-72 h-72 rounded-full pointer-events-none transition-opacity duration-700 opacity-60 group-hover:opacity-90"
+                            style={{
+                                background: 'radial-gradient(circle at center, rgba(46, 204, 113, 0.28) 0%, rgba(39, 174, 96, 0.12) 55%, transparent 75%)',
+                                filter: 'blur(35px)'
+                            }}
+                        />
 
-                    {/* Box Informativo di Posizionamento rispetto al Mercato */}
-                    <div className="p-3 rounded-lg bg-[#111318] border border-white/[0.08] space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-300">
-                            <Compass className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Posizionamento Rispetto al Mercato:</span>
+                        {/* Opaque Institutional Jade Organic Blob Container (#2ECC71 / #27AE60) */}
+                        <div 
+                            className="w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105"
+                            style={{
+                                border: '1.5px solid rgba(255, 255, 255, 0.25)'
+                            }}
+                        >
+                            {/* Organic Soft Specular Highlight */}
+                            <div className="absolute top-4 left-8 w-20 h-10 rounded-full bg-white/20 blur-md pointer-events-none transform -rotate-12" />
+
+                            {/* Center White Quasar Icon */}
+                            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-2.5 shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                                <BrainCircuit className="w-8 h-8 text-white drop-shadow-md" />
+                            </div>
+
+                            {/* Centered White "TAP TO SYNC" Badge */}
+                            <div className="px-3.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/30 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-white" />
+                                <span>TAP TO SYNC</span>
+                            </div>
                         </div>
-                        <p className="text-[11px] text-slate-300 font-mono leading-relaxed">
-                            {globalSentiment.positioningBox}
-                        </p>
-                    </div>
 
-                    {/* AI Guidance Box */}
-                    <div className="p-3 rounded-lg bg-[#111318] border border-[#00E599]/20 flex items-start gap-2.5 text-[11px] font-mono">
-                        <Bot className="w-4 h-4 text-[#00E599] shrink-0 mt-0.5" />
-                        <span className="text-slate-200">
-                            <strong className="text-[#00E599]">Coach Tip: </strong>
-                            {globalSentiment.aiAdvice}
+                        {/* Subtitle / Invitation */}
+                        <span className="mt-6 text-[11px] font-mono text-slate-400 group-hover:text-slate-200 transition-colors tracking-wide">
+                            Tocca la bolla per sincronizzare il sentiment
                         </span>
                     </div>
-                </div>
 
-                {/* 3. SEZIONE "MARKET NEWS" (REAL-TIME FEED) */}
-                <div className="space-y-3 pt-1">
-                    <div className="flex items-center justify-between">
+                </div>
+            )}
+
+            {/* ============================================================================ */}
+            {/* VISTA 2: SENTIMENT GALAXY EXPLORER & 50+ NOTIZIE (DOPO IL TAP)               */}
+            {/* ============================================================================ */}
+            {viewMode === 'EXPLORER' && (
+                <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-3 pb-28 animate-in slide-in-from-bottom-3 duration-300">
+                    
+                    {/* Top Navigation Bar with Back Button */}
+                    <div className="w-full flex items-center justify-between py-2 border-b border-white/5">
+                        <button
+                            type="button"
+                            onClick={handleBackToBubble}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white transition cursor-pointer text-xs font-mono font-bold active:scale-95"
+                        >
+                            <ArrowLeft className="w-4 h-4 text-[#2ECC71]" />
+                            <span>Indietro</span>
+                        </button>
+
                         <div className="flex items-center gap-2">
-                            <Radio className="w-4 h-4 text-[#00E599] animate-pulse" />
-                            <span className="text-xs font-mono font-black text-white uppercase">
-                                MARKET NEWS (REAL-TIME FEED)
+                            <span className="text-[10px] font-mono text-slate-400">
+                                {liveNews.length} NOTIZIE DISPONIBILI
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                        </div>
+                    </div>
+
+                    {/* Section Header */}
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#2ECC71]/40 flex items-center justify-center shadow-lg shrink-0">
+                            <Globe className="w-5 h-5 text-[#2ECC71]" />
+                        </div>
+                        <div>
+                            <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold block">
+                                MARKET INTELLIGENCE FEED
+                            </span>
+                            <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight font-mono">
+                                QUASAR BUBBLE - SENTIMENT GALAXY EXPLORER
+                            </h1>
+                        </div>
+                    </div>
+
+                    {/* RIQUADRO DI SINTESI: GLOBAL SENTIMENT • 70% LOSS / FEAR */}
+                    <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-3.5">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                            <div className="flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-[#DC2626]" />
+                                <span className="text-xs font-mono font-bold text-slate-300 uppercase">
+                                    Global Sentiment Status
+                                </span>
+                            </div>
+
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-[#DC2626]/15 text-[#DC2626] border border-[#DC2626]/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-ping" />
+                                {globalSentiment.badge}
                             </span>
                         </div>
-                        <span className="text-[9px] font-mono text-[#00E599] bg-[#00E599]/10 px-2.5 py-0.5 rounded-full border border-[#00E599]/30 flex items-center gap-1">
-                            <RefreshCw className="w-3 h-3 animate-spin text-[#00E599]" />
-                            <span>AUTO-SYNC {countdown}S</span>
-                        </span>
-                    </div>
 
-                    {/* Category Filter Chips */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-mono text-[10px]">
-                        {(['ALL', 'CRYPTO', 'MACRO', 'FED', 'ETF', 'FOREX'] as const).map(cat => (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => setNewsCategory(cat)}
-                                className={`px-2.5 py-1 rounded-lg shrink-0 font-bold transition-all cursor-pointer border ${
-                                    newsCategory === cat
-                                        ? 'bg-[#00E599] text-[#08090C] border-[#00E599]'
-                                        : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
-                                }`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
+                        <div className="space-y-1">
+                            <h2 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
+                                {globalSentiment.title}
+                            </h2>
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                                {globalSentiment.summary}
+                            </p>
+                        </div>
 
-                    {/* Search bar inside news */}
-                    <div className="relative w-full">
-                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Filtra notizie per titolo o fonte..."
-                            className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#08090C] border border-white/[0.08] text-xs text-white font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none"
-                        />
-                    </div>
-
-                    {/* Live News Items List - WITH EXTERNAL LINK OPENING */}
-                    <div className="space-y-2.5">
-                        {isLoadingNews ? (
-                            <div className="p-8 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2 bg-[#08090C] rounded-xl border border-white/5">
-                                <RefreshCw className="w-4 h-4 text-[#00E599] animate-spin" />
-                                <span>Caricamento feed notizie live...</span>
+                        {/* Box Informativo: Posizionamento Rispetto al Mercato */}
+                        <div className="p-3 rounded-xl bg-[#08090C] border border-white/5 space-y-1">
+                            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400">
+                                <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>Posizionamento Rispetto al Mercato:</span>
                             </div>
-                        ) : filteredNews.length === 0 ? (
-                            <div className="p-6 text-center text-xs text-slate-500 font-mono bg-[#08090C] rounded-xl border border-white/5">
-                                Nessuna notizia trovata per i criteri correnti.
+                            <p className="text-[11px] text-slate-300 font-mono leading-relaxed">
+                                {globalSentiment.positioning}
+                            </p>
+                        </div>
+
+                        {/* Box Informativo: Coach Tip */}
+                        <div className="p-3 rounded-xl bg-[#08090C] border border-[#10B981]/20 flex items-start gap-2.5 text-[11px] font-mono">
+                            <Bot className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
+                            <span className="text-slate-200">
+                                <strong className="text-[#10B981]">Coach Tip: </strong>
+                                {globalSentiment.coachTip}
+                            </span>
+                        </div>
+                    </section>
+
+                    {/* ============================================================================ */}
+                    {/* AGGREGATORE NEWS (MINIMO 50 NOTIZIE & AUTO-REFRESH OGNI 5 MINUTI)              */}
+                    {/* ============================================================================ */}
+                    <section className="w-full rounded-2xl border border-white/5 bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-3.5">
+                        
+                        {/* Feed Bar: Auto-Refresh Timer & Manual Refresh Button */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                            <div className="flex items-center gap-2">
+                                <Radio className="w-4 h-4 text-[#10B981] animate-pulse" />
+                                <h3 className="text-xs font-mono font-black text-white uppercase">
+                                    LIVE MARKET NEWS ({liveNews.length} ITEMS)
+                                </h3>
                             </div>
-                        ) : (
-                            filteredNews.slice(0, 15).map((news) => {
-                                const isSelected = news.id === selectedNewsId;
-                                return (
-                                    <div
-                                        key={news.id}
-                                        onClick={() => setSelectedNewsId(news.id)}
-                                        className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                                            isSelected
-                                                ? 'bg-[#08090C] border-[#00E599]/60 shadow-lg shadow-[#00E599]/10'
-                                                : 'bg-[#08090C]/80 border-white/[0.08] hover:border-white/20'
-                                        }`}
-                                    >
-                                        {/* Card Top: Impact Badge, Source, Time Elapsed */}
-                                        <div className="flex items-center justify-between text-[10px] font-mono">
-                                            <div className="flex items-center gap-2">
-                                                {/* Impact Badge: Bullish / Bearish / Neutral */}
-                                                <span className={`px-2 py-0.5 rounded-md font-black border ${news.tagColor}`}>
-                                                    {news.sentiment.toUpperCase()}
-                                                </span>
-                                                <span className="text-white font-bold uppercase">{news.source}</span>
-                                                <span className="text-[9px] text-slate-500 uppercase">[{news.sourceType}]</span>
-                                            </div>
 
-                                            <span className="text-slate-400 flex items-center gap-1">
-                                                <Clock className="w-3 h-3 text-slate-500" />
-                                                {news.timeAgo}
-                                            </span>
-                                        </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono text-slate-400 bg-[#08090C] px-2.5 py-1 rounded-lg border border-white/5">
+                                    Auto-refresh: {formatCountdown(secondsRemaining)}
+                                </span>
 
-                                        {/* Title: CLICKABLE LINK IN A NEW TAB */}
-                                        <a
-                                            href={news.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="text-xs sm:text-sm font-bold text-slate-100 hover:text-[#00E599] transition flex items-start justify-between gap-2 leading-snug group/link"
-                                            title="Apri articolo originale nella fonte"
+                                <button
+                                    type="button"
+                                    onClick={loadNewsData}
+                                    disabled={isLoadingNews}
+                                    className="px-3 py-1 rounded-lg bg-[#08090C] hover:bg-white/10 border border-white/5 text-[10px] font-mono font-bold text-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                                    title="Aggiorna Notizie Immediatamente"
+                                >
+                                    <RefreshCw className={`w-3 h-3 text-[#10B981] ${isLoadingNews ? 'animate-spin' : ''}`} />
+                                    <span>Aggiorna</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Category Filter Chips */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-mono text-[10px]">
+                            {(['ALL', 'CRYPTO', 'MACRO', 'FED', 'FOREX', 'ETF', 'EQUITIES'] as const).map(cat => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => setNewsCategory(cat)}
+                                    className={`px-2.5 py-1 rounded-lg shrink-0 font-bold transition-all cursor-pointer border ${
+                                        newsCategory === cat
+                                            ? 'bg-[#10B981] text-[#08090C] border-[#10B981]'
+                                            : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Search Input Filter */}
+                        <div className="relative w-full">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Cerca tra le 50+ notizie per titolo, fonte o asset..."
+                                className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#08090C] border border-white/5 text-xs text-white font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none"
+                            />
+                        </div>
+
+                        {/* 50+ News Items List */}
+                        <div className="space-y-2.5">
+                            {isLoadingNews && liveNews.length === 0 ? (
+                                <div className="p-10 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2 bg-[#08090C] rounded-xl border border-white/5">
+                                    <RefreshCw className="w-4 h-4 text-[#10B981] animate-spin" />
+                                    <span>Caricamento aggregatore 50+ notizie in tempo reale...</span>
+                                </div>
+                            ) : filteredNews.length === 0 ? (
+                                <div className="p-8 text-center text-xs text-slate-500 font-mono bg-[#08090C] rounded-xl border border-white/5">
+                                    Nessuna notizia corrisponde ai filtri selezionati.
+                                </div>
+                            ) : (
+                                filteredNews.map((news) => {
+                                    const isSelected = news.id === selectedNewsId;
+
+                                    return (
+                                        <div
+                                            key={news.id}
+                                            onClick={() => setSelectedNewsId(news.id)}
+                                            className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                                                isSelected
+                                                    ? 'bg-[#08090C] border-[#10B981]/60 shadow-lg'
+                                                    : 'bg-[#08090C]/80 border-white/5 hover:border-white/15'
+                                            }`}
                                         >
-                                            <span>{news.title}</span>
-                                            <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover/link:text-[#00E599] shrink-0 mt-0.5" />
-                                        </a>
+                                            {/* Card Top: Thematic Badge, Source, Relative Time */}
+                                            <div className="flex items-center justify-between text-[10px] font-mono">
+                                                <div className="flex items-center gap-2">
+                                                    {/* Thematic Badge (Macro, Crypto, FED, etc.) */}
+                                                    <span className="px-2 py-0.5 rounded-md font-bold bg-[#1D4ED8]/20 text-cyan-300 border border-[#1D4ED8]/30">
+                                                        {news.sourceType}
+                                                    </span>
 
-                                        {/* Expandable summary & AI Prediction */}
-                                        {isSelected && (
-                                            <div className="space-y-2 pt-2 border-t border-white/5 animate-in fade-in">
-                                                <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
-                                                    {news.summary}
-                                                </p>
-                                                <div className="p-2.5 rounded-lg bg-[#111318] border border-white/5 text-[10px] font-mono text-cyan-300 flex items-start gap-1.5">
-                                                    <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                                                    <span>{news.aiPrediction}</span>
+                                                    {/* Impact Badge */}
+                                                    <span className={`px-2 py-0.5 rounded-md font-black border ${news.tagColor}`}>
+                                                        {news.sentiment.toUpperCase()}
+                                                    </span>
+
+                                                    {/* Original Source */}
+                                                    <span className="text-white font-bold uppercase">{news.source}</span>
                                                 </div>
+
+                                                <span className="text-slate-400 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3 text-slate-500" />
+                                                    {news.timeAgo}
+                                                </span>
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
 
-                    <div className="p-3 text-center text-[10px] font-mono text-slate-500 border-t border-white/5">
-                        FONTI ATTIVE: {activeSourcesCount} MULTI-STREAM (CryptoCompare, Yahoo Finance, Cointelegraph, Bloomberg Feeds)
-                    </div>
+                                            {/* Prominent Title: Clickable Link to Original Source in New Tab */}
+                                            <a
+                                                href={news.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="text-xs sm:text-sm font-bold text-slate-100 hover:text-[#10B981] transition flex items-start justify-between gap-2 leading-snug group/link"
+                                                title="Apri articolo originale sulla fonte"
+                                            >
+                                                <span>{news.title}</span>
+                                                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover/link:text-[#10B981] shrink-0 mt-0.5" />
+                                            </a>
+
+                                            {/* Expandable summary & AI Predictive comment */}
+                                            {isSelected && (
+                                                <div className="space-y-2 pt-2 border-t border-white/5 animate-in fade-in">
+                                                    <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                                                        {news.summary}
+                                                    </p>
+                                                    <div className="p-2.5 rounded-lg bg-[#111318] border border-white/5 text-[10px] font-mono text-cyan-300 flex items-start gap-1.5">
+                                                        <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                                                        <span>{news.aiPrediction}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Footer Status */}
+                        <div className="p-3 text-center text-[10px] font-mono text-slate-500 border-t border-white/5 flex items-center justify-between">
+                            <span>Sorgenti attive: {activeSourcesCount} canali</span>
+                            <span>Ultimo sync: {lastUpdatedTime}</span>
+                        </div>
+
+                    </section>
+
                 </div>
-
-            </section>
+            )}
 
         </div>
     );

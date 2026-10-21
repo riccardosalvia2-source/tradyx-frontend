@@ -183,11 +183,11 @@ export const App: React.FC = () => {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08090C] text-white min-h-[100dvh] w-full">
                 <div className="flex flex-col items-center gap-4 p-6 text-center">
                     <div className="relative w-14 h-14 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-2 border-[#00E599]/20 animate-ping" />
-                        <div className="w-12 h-12 rounded-full border-2 border-[#00E599] border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#10B981]/20 animate-ping" />
+                        <div className="w-12 h-12 rounded-full border-2 border-[#10B981] border-t-transparent animate-spin" />
                     </div>
                     <div className="space-y-1">
-                        <span className="text-xs font-black tracking-widest text-[#00E599] uppercase block font-mono">
+                        <span className="text-xs font-black tracking-widest text-[#10B981] uppercase block font-mono">
                             TRADYX TERMINAL
                         </span>
                         <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase animate-pulse block font-mono">

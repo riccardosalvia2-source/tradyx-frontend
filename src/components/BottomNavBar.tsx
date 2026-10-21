@@ -56,25 +56,25 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
                             className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-all duration-200 select-none cursor-pointer active:scale-95 group ${
-                                isActive ? 'text-[#00E599]' : 'text-slate-400 hover:text-slate-200'
+                                isActive ? 'text-[#10B981]' : 'text-[#9CA3AF] hover:text-slate-200'
                             }`}
                             aria-selected={isActive}
                         >
                             {/* Glowing indicator pill on top of active item */}
                             {isActive && (
-                                <span className="absolute top-0 w-6 sm:w-8 h-[2.5px] bg-[#00E599] rounded-full shadow-[0_0_12px_#00E599]" />
+                                <span className="absolute top-0 w-6 sm:w-8 h-[2.5px] bg-[#10B981] rounded-full shadow-[0_0_10px_#10B981]" />
                             )}
 
                             <div className={`p-1 rounded-xl transition-all ${
                                 isActive 
-                                    ? 'bg-[#00E599]/10 text-[#00E599]' 
-                                    : 'text-slate-400 group-hover:text-slate-300'
+                                    ? 'bg-[#10B981]/15 text-[#10B981]' 
+                                    : 'text-[#9CA3AF] group-hover:text-slate-300'
                             }`}>
                                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.4]' : 'stroke-[1.8]'}`} />
                             </div>
 
                             <span className={`text-[9px] sm:text-[10px] tracking-tight uppercase font-sans mt-0.5 leading-none ${
-                                isActive ? 'font-black text-[#00E599]' : 'font-medium text-slate-400'
+                                isActive ? 'font-black text-[#10B981]' : 'font-medium text-[#9CA3AF]'
                             }`}>
                                 {item.label}
                             </span>
