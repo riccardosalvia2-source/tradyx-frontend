@@ -217,7 +217,23 @@ canvas {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+/* Neon Green & Emerald Wave Animations */
+@keyframes neon-emerald-breathe {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 229, 153, 0.25), inset 0 0 10px rgba(0, 229, 153, 0.15);
+    border-color: rgba(0, 229, 153, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(0, 229, 153, 0.55), inset 0 0 20px rgba(0, 229, 153, 0.3);
+    border-color: rgba(0, 229, 153, 0.9);
+  }
+}
 
+.animate-neon-breathe {
+  animation: neon-emerald-breathe 4s ease-in-out infinite;
+}
 
-
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
 

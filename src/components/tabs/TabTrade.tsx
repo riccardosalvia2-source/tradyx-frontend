@@ -1,9 +1,11 @@
 // ============================================================================
 // TRADYX MOBILE TAB 2: TRADE (LOG ENTRY - INSTITUTIONAL JOURNALING)
+// Ultra-Modern Dark Fintech / Institutional Terminal Style
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
 import { useTradeStore } from '../../store/useTradeStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { TradeDirection, TradePsychology, EmotionalState } from '../../types/trade';
 import { 
     TrendingUp, 
@@ -24,6 +26,7 @@ import {
 
 export const TabTrade: React.FC = () => {
     const { addTrade } = useTradeStore();
+    const { baseCurrency, formatMoney } = useSettingsStore();
 
     // Asset and Strategy
     const [assetPair, setAssetPair] = useState<string>('BTC/USD');
@@ -147,23 +150,23 @@ export const TabTrade: React.FC = () => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#12141A] border border-[#00E599]/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.15)] shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)] shrink-0">
                         <span className="font-sans font-black text-base text-[#00E599]">T</span>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
                             INSTITUTIONAL JOURNALING
                         </span>
-                        <h1 className="text-sm font-extrabold text-white tracking-tight">
+                        <h1 className="text-sm font-extrabold text-white tracking-tight font-mono">
                             LOG ENTRY
                         </h1>
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#12141A] border border-white/5 text-[10px] font-mono text-cyan-400 font-bold">
-                    PROTOCOL 4.2
+                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/[0.08] text-[10px] font-mono text-[#00E599] font-bold">
+                    PROTOCOL 4.2 ({baseCurrency.code})
                 </span>
             </header>
 
@@ -176,7 +179,7 @@ export const TabTrade: React.FC = () => {
             )}
 
             {/* Main Institutional Journaling Card */}
-            <form onSubmit={handleSubmit} className="w-full rounded-2xl border border-white/5 bg-[#12141A] p-4 sm:p-5 shadow-2xl space-y-4">
+            <form onSubmit={handleSubmit} className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 sm:p-5 shadow-2xl space-y-4">
                 
                 {/* 1. SELETTORI ASSET / SYMBOL & STRATEGY */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
@@ -239,7 +242,7 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setDirection('SHORT')}
                             className={`min-h-[48px] h-12 rounded-xl font-sans font-black text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
                                 direction === 'SHORT'
-                                    ? 'bg-[#EF4444] text-white border-[#EF4444] shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                                    ? 'bg-[#FF4D4D] text-white border-[#FF4D4D] shadow-[0_0_20px_rgba(255,77,77,0.3)]'
                                     : 'bg-[#08090C] text-slate-400 border-white/10 hover:text-white'
                             }`}
                         >
@@ -249,18 +252,18 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 3. CAMPI INPUT VERTICALI BEN SPAZIATI */}
+                {/* 3. CAMPI INPUT VERTICALI BEN SPAZIATI CON VALUTA DINAMICA */}
                 <div className="grid grid-cols-2 gap-2.5 font-mono">
                     <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 uppercase font-semibold block">
-                            Entry Price (€)
+                            Entry Price ({baseCurrency.symbol})
                         </label>
                         <input
                             type="number"
                             step="any"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
                             placeholder="64250.00"
                             required
                         />
@@ -268,14 +271,14 @@ export const TabTrade: React.FC = () => {
 
                     <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 uppercase font-semibold block">
-                            Exit Price (€)
+                            Exit Price ({baseCurrency.symbol})
                         </label>
                         <input
                             type="number"
                             step="any"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
                             placeholder="67985.00"
                         />
                     </div>
@@ -289,7 +292,7 @@ export const TabTrade: React.FC = () => {
                             step="any"
                             value={positionSize}
                             onChange={(e) => setPositionSize(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
                             placeholder="1.0"
                             required
                         />
@@ -303,7 +306,7 @@ export const TabTrade: React.FC = () => {
                             type="text"
                             value={riskReward}
                             onChange={(e) => setRiskReward(e.target.value)}
-                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors"
+                            className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
                             placeholder="1:3.2"
                         />
                     </div>
@@ -311,23 +314,23 @@ export const TabTrade: React.FC = () => {
 
                 <div className="space-y-1 font-mono">
                     <label className="text-[10px] text-slate-400 uppercase font-semibold block">
-                        Fees / Comm (€)
+                        Fees / Comm ({baseCurrency.symbol})
                     </label>
                     <input
                         type="number"
                         step="any"
                         value={fees}
                         onChange={(e) => setFees(e.target.value)}
-                        className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors"
+                        className="w-full h-12 px-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-bold focus:border-[#00E599] focus:outline-none transition-colors tabular-nums"
                         placeholder="15.00"
                     />
                 </div>
 
                 {/* Pre-calculated PnL summary badge */}
-                <div className="p-3 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between font-mono">
+                <div className="p-3.5 rounded-xl bg-[#08090C] border border-white/[0.08] flex items-center justify-between font-mono">
                     <span className="text-[10px] text-slate-400 uppercase">Estimated Net P&L:</span>
-                    <span className={`text-xs font-black ${calculatedPnl >= 0 ? 'text-[#00E599]' : 'text-[#EF4444]'}`}>
-                        {calculatedPnl >= 0 ? `+${calculatedPnl.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €` : `${calculatedPnl.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €`} ({calculatedRoi}%)
+                    <span className={`text-xs sm:text-sm font-black tabular-nums ${calculatedPnl >= 0 ? 'text-[#00E599]' : 'text-[#FF4D4D]'}`}>
+                        {formatMoney(calculatedPnl, true)} ({calculatedRoi}%)
                     </span>
                 </div>
 
@@ -347,11 +350,11 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'CONFIDENCE'
                                     ? 'bg-[#00E599]/15 text-[#00E599] border-[#00E599]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
                             }`}
                         >
-                            <Smile className="w-4 h-4 shrink-0" />
-                            <span className="text-[10px] tracking-tight">CONFIDENCE</span>
+                            <Smile className="w-4 h-4" />
+                            <span>CONFIDENCE</span>
                         </button>
 
                         <button
@@ -360,11 +363,11 @@ export const TabTrade: React.FC = () => {
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'NEUTRAL'
                                     ? 'bg-[#1D68BD]/20 text-cyan-300 border-[#1D68BD]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
                             }`}
                         >
-                            <Meh className="w-4 h-4 shrink-0" />
-                            <span className="text-[10px] tracking-tight">NEUTRAL</span>
+                            <Meh className="w-4 h-4" />
+                            <span>NEUTRAL</span>
                         </button>
 
                         <button
@@ -372,21 +375,24 @@ export const TabTrade: React.FC = () => {
                             onClick={() => setPsychology('FEAR')}
                             className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
                                 psychology === 'FEAR'
-                                    ? 'bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]'
-                                    : 'bg-[#08090C] text-slate-400 border-white/5 hover:text-white'
+                                    ? 'bg-[#FF4D4D]/15 text-[#FF4D4D] border-[#FF4D4D]'
+                                    : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-white'
                             }`}
                         >
-                            <Frown className="w-4 h-4 shrink-0" />
-                            <span className="text-[10px] tracking-tight">FEAR</span>
+                            <Frown className="w-4 h-4" />
+                            <span>FEAR</span>
                         </button>
                     </div>
                 </div>
 
-                {/* 5. SEZIONE "DISCIPLINE PROTOCOL (ERROR TRACKER)" */}
+                {/* 5. SEZIONE "DISCIPLINE PROTOCOL" (ERROR TRACKER) */}
                 <div className="space-y-2 pt-1 font-mono">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-                        DISCIPLINE PROTOCOL (ERROR TRACKER)
-                    </label>
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                            DISCIPLINE PROTOCOL (ERROR TRACKER)
+                        </label>
+                        <span className="text-[9px] text-[#FF4D4D]">SELECT IF APPLICABLE</span>
+                    </div>
 
                     <div className="flex flex-wrap gap-1.5">
                         {errorTags.map(err => {
@@ -396,45 +402,45 @@ export const TabTrade: React.FC = () => {
                                     key={err}
                                     type="button"
                                     onClick={() => toggleError(err)}
-                                    className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer border flex items-center gap-1 ${
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                                         isSelected
-                                            ? 'bg-[#EF4444]/20 text-[#EF4444] border-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.2)]'
-                                            : 'bg-[#08090C] text-slate-400 border-white/5 hover:border-white/20'
+                                            ? 'bg-[#FF4D4D] text-white border-[#FF4D4D] shadow-md shadow-[#FF4D4D]/25'
+                                            : 'bg-[#08090C] text-slate-400 border-white/[0.08] hover:text-slate-200'
                                     }`}
                                 >
-                                    <AlertTriangle className={`w-3 h-3 ${isSelected ? 'text-[#EF4444]' : 'text-slate-500'}`} />
-                                    <span>{err}</span>
+                                    {err}
                                 </button>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* 6. CAMPO NOTE "SESSION NOTES (TECHNICAL JOURNAL)" */}
+                {/* 6. NOTE TECNICHE DI SESSIONE */}
                 <div className="space-y-1.5 pt-1 font-mono">
                     <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-                        SESSION NOTES (TECHNICAL JOURNAL)
+                        SESSION REASONING & SETUP NOTES
                     </label>
                     <textarea
                         rows={3}
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Log psychological state, trigger reason, execution quality, and post-trade technical observations..."
-                        className="w-full p-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-mono focus:border-[#00E599] focus:outline-none transition-colors resize-none"
+                        placeholder="Descrivi la logica di ingresso, il trigger tecnico e la gestione del rischio..."
+                        className="w-full p-3 rounded-xl bg-[#08090C] border border-white/10 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none transition-colors resize-none"
                     />
                 </div>
 
-                {/* 7. PULSANTE VERDE GRANDE "COMMIT SESSION LOG" */}
+                {/* 7. PULSANTE GRANDE DI CONFERMA "LOG RECORD" */}
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full min-h-[50px] h-13 mt-2 rounded-xl bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] font-sans font-black text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 active:scale-[0.98] shadow-lg shadow-[#00E599]/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full min-h-[50px] h-12 rounded-xl bg-[#00E599] hover:bg-[#00d28b] text-[#08090C] font-sans font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.98] shadow-lg shadow-[#00E599]/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                    <CheckCircle2 className="w-5 h-5 text-[#08090C]" />
-                    <span>{isSubmitting ? 'COMMITTING ENTRY...' : 'COMMIT SESSION LOG'}</span>
+                    <Zap className="w-4 h-4 text-[#08090C]" />
+                    <span>{isSubmitting ? 'COMMITTING TO VAULT...' : 'COMMIT ORDER RECORD'}</span>
                 </button>
 
             </form>
+
         </div>
     );
 };

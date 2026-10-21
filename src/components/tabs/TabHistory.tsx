@@ -1,9 +1,11 @@
 // ============================================================================
 // TRADYX MOBILE TAB 3: HISTORY (History Logs & Detailed Inspection Drawer)
+// Ultra-Modern Dark Fintech / Institutional Terminal Style
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { Trade } from '../../types/trade';
 import { 
     Search, 
@@ -20,13 +22,14 @@ import {
     Tag,
     Clock,
     DollarSign,
-    Smile,
-    Meh,
-    Frown
+    CheckCircle2,
+    FileText,
+    Percent
 } from 'lucide-react';
 
 export const TabHistory: React.FC = () => {
     const { trades } = useTradeStore();
+    const { baseCurrency, formatMoney } = useSettingsStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
     const [searchQuery, setSearchQuery] = useState<string>('');
@@ -40,7 +43,8 @@ export const TabHistory: React.FC = () => {
             t.asset_pair.toLowerCase().includes(q) ||
             (t.strategy && t.strategy.toLowerCase().includes(q)) ||
             (t.notes && t.notes.toLowerCase().includes(q)) ||
-            (t.reasoning && t.reasoning.toLowerCase().includes(q))
+            (t.reasoning && t.reasoning.toLowerCase().includes(q)) ||
+            (t.direction && t.direction.toLowerCase().includes(q))
         );
     }, [safeTrades, searchQuery]);
 
@@ -62,22 +66,22 @@ export const TabHistory: React.FC = () => {
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
             {/* Top Compact Section Header */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
+            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#12141A] border border-[#00E599]/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.15)] shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#111318] border border-[#00E599]/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.2)] shrink-0">
                         <span className="font-sans font-black text-base text-[#00E599]">T</span>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
                             AUDIT RECORDS
                         </span>
-                        <h1 className="text-sm font-extrabold text-white tracking-tight">
+                        <h1 className="text-sm font-extrabold text-white tracking-tight font-mono">
                             TRADE HISTORY LOGS
                         </h1>
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full bg-[#12141A] border border-white/5 text-[10px] font-mono text-slate-300">
+                <span className="px-2.5 py-1 rounded-full bg-[#111318] border border-white/[0.08] text-[10px] font-mono text-[#00E599] font-bold">
                     {safeTrades.length} RECORDED
                 </span>
             </header>
@@ -90,7 +94,7 @@ export const TabHistory: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search assets, strategies or notes..."
-                    className="w-full h-12 pl-10 pr-4 rounded-xl bg-[#12141A] border border-white/5 text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none transition-colors"
+                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111318] border border-white/[0.08] text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#00E599] focus:outline-none transition-colors"
                 />
                 {searchQuery && (
                     <button
@@ -106,23 +110,23 @@ export const TabHistory: React.FC = () => {
             {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO */}
             <div className="space-y-2.5">
                 {filteredTrades.map((trade) => {
-                    const isProfit = (trade.pnl || 0) >= 0;
-                    const pnlFormatted = `${isProfit ? '+' : ''}${(trade.pnl || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })} €`;
+                    const pnlVal = Number(trade.pnl) || 0;
+                    const isProfit = pnlVal >= 0;
                     const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
 
                     return (
                         <div
                             key={trade.id}
                             onClick={() => setSelectedTrade(trade)}
-                            className="w-full rounded-2xl border border-white/5 bg-[#12141A] p-3.5 sm:p-4 hover:border-white/20 transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-lg flex flex-col space-y-2.5 group"
+                            className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-3.5 sm:p-4 hover:border-white/20 transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-lg flex flex-col space-y-2.5 group"
                         >
                             {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2.5">
                                     <div className={`p-1.5 rounded-lg border ${
                                         trade.direction === 'LONG'
-                                            ? 'bg-[#00E599]/10 text-[#00E599] border-[#00E599]/30'
-                                            : 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30'
+                                            ? 'bg-[#00E599]/15 text-[#00E599] border-[#00E599]/30'
+                                            : 'bg-[#FF4D4D]/15 text-[#FF4D4D] border-[#FF4D4D]/30'
                                     }`}>
                                         {trade.direction === 'LONG' ? (
                                             <TrendingUp className="w-4 h-4" />
@@ -138,7 +142,7 @@ export const TabHistory: React.FC = () => {
                                             <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded uppercase ${
                                                 trade.direction === 'LONG'
                                                     ? 'bg-[#00E599]/20 text-[#00E599]'
-                                                    : 'bg-[#EF4444]/20 text-[#EF4444]'
+                                                    : 'bg-[#FF4D4D]/20 text-[#FF4D4D]'
                                             }`}>
                                                 {trade.direction}
                                             </span>
@@ -149,14 +153,14 @@ export const TabHistory: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="text-right">
-                                    <div className={`text-sm sm:text-base font-black font-mono ${
-                                        isProfit ? 'text-[#00E599]' : 'text-[#EF4444]'
+                                <div className="text-right font-mono">
+                                    <div className={`text-sm sm:text-base font-black tabular-nums ${
+                                        isProfit ? 'text-[#00E599]' : 'text-[#FF4D4D]'
                                     }`}>
-                                        {pnlFormatted}
+                                        {formatMoney(pnlVal, true)}
                                     </div>
-                                    <div className={`text-[10px] font-mono font-bold ${
-                                        isProfit ? 'text-[#00E599]/80' : 'text-[#EF4444]/80'
+                                    <div className={`text-[10px] font-bold tabular-nums ${
+                                        isProfit ? 'text-[#00E599]/80' : 'text-[#FF4D4D]/80'
                                     }`}>
                                         ROI {roiFormatted}
                                     </div>
@@ -164,12 +168,12 @@ export const TabHistory: React.FC = () => {
                             </div>
 
                             {/* Card Bottom Row: Strategy & Trigger preview */}
-                            <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px] font-mono text-slate-400">
+                            <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-[11px] font-mono text-slate-400">
                                 <span className="text-slate-300 truncate max-w-[200px] sm:max-w-xs">
-                                    {trade.strategy || 'Tactical Setup'}
+                                    {trade.strategy || 'Tactical Trend Setup'}
                                 </span>
                                 <div className="flex items-center gap-1 text-[10px] text-slate-400 group-hover:text-white transition-colors">
-                                    <span>Details</span>
+                                    <span>Inspect</span>
                                     <ChevronRight className="w-3.5 h-3.5" />
                                 </div>
                             </div>
@@ -178,124 +182,149 @@ export const TabHistory: React.FC = () => {
                 })}
 
                 {filteredTrades.length === 0 && (
-                    <div className="w-full p-8 text-center rounded-2xl bg-[#12141A] border border-white/5 text-slate-400 font-mono text-xs">
+                    <div className="w-full p-8 text-center rounded-2xl bg-[#111318] border border-white/[0.08] text-slate-400 font-mono text-xs">
                         No trade logs found matching "{searchQuery}"
                     </div>
                 )}
             </div>
 
-            {/* DETTAGLIO MODALE / BOTTOM DRAWER DEL TRADE */}
+            {/* ============================================================================ */}
+            {/* 3. RESOLUTION OF TRADE HISTORY DETAIL DRAWER / MODAL (MOBILE ZERO-OVERFLOW) */}
+            {/* Features: max-h-[90dvh] overflow-y-auto pb-12 w-full flex flex-col gap-3 */}
+            {/* ============================================================================ */}
             {selectedTrade && (
                 <div 
-                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
+                    className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={() => setSelectedTrade(null)}
                 >
                     <div 
-                        className="w-full max-w-lg bg-[#0D0E12] border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+                        className="w-full max-w-lg bg-[#08090C] border-t sm:border border-white/[0.08] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto pb-12 w-full flex flex-col gap-3 scroll-smooth text-slate-100 overscroll-contain"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Drawer Header */}
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 shrink-0">
                             <div className="flex items-center gap-2">
-                                <span className="text-base font-black text-white font-mono">
+                                <span className="text-base sm:text-lg font-black text-white font-mono">
                                     {selectedTrade.asset_pair}
                                 </span>
                                 <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded ${
                                     selectedTrade.direction === 'LONG' 
-                                        ? 'bg-[#00E599]/20 text-[#00E599]' 
-                                        : 'bg-[#EF4444]/20 text-[#EF4444]'
+                                        ? 'bg-[#00E599]/20 text-[#00E599] border border-[#00E599]/30' 
+                                        : 'bg-[#FF4D4D]/20 text-[#FF4D4D] border border-[#FF4D4D]/30'
                                 }`}>
                                     {selectedTrade.direction}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                    • {formatTimestamp(selectedTrade.created_at)}
                                 </span>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={() => setSelectedTrade(null)}
-                                className="w-8 h-8 rounded-full bg-[#12141A] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer"
+                                className="w-8 h-8 rounded-full bg-[#111318] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer active:scale-95 shrink-0"
+                                title="Chiudi Scheda Trade"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        {/* Net Performance Big Banner */}
-                        <div className="p-4 rounded-2xl bg-[#12141A] border border-white/5 text-center space-y-1">
-                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block">
+                        {/* COMPACT SINGLE-COLUMN LAYOUT: Every row visible with zero clipping */}
+
+                        {/* ROW 1: Net Performance Big Banner */}
+                        <div className="w-full p-4 rounded-xl bg-[#111318] border border-white/[0.08] text-center space-y-1">
+                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block font-bold">
                                 NET PERFORMANCE
                             </span>
-                            <div className={`text-2xl sm:text-3xl font-black font-mono ${
-                                (selectedTrade.pnl || 0) >= 0 ? 'text-[#00E599]' : 'text-[#EF4444]'
+                            <div className={`text-2xl sm:text-3xl font-black font-mono tabular-nums ${
+                                (Number(selectedTrade.pnl) || 0) >= 0 ? 'text-[#00E599]' : 'text-[#FF4D4D]'
                             }`}>
-                                {(selectedTrade.pnl || 0) >= 0 ? '+' : ''}{(selectedTrade.pnl || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })} €
+                                {formatMoney(Number(selectedTrade.pnl) || 0, true)}
                             </div>
-                            <span className="text-xs font-mono text-slate-300 block">
-                                Strategy: <strong className="text-white">{selectedTrade.strategy || 'Trend Following'}</strong>
-                            </span>
-                        </div>
-
-                        {/* Trade Parameters Grid */}
-                        <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-                            <div className="p-3 rounded-xl bg-[#12141A] border border-white/5">
-                                <span className="text-[10px] text-slate-400 block">Entry Price:</span>
-                                <span className="font-bold text-white">
-                                    {selectedTrade.entry_price.toLocaleString('it-IT')} €
+                            <div className="flex items-center justify-center gap-2 pt-0.5">
+                                <span className="text-xs font-mono text-slate-300">
+                                    ROI: <strong className={Number(selectedTrade.roi || 0) >= 0 ? 'text-[#00E599]' : 'text-[#FF4D4D]'}>
+                                        {selectedTrade.roi !== undefined ? `${selectedTrade.roi > 0 ? '+' : ''}${selectedTrade.roi}%` : '+0.0%'}
+                                    </strong>
                                 </span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#12141A] border border-white/5">
-                                <span className="text-[10px] text-slate-400 block">Exit Price:</span>
-                                <span className="font-bold text-white">
-                                    {selectedTrade.exit_price ? `${selectedTrade.exit_price.toLocaleString('it-IT')} €` : 'N/A'}
-                                </span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#12141A] border border-white/5">
-                                <span className="text-[10px] text-slate-400 block">Position Size:</span>
-                                <span className="font-bold text-white">
-                                    {selectedTrade.position_size}
-                                </span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#12141A] border border-white/5">
-                                <span className="text-[10px] text-slate-400 block">Risk Reward:</span>
-                                <span className="font-bold text-white">
-                                    {selectedTrade.risk_reward || '1:3.0'}
+                                <span className="text-slate-600">•</span>
+                                <span className="text-xs font-mono text-slate-300">
+                                    Strategy: <strong className="text-white">{selectedTrade.strategy || 'Trend Following'}</strong>
                                 </span>
                             </div>
                         </div>
 
-                        {/* Emotion State & Psychology */}
-                        <div className="p-3 rounded-xl bg-[#12141A] border border-white/5 space-y-1">
-                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide block">
-                                EMOTIONAL STATE / PSYCHOLOGY
+                        {/* ROW 2: Entry Price */}
+                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/[0.08] flex items-center justify-between font-mono text-xs">
+                            <span className="text-slate-400">Entry Price:</span>
+                            <span className="font-extrabold text-white tabular-nums text-sm">
+                                {formatMoney(selectedTrade.entry_price, false)}
                             </span>
-                            <div className="flex items-center gap-2">
-                                <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#1D68BD]/20 text-cyan-300 border border-[#1D68BD]/40 uppercase">
-                                    {selectedTrade.psychology || selectedTrade.emotional_state || 'CONFIDENCE'}
-                                </span>
-                                {selectedTrade.errors && selectedTrade.errors.length > 0 && selectedTrade.errors.map(err => (
-                                    <span key={err} className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/40 uppercase">
-                                        {err}
+                        </div>
+
+                        {/* ROW 3: Exit Price */}
+                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/[0.08] flex items-center justify-between font-mono text-xs">
+                            <span className="text-slate-400">Exit Price:</span>
+                            <span className="font-extrabold text-white tabular-nums text-sm">
+                                {selectedTrade.exit_price ? formatMoney(selectedTrade.exit_price, false) : 'In Execution / Active'}
+                            </span>
+                        </div>
+
+                        {/* ROW 4: Position Size & Risk/Reward */}
+                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/[0.08] flex items-center justify-between font-mono text-xs">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400">Position Size:</span>
+                                <strong className="text-white">{selectedTrade.position_size}</strong>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400">R:R:</span>
+                                <strong className="text-white">{selectedTrade.risk_reward || '1:3.0'}</strong>
+                            </div>
+                        </div>
+
+                        {/* ROW 5: Emotion State */}
+                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/[0.08] flex items-center justify-between font-mono text-xs">
+                            <span className="text-slate-400">Emotional State:</span>
+                            <span className="px-2.5 py-1 rounded-lg font-bold bg-[#1D68BD]/20 text-cyan-300 border border-[#1D68BD]/40 uppercase text-[11px]">
+                                {selectedTrade.psychology || selectedTrade.emotional_state || 'CONFIDENCE'}
+                            </span>
+                        </div>
+
+                        {/* ROW 6: Discipline Error (Discipline Audit) */}
+                        <div className="w-full p-3 rounded-xl bg-[#111318] border border-white/[0.08] flex items-center justify-between font-mono text-xs">
+                            <span className="text-slate-400">Discipline Error:</span>
+                            <div className="flex items-center gap-1.5">
+                                {selectedTrade.errors && selectedTrade.errors.length > 0 ? (
+                                    selectedTrade.errors.map(err => (
+                                        <span key={err} className="px-2 py-0.5 rounded text-[9px] font-black bg-[#FF4D4D]/20 text-[#FF4D4D] border border-[#FF4D4D]/40 uppercase">
+                                            {err}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-[#00E599]/20 text-[#00E599] border border-[#00E599]/40 uppercase flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        CLEAN EXECUTION
                                     </span>
-                                ))}
+                                )}
                             </div>
                         </div>
 
-                        {/* Strategic Reasoning & Notes */}
-                        <div className="p-3.5 rounded-xl bg-[#12141A] border border-white/5 space-y-1.5 font-mono">
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wide block font-bold">
-                                STRATEGIC REASONING
-                            </span>
+                        {/* ROW 7: Strategic Reason & Notes */}
+                        <div className="w-full p-3.5 rounded-xl bg-[#111318] border border-white/[0.08] space-y-1.5 font-mono">
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 uppercase font-bold">
+                                <FileText className="w-3.5 h-3.5 text-[#00E599]" />
+                                <span>Strategic Reason & Notes</span>
+                            </div>
                             <p className="text-xs text-slate-200 leading-relaxed">
-                                {selectedTrade.reasoning || selectedTrade.notes || 'Institutional entry executed in accordance with core algorithmic risk rules.'}
+                                {selectedTrade.reasoning || selectedTrade.notes || 'Institutional entry executed strictly adhering to pre-defined algorithmic risk and volatility boundaries.'}
                             </p>
                         </div>
 
-                        {/* Close button */}
+                        {/* ROW 8: Prominent Close Button */}
                         <button
                             type="button"
                             onClick={() => setSelectedTrade(null)}
-                            className="w-full h-12 rounded-xl bg-[#12141A] hover:bg-[#1a1e27] border border-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer"
+                            className="w-full h-12 rounded-xl bg-[#111318] hover:bg-white/10 border border-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer active:scale-[0.99] mt-1 shrink-0"
                         >
                             Chiudi Scheda Trade
                         </button>

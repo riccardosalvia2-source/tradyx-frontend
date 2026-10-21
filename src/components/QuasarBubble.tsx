@@ -158,7 +158,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
     // Filtered multi-source news feed
     const filteredNews = useMemo(() => {
         return liveNews.filter(news => {
-            const matchesCat = newsCategory === 'ALL' || news.sourceType === newsCategory || (newsCategory === 'SENTIMENT' && news.sentiment === 'VOLATILE');
+            const matchesCat = newsCategory === 'ALL' || news.sourceType === newsCategory || (newsCategory === 'SENTIMENT' && (news.sentiment === 'Neutral' || (news.sentiment as any) === 'VOLATILE'));
             const matchesSearch = !searchQuery || 
                 news.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                 news.source.toLowerCase().includes(searchQuery.toLowerCase()) ||

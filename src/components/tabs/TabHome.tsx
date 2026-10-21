@@ -1,11 +1,14 @@
 // ============================================================================
 // TRADYX MOBILE TAB 1: HOME (Institutional Equity Terminal)
+// Ultra-Modern Dark Fintech Style (Linear / Raycast / Bloomberg Terminal)
 // ============================================================================
 
 import React, { useState } from 'react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { UserAccount } from '../../types/auth';
 import { AppTab } from '../BottomNavBar';
+import { ProfileProtocolModal } from '../ProfileProtocolModal';
 import { 
     TrendingUp, 
     TrendingDown, 
@@ -21,7 +24,9 @@ import {
     Sparkles, 
     Clock, 
     ChevronRight,
-    Lock
+    Lock,
+    Settings,
+    Coins
 } from 'lucide-react';
 
 interface TabHomeProps {
@@ -31,11 +36,22 @@ interface TabHomeProps {
 
 export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
     const { trades } = useTradeStore();
+    const { 
+        baseCurrency, 
+        protocolName, 
+        monthlyBudget, 
+        reinvestProfits, 
+        selectedPlan,
+        isProfileModalOpen, 
+        setIsProfileModalOpen,
+        formatMoney 
+    } = useSettingsStore();
+
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
     // Financial calculations
     const totalPnl = safeTrades.reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
-    const startingCapital = 10000;
+    const startingCapital = monthlyBudget || 10000;
     const availableBalance = startingCapital + totalPnl;
     const isProfitable = totalPnl >= 0;
 
@@ -50,10 +66,9 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
     const maxDrawdown = 520.00;
 
     // Monthly Allocation budget
-    const monthlyBudget = 10000;
-    const budgetUsed = 0;
-    const budgetRemaining = monthlyBudget - budgetUsed;
-    const utilizationRate = ((budgetUsed / monthlyBudget) * 100).toFixed(1);
+    const budgetUsed = Math.min(startingCapital, 1200);
+    const budgetRemaining = Math.max(0, startingCapital - budgetUsed);
+    const utilizationRate = ((budgetUsed / startingCapital) * 100).toFixed(1);
 
     // Dynamic equity curve data points for Performance Flow
     const equityCurve = [
@@ -87,37 +102,65 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
 
     const areaD = `${pathD} L ${pointsCoordinates[pointsCoordinates.length - 1].x} ${chartHeight} L ${pointsCoordinates[0].x} ${chartHeight} Z`;
 
-    const userName = authUser?.full_name ? authUser.full_name.toUpperCase() : 'SUCA';
+    const displayName = protocolName || authUser?.full_name || 'RICCARDO SALVIA';
+    const displayInitial = displayName ? displayName.charAt(0).toUpperCase() : 'T';
 
     return (
         <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-2 pb-28 text-white select-none overflow-x-hidden">
             
-            {/* 1. TOP HEADER CON NOTCH SAFE AREA & AVATAR T */}
-            <header className="w-full flex items-center justify-between py-2 border-b border-white/5">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#12141A] border border-[#00E599]/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.15)] shrink-0">
-                        <span className="font-sans font-black text-base text-[#00E599]">T</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
-                            INSTITUTIONAL EQUITY TERMINAL
-                        </span>
-                        <h1 className="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate max-w-[200px] sm:max-w-xs">
-                            WELCOME, {userName}
+            {/* 1. TOP HEADER WITH CIRCULAR AVATAR & SUBTLE NEON RING */}
+            <header className="w-full flex items-center justify-between py-2 border-b border-white/[0.08]">
+                <div className="flex items-center gap-3">
+                    {/* AVATAR TRIGGER IN TOP-LEFT: Clicking opens PROFILE & PROTOCOL SETTINGS */}
+                    <button
+                        type="button"
+                        onClick={() => setIsProfileModalOpen(true)}
+                        className="relative group cursor-pointer focus:outline-none"
+                        title="Apri Profile & Protocol Settings"
+                    >
+                        {/* Subtle Neon Ring Glow */}
+                        <div className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-[#00E599] to-[#1D68BD] opacity-70 group-hover:opacity-100 blur-[2px] transition duration-300 animate-pulse" />
+                        
+                        <div className="relative w-10 h-10 rounded-full bg-[#111318] border border-[#00E599]/60 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.3)] transition-transform group-hover:scale-105 active:scale-95">
+                            <span className="font-sans font-black text-base text-[#00E599]">
+                                {displayInitial}
+                            </span>
+                        </div>
+
+                        {/* Online active micro-pill */}
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#00E599] border-2 border-[#08090C]" />
+                    </button>
+
+                    <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold">
+                                INSTITUTIONAL TERMINAL
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-[#00E599]/20 text-[#00E599]">
+                                {baseCurrency.code} ({baseCurrency.symbol})
+                            </span>
+                        </div>
+                        <h1 className="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate max-w-[190px] sm:max-w-xs uppercase">
+                            WELCOME, {displayName}
                         </h1>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#12141A] border border-white/5 text-[10px] font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E599] animate-ping" />
-                    <span className="text-[#00E599] font-bold">ONLINE</span>
-                </div>
+                {/* Right Header Status / Profile trigger pill */}
+                <button
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111318] border border-white/[0.08] hover:border-[#00E599]/40 text-[10px] font-mono transition-all cursor-pointer group"
+                >
+                    <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#00E599] transition-transform group-hover:rotate-45" />
+                    <span className="text-[#00E599] font-bold">{selectedPlan.toUpperCase()}</span>
+                </button>
             </header>
 
             {/* 2. CARD PRINCIPALE SALDO: AVAILABLE BALANCE */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#12141A] p-4 sm:p-5 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-[#00E599]/5 blur-[60px] rounded-full pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#1D68BD]/10 blur-[50px] rounded-full pointer-events-none" />
+            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-44 h-44 bg-[#00E599]/5 blur-[60px] rounded-full pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-36 h-36 bg-[#1D68BD]/10 blur-[50px] rounded-full pointer-events-none" />
 
                 <div className="relative z-10 space-y-3">
                     <div className="flex items-center justify-between">
@@ -125,41 +168,48 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
                                 AVAILABLE BALANCE
                             </span>
+                            {reinvestProfits && (
+                                <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30">
+                                    COMPOUND
+                                </span>
+                            )}
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#00E599]/10 text-[#00E599] border border-[#00E599]/30 flex items-center gap-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30 flex items-center gap-1 tabular-nums">
                             <ArrowUpRight className="w-3 h-3" />
                             +44.25%
                         </span>
                     </div>
 
-                    {/* Big figures formatted properly with no clipping */}
+                    {/* Big figures formatted dynamically with baseCurrency */}
                     <div className="space-y-0.5">
-                        <div className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-[#00E599] break-words">
-                            +{availableBalance.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                        <div className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-[#00E599] break-words tabular-nums">
+                            {formatMoney(availableBalance, true)}
                         </div>
                         <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5 pt-1">
                             <span>Initial Capital:</span>
-                            <span className="text-slate-200 font-semibold">10.000,00 €</span>
+                            <span className="text-slate-200 font-semibold tabular-nums">
+                                {formatMoney(startingCapital, false)}
+                            </span>
                         </div>
                     </div>
 
                     {/* MINI METRICHE AFFIANCATE RESPONSIVE */}
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5 font-mono">
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center">
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/[0.06] font-mono">
+                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex flex-col justify-center">
                             <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-tight">PNL TOTALE</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-[#00E599] truncate">
-                                +{totalPnl.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €
+                            <span className="text-xs sm:text-sm font-extrabold text-[#00E599] truncate tabular-nums">
+                                {formatMoney(totalPnl, true)}
                             </span>
                         </div>
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center text-center">
+                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex flex-col justify-center text-center">
                             <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-tight">TRADE TOTALI</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-white">
+                            <span className="text-xs sm:text-sm font-extrabold text-white tabular-nums">
                                 {totalTradeCount}
                             </span>
                         </div>
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex flex-col justify-center text-right">
+                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex flex-col justify-center text-right">
                             <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-tight">WIN RATE</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-[#00E599]">
+                            <span className="text-xs sm:text-sm font-extrabold text-[#00E599] tabular-nums">
                                 {winRate}%
                             </span>
                         </div>
@@ -167,22 +217,24 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
 
                     {/* METRICHE DI RISCHIO: PROFIT FACTOR & DRAWDOWN */}
                     <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between">
+                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex items-center justify-between">
                             <div className="flex flex-col">
                                 <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase">PROFIT FACTOR</span>
-                                <span className="text-xs sm:text-sm font-black text-[#00E599]">5.50</span>
+                                <span className="text-xs sm:text-sm font-black text-[#00E599] tabular-nums">5.50</span>
                             </div>
                             <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#1D68BD] text-white">
                                 HIGH EDGE
                             </span>
                         </div>
 
-                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/5 flex items-center justify-between">
+                        <div className="p-2 sm:p-2.5 rounded-xl bg-[#08090C] border border-white/[0.06] flex items-center justify-between">
                             <div className="flex flex-col">
                                 <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase">DRAWDOWN</span>
-                                <span className="text-xs sm:text-sm font-black text-[#EF4444]">+{maxDrawdown.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €</span>
+                                <span className="text-xs sm:text-sm font-black text-[#FF4D4D] tabular-nums">
+                                    {formatMoney(maxDrawdown, true)}
+                                </span>
                             </div>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-950/80 text-rose-300 border border-rose-800">
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#FF4D4D]/20 text-[#FF4D4D] border border-[#FF4D4D]/30">
                                 CONTROLLED
                             </span>
                         </div>
@@ -191,8 +243,8 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
             </section>
 
             {/* 3. MONTHLY ALLOCATION - BUDGET & WALLET PROTOCOL */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#12141A] p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-300">
                         <Layers className="w-3.5 h-3.5 text-[#00E599]" />
                         <span>MONTHLY ALLOCATION - BUDGET & WALLET PROTOCOL</span>
@@ -205,14 +257,14 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 <div className="grid grid-cols-2 gap-3 text-xs font-mono">
                     <div className="space-y-0.5">
                         <span className="text-[10px] text-slate-400 uppercase">Monthly Budget:</span>
-                        <div className="text-sm sm:text-base font-extrabold text-white">
-                            +{monthlyBudget.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €
+                        <div className="text-sm sm:text-base font-extrabold text-white tabular-nums">
+                            {formatMoney(startingCapital, true)}
                         </div>
                     </div>
                     <div className="space-y-0.5 text-right">
                         <span className="text-[10px] text-slate-400 uppercase">Remaining:</span>
-                        <div className="text-sm sm:text-base font-extrabold text-[#00E599]">
-                            +{budgetRemaining.toLocaleString('it-IT', { minimumFractionDigits: 2 })} €
+                        <div className="text-sm sm:text-base font-extrabold text-[#00E599] tabular-nums">
+                            {formatMoney(budgetRemaining, true)}
                         </div>
                     </div>
                 </div>
@@ -221,19 +273,19 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 <div className="space-y-1 pt-1 font-mono">
                     <div className="flex justify-between text-[10px] text-slate-400">
                         <span>Utilization</span>
-                        <span className="font-bold text-[#00E599]">{utilizationRate}%</span>
+                        <span className="font-bold text-[#00E599] tabular-nums">{utilizationRate}%</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-[#08090C] overflow-hidden border border-white/5">
+                    <div className="w-full h-2 rounded-full bg-[#08090C] overflow-hidden border border-white/[0.06]">
                         <div 
                             className="h-full bg-gradient-to-r from-[#00E599] to-[#1D68BD] rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(2, Number(utilizationRate))}%` }}
+                            style={{ width: `${Math.max(4, Number(utilizationRate))}%` }}
                         />
                     </div>
                 </div>
             </section>
 
-            {/* 4. GRAFICO "PERFORMANCE FLOW" */}
-            <section className="w-full rounded-2xl border border-white/5 bg-[#12141A] p-4 shadow-xl space-y-3">
+            {/* 4. GRAFICO "PERFORMANCE FLOW" ISTITUZIONALE */}
+            <section className="w-full rounded-2xl border border-white/[0.08] bg-[#111318] p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
                         <BarChart3 className="w-4 h-4 text-[#00E599]" />
@@ -241,34 +293,34 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
                         <span>Selected:</span>
-                        <span className="text-[#00E599] font-bold">
-                            {activePoint.value.toLocaleString('it-IT')} € ({activePoint.label})
+                        <span className="text-[#00E599] font-bold tabular-nums">
+                            {formatMoney(activePoint.value, false)} ({activePoint.label})
                         </span>
                     </div>
                 </div>
 
-                {/* Interactive SVG Chart */}
-                <div className="w-full h-36 bg-[#08090C] rounded-xl border border-white/5 p-2 relative flex items-center justify-center">
+                {/* Vector SVG Chart with Smooth Gradient Underfill */}
+                <div className="w-full h-36 bg-[#08090C] rounded-xl border border-white/[0.06] p-2 relative flex items-center justify-center">
                     <svg 
                         viewBox={`0 0 ${chartWidth} ${chartHeight}`} 
                         className="w-full h-full overflow-visible"
                     >
                         <defs>
-                            <linearGradient id="performanceGradient" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="performanceFlowGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#00E599" stopOpacity="0.4" />
-                                <stop offset="100%" stopColor="#00E599" stopOpacity="0.0" />
+                                <stop offset="100%" stopColor="#08090C" stopOpacity="0.0" />
                             </linearGradient>
                         </defs>
 
                         {/* Subtle Horizontal grid lines */}
-                        <line x1="0" y1="20" x2={chartWidth} y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                        <line x1="0" y1="60" x2={chartWidth} y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                        <line x1="0" y1="100" x2={chartWidth} y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                        <line x1="0" y1="20" x2={chartWidth} y2="20" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                        <line x1="0" y1="60" x2={chartWidth} y2="60" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                        <line x1="0" y1="100" x2={chartWidth} y2="100" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
 
                         {/* Area fill */}
-                        <path d={areaD} fill="url(#performanceGradient)" />
+                        <path d={areaD} fill="url(#performanceFlowGradient)" />
 
-                        {/* Glowing stroke line */}
+                        {/* Crisp 2px Line */}
                         <path 
                             d={pathD} 
                             fill="none" 
@@ -299,7 +351,7 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r="10"
+                                            r="11"
                                             fill="#00E599"
                                             opacity="0.25"
                                         />
@@ -311,12 +363,48 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                 </div>
             </section>
 
-            {/* 5. QUICK ACTIONS */}
+            {/* 5. FLOATING QUASAR BUBBLE QUICK LAUNCHER */}
+            <section 
+                onClick={() => setActiveTab('bubble')}
+                className="w-full rounded-2xl border border-[#00E599]/30 bg-gradient-to-r from-[#111318] via-[#08090C] to-[#111318] p-4 shadow-xl flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all hover:border-[#00E599]/60 group relative overflow-hidden"
+            >
+                <div className="absolute -right-8 -top-8 w-28 h-28 bg-[#00E599]/10 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="flex items-center gap-3 relative z-10">
+                    <div className="relative w-11 h-11 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full bg-[#00E599]/20 animate-ping" />
+                        <div className="w-10 h-10 rounded-full bg-[#08090C] border border-[#00E599] flex items-center justify-center shadow-[0_0_12px_rgba(0,229,153,0.4)]">
+                            <Sparkles className="w-5 h-5 text-[#00E599] animate-pulse" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-mono font-black text-white uppercase tracking-tight">
+                                QUASAR BUBBLE • SENTIMENT GALAXY
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-[#FF4D4D]/20 text-[#FF4D4D] border border-[#FF4D4D]/30">
+                                70% FEAR
+                            </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono block">
+                            Tap to inspect real-time news feed & institutional positioning
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-[#00E599] group-hover:translate-x-1 transition-transform relative z-10">
+                    <span className="hidden sm:inline">EXPLORE</span>
+                    <ChevronRight className="w-4 h-4 text-[#00E599]" />
+                </div>
+            </section>
+
+            {/* 6. QUICK ACTIONS */}
             <section className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 <button
                     type="button"
                     onClick={() => setActiveTab('coach')}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#12141A] border border-white/5 hover:border-[#1D68BD] text-left transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-lg"
+                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#111318] border border-white/[0.08] hover:border-[#1D68BD] text-left transition-all active:scale-[0.98] flex items-center justify-between group cursor-pointer shadow-lg"
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-[#1D68BD]/20 border border-[#1D68BD]/40 flex items-center justify-center shrink-0">
@@ -355,6 +443,12 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                     <ChevronRight className="w-4 h-4 text-[#08090C] group-hover:translate-x-0.5 transition-all" />
                 </button>
             </section>
+
+            {/* FULL SCREEN PROFILE & PROTOCOL SETTINGS MODAL */}
+            <ProfileProtocolModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+            />
 
         </div>
     );
