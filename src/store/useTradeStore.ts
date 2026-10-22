@@ -24,6 +24,9 @@ interface TradeState {
     // Actions
     fetchTrades: (userId: string) => Promise<void>;
     addTrade: (tradeData: NewTradeInput) => Promise<void>;
+    deleteTrade: (tradeId: string) => Promise<void>;
+    injectMockTrades: (newTrades: Trade[]) => void;
+    clearAllTrades: () => void;
     subscribeToRealtimeTrades: (userId: string) => () => void;
     recalculateBubbleConfig: () => void;
 }
@@ -311,6 +314,38 @@ export const useTradeStore = create<TradeState>((set, get) => ({
             console.warn('Optimistic trade saved locally:', err.message);
             // Local state remains active so demo is 100% interactive!
         }
+    },
+
+    deleteTrade: async (tradeId: string) => {
+        const tradeToDelete = get().trades.find(t => t.id === tradeId);
+        const updatedTrades = get().trades.filter(t => t.id !== tradeId);
+        set({ trades: updatedTrades });
+        get().recalculateBubbleConfig();
+
+        if (tradeToDelete) {
+            addSystemLog(
+                'TRADE_DELETED',
+                `Trade eliminato: ${tradeToDelete.asset_pair} ${tradeToDelete.direction}`,
+                'trader.pro@tradyx.ai',
+                { id: tradeId, symbol: tradeToDelete.asset_pair }
+            );
+        }
+
+        try {
+            await supabase.from('trades').delete().eq('id', tradeId);
+        } catch (err: any) {
+            console.warn('Delete trade notice (persisted in local state):', err.message);
+        }
+    },
+
+    injectMockTrades: (newTrades: Trade[]) => {
+        set({ trades: newTrades });
+        get().recalculateBubbleConfig();
+    },
+
+    clearAllTrades: () => {
+        set({ trades: [] });
+        get().recalculateBubbleConfig();
     },
 
     subscribeToRealtimeTrades: (userId: string) => {

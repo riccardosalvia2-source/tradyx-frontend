@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { UserAccount } from './types/auth';
 import { supabase } from './services/authService';
 import { useTradeStore } from './store/useTradeStore';
+import { SandboxTestPage } from './pages/SandboxTestPage';
 
 const DEFAULT_INSTITUTIONAL_USER: UserAccount = {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -22,6 +23,24 @@ const DEFAULT_INSTITUTIONAL_USER: UserAccount = {
 
 export const App: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState<boolean>(true);
+    const [currentPath, setCurrentPath] = useState<string>(() => {
+        return typeof window !== 'undefined' ? window.location.pathname : '/';
+    });
+
+    useEffect(() => {
+        const handleLocationChange = () => {
+            setCurrentPath(window.location.pathname);
+        };
+        window.addEventListener('popstate', handleLocationChange);
+        window.addEventListener('hashchange', handleLocationChange);
+        return () => {
+            window.removeEventListener('popstate', handleLocationChange);
+            window.removeEventListener('hashchange', handleLocationChange);
+        };
+    }, []);
+
+    const isSandboxRoute = currentPath.startsWith('/sandbox-test') || 
+        (typeof window !== 'undefined' && window.location.hash.includes('sandbox-test'));
 
     const [authUser, setAuthUser] = useState<UserAccount | null>(() => {
         if (typeof window !== 'undefined') {
@@ -176,6 +195,15 @@ export const App: React.FC = () => {
         }
         recalculateBubbleConfig();
     };
+
+    // Dedicated Hidden Sandbox Route for Developer Load & Performance Testing
+    if (isSandboxRoute) {
+        return (
+            <ErrorBoundary>
+                <SandboxTestPage />
+            </ErrorBoundary>
+        );
+    }
 
     // Failsafe loading screen: dark institutional terminal background
     if (isInitializing) {

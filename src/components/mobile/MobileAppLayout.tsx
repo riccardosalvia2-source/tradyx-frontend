@@ -39,7 +39,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
             <div className="w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C]/80 text-white overflow-x-hidden relative z-10 flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl">
                 
                 {/* Active Tab Content Screen */}
-                <main className="w-full flex-1">
+                <main className="w-full flex-1 flex flex-col min-h-0">
                     {activeTab === 'home' && (
                         <TabHome authUser={authUser} setActiveTab={setActiveTab} />
                     )}

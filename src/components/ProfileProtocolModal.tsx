@@ -483,7 +483,7 @@ export const ProfileProtocolModal: React.FC<ProfileProtocolModalProps> = ({
                             
                             <div className="text-center space-y-1">
                                 <h3 className="text-base font-black text-white uppercase font-mono tracking-tight">
-                                    SANDBOX & PROTOCOL TIERS
+                                    TRADYX PROTOCOL TIERS
                                 </h3>
                                 <p className="text-xs text-slate-400 font-mono">
                                     Potenzia il tuo journal con gli algoritmi predittivi e la Quasar Bubble live

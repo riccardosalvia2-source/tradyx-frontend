@@ -124,13 +124,13 @@ export const TabBubble: React.FC = () => {
     });
 
     return (
-        <div className="w-full min-h-[calc(100dvh-5rem)] bg-[#08090C] text-slate-100 flex flex-col select-none overflow-x-hidden">
+        <div className="w-full flex-1 min-h-[calc(100dvh-5.5rem)] bg-[#08090C] text-slate-100 flex flex-col justify-center items-center select-none overflow-x-hidden relative">
             
             {/* ============================================================================ */}
             {/* VISTA 1: INITIAL CLEAN VIEW (ESCLUSIVAMENTE LA BOLLA AL CENTRO)               */}
             {/* ============================================================================ */}
             {viewMode === 'BUBBLE' && (
-                <div className="w-full flex-1 flex flex-col items-center justify-center px-4 py-8 relative animate-in fade-in duration-300">
+                <div className="w-full flex-1 flex flex-col items-center justify-center px-4 py-8 relative min-h-[450px]">
                     
                     {/* Top Minimal Brand Indicator */}
                     <div className="absolute top-4 left-4 flex items-center gap-2">
@@ -145,30 +145,36 @@ export const TabBubble: React.FC = () => {
                     {/* Central Organic Jade Fluid Bubble Orb */}
                     <div 
                         onClick={handleBubbleClick}
-                        className="relative flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 active:scale-95 group my-auto"
+                        className="relative flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 active:scale-95 group"
                         title="Tocca per accedere al Sentiment Galaxy Explorer"
                     >
                         {/* Soft Ambient Glow (Jade vs Pulsing Red Alarm) */}
                         <div 
-                            className="absolute w-72 h-72 rounded-full pointer-events-none transition-opacity duration-700 opacity-60 group-hover:opacity-90"
+                            className="absolute w-72 h-72 rounded-full pointer-events-none transition-opacity duration-700 opacity-70 group-hover:opacity-95"
                             style={{
                                 background: isTilt
                                     ? 'radial-gradient(circle at center, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.20) 55%, transparent 75%)'
-                                    : 'radial-gradient(circle at center, rgba(46, 204, 113, 0.28) 0%, rgba(39, 174, 96, 0.12) 55%, transparent 75%)',
+                                    : 'radial-gradient(circle at center, rgba(46, 204, 113, 0.35) 0%, rgba(39, 174, 96, 0.15) 55%, transparent 75%)',
                                 filter: 'blur(35px)'
                             }}
                         />
 
                         {/* Opaque Blob Container: JADE vs PULSATING RED ALARM (#EF4444) */}
                         <div 
-                            className={`w-56 h-56 sm:w-64 sm:h-64 rounded-full shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105 border ${
+                            className={`rounded-full shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105 border ${
                                 isTilt
                                     ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50'
-                                    : 'bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble border-white/25'
+                                    : 'bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble border-white/25 shadow-[0_0_50px_rgba(46,204,113,0.35)]'
                             }`}
+                            style={{
+                                width: '240px',
+                                height: '240px',
+                                minWidth: '240px',
+                                minHeight: '240px'
+                            }}
                         >
                             {/* Organic Soft Specular Highlight */}
-                            <div className="absolute top-4 left-8 w-20 h-10 rounded-full bg-white/20 blur-md pointer-events-none transform -rotate-12" />
+                            <div className="absolute top-4 left-8 w-20 h-10 rounded-full bg-white/25 blur-md pointer-events-none transform -rotate-12" />
 
                             {/* Center White Quasar Icon */}
                             <div className={`p-3.5 rounded-2xl mb-2.5 shadow-lg group-hover:rotate-6 transition-transform duration-300 border ${
@@ -178,17 +184,17 @@ export const TabBubble: React.FC = () => {
                             </div>
 
                             {/* Centered White Badge */}
-                            <div className="px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/30 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                            <div className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/30 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-white" />
                                 <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
                             </div>
                         </div>
 
                         {/* Subtitle / Invitation */}
-                        <span className={`mt-6 text-[11px] font-mono transition-colors tracking-wide ${
+                        <span className={`mt-6 text-[11px] font-mono transition-colors tracking-wide text-center px-4 ${
                             isTilt ? 'text-rose-400 font-bold animate-pulse' : 'text-slate-400 group-hover:text-slate-200'
                         }`}>
-                            {isTilt ? '⚠️ Tilt Emotivo Rilevato • Circuit Breaker Armato' : 'Tocca la bolla per sincronizzare il sentiment'}
+                            {isTilt ? '⚠️ Tilt Emotivo Rilevato • Circuit Breaker Armato' : 'Tocca la bolla per accedere a Quasar Sentiment Galaxy'}
                         </span>
                     </div>
 

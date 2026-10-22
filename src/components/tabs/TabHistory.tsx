@@ -4,6 +4,7 @@
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Trade } from '../../types/trade';
@@ -25,12 +26,13 @@ import {
     CheckCircle2,
     FileText,
     Percent,
-    Share2
+    Share2,
+    Trash2
 } from 'lucide-react';
 import { StoryCardModal } from '../StoryCardModal';
 
 export const TabHistory: React.FC = () => {
-    const { trades } = useTradeStore();
+    const { trades, deleteTrade } = useTradeStore();
     const { baseCurrency, formatMoney } = useSettingsStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
@@ -110,79 +112,113 @@ export const TabHistory: React.FC = () => {
                 )}
             </div>
 
-            {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO */}
+            {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO (CON SWIPE-TO-DELETE) */}
             <div className="space-y-2.5">
-                {filteredTrades.map((trade) => {
-                    const pnlVal = Number(trade.pnl) || 0;
-                    const isProfit = pnlVal >= 0;
-                    const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
+                <AnimatePresence mode="popLayout">
+                    {filteredTrades.map((trade) => {
+                        const pnlVal = Number(trade.pnl) || 0;
+                        const isProfit = pnlVal >= 0;
+                        const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
 
-                    return (
-                        <div
-                            key={trade.id}
-                            onClick={() => setSelectedTrade(trade)}
-                            className="w-full rounded-2xl glass-panel glass-card-hover p-3.5 sm:p-4 transition-all duration-200 cursor-pointer active:scale-[0.99] flex flex-col space-y-2.5 group"
-                        >
-                            {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                    <div className={`p-1.5 rounded-lg border ${
-                                        trade.direction === 'LONG'
-                                            ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30'
-                                            : 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]/30'
-                                    }`}>
-                                        {trade.direction === 'LONG' ? (
-                                            <TrendingUp className="w-4 h-4" />
-                                        ) : (
-                                            <TrendingDown className="w-4 h-4" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-sm font-extrabold text-white font-mono">
-                                                {trade.asset_pair}
-                                            </span>
-                                            <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded uppercase ${
+                        return (
+                            <motion.div
+                                key={trade.id}
+                                layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ 
+                                    opacity: 0, 
+                                    x: 250, 
+                                    height: 0, 
+                                    marginBottom: 0, 
+                                    paddingTop: 0, 
+                                    paddingBottom: 0,
+                                    overflow: 'hidden',
+                                    transition: { duration: 0.25, ease: 'easeInOut' }
+                                }}
+                                className="relative w-full rounded-2xl overflow-hidden select-none"
+                            >
+                                {/* Sfondo rosso rivelato durante lo swipe verso destra con icona cestino ed etichetta 'Elimina' */}
+                                <div className="absolute inset-0 bg-[#DC2626] rounded-2xl flex items-center justify-start pl-6 text-white font-mono font-bold text-xs gap-2 z-0">
+                                    <Trash2 className="w-5 h-5 text-white animate-pulse" />
+                                    <span className="uppercase tracking-widest font-black">Elimina</span>
+                                </div>
+
+                                {/* Card trascinabile orizzontalmente verso destra */}
+                                <motion.div
+                                    drag="x"
+                                    dragConstraints={{ left: 0, right: 130 }}
+                                    dragElastic={{ left: 0, right: 0.6 }}
+                                    onDragEnd={(_, info) => {
+                                        if (info.offset.x > 80 || info.velocity.x > 300) {
+                                            deleteTrade(trade.id);
+                                        }
+                                    }}
+                                    onClick={() => setSelectedTrade(trade)}
+                                    className="w-full rounded-2xl glass-panel glass-card-hover p-3.5 sm:p-4 transition-colors duration-200 cursor-grab active:cursor-grabbing flex flex-col space-y-2.5 group relative z-10 bg-[#0D111A]/95"
+                                >
+                                    {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className={`p-1.5 rounded-lg border ${
                                                 trade.direction === 'LONG'
-                                                    ? 'bg-[#10B981]/20 text-[#10B981]'
-                                                    : 'bg-[#DC2626]/20 text-[#DC2626]'
+                                                    ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30'
+                                                    : 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]/30'
                                             }`}>
-                                                {trade.direction}
-                                            </span>
+                                                {trade.direction === 'LONG' ? (
+                                                    <TrendingUp className="w-4 h-4" />
+                                                ) : (
+                                                    <TrendingDown className="w-4 h-4" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm font-extrabold text-white font-mono">
+                                                        {trade.asset_pair}
+                                                    </span>
+                                                    <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded uppercase ${
+                                                        trade.direction === 'LONG'
+                                                            ? 'bg-[#10B981]/20 text-[#10B981]'
+                                                            : 'bg-[#DC2626]/20 text-[#DC2626]'
+                                                    }`}>
+                                                        {trade.direction}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[10px] text-[#9CA3AF] font-mono">
+                                                    {formatTimestamp(trade.created_at)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span className="text-[10px] text-[#9CA3AF] font-mono">
-                                            {formatTimestamp(trade.created_at)}
+
+                                        <div className="text-right font-mono">
+                                            <div className={`text-sm sm:text-base font-black tabular-nums ${
+                                                isProfit ? 'text-[#10B981]' : 'text-[#DC2626]'
+                                            }`}>
+                                                {formatMoney(pnlVal, true)}
+                                            </div>
+                                            <div className={`text-[10px] font-bold tabular-nums ${
+                                                isProfit ? 'text-[#10B981]/80' : 'text-[#DC2626]/80'
+                                            }`}>
+                                                ROI {roiFormatted}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Card Bottom Row: Strategy & Trigger preview */}
+                                    <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF]">
+                                        <span className="text-slate-300 truncate max-w-[180px] sm:max-w-xs">
+                                            {trade.strategy || 'Tactical Trend Setup'}
                                         </span>
+                                        <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF] group-hover:text-white transition-colors">
+                                            <span className="text-[9px] text-slate-500 hidden sm:inline">Swipe destra per eliminare</span>
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div className="text-right font-mono">
-                                    <div className={`text-sm sm:text-base font-black tabular-nums ${
-                                        isProfit ? 'text-[#10B981]' : 'text-[#DC2626]'
-                                    }`}>
-                                        {formatMoney(pnlVal, true)}
-                                    </div>
-                                    <div className={`text-[10px] font-bold tabular-nums ${
-                                        isProfit ? 'text-[#10B981]/80' : 'text-[#DC2626]/80'
-                                    }`}>
-                                        ROI {roiFormatted}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card Bottom Row: Strategy & Trigger preview */}
-                            <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF]">
-                                <span className="text-slate-300 truncate max-w-[200px] sm:max-w-xs">
-                                    {trade.strategy || 'Tactical Trend Setup'}
-                                </span>
-                                <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] group-hover:text-white transition-colors">
-                                    <span>Inspect</span>
-                                    <ChevronRight className="w-3.5 h-3.5" />
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
+                                </motion.div>
+                            </motion.div>
+                        );
+                    })}
+                </AnimatePresence>
 
                 {filteredTrades.length === 0 && (
                     <div className="w-full p-8 text-center rounded-2xl glass-panel text-[#9CA3AF] font-mono text-xs">
@@ -321,6 +357,19 @@ export const TabHistory: React.FC = () => {
                                 {selectedTrade.reasoning || selectedTrade.notes || 'Institutional entry executed strictly adhering to pre-defined algorithmic risk and volatility boundaries.'}
                             </p>
                         </div>
+
+                        {/* ROW 7.5: Delete Trade Button */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                deleteTrade(selectedTrade.id);
+                                setSelectedTrade(null);
+                            }}
+                            className="w-full py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
+                        >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                            <span>Elimina Trade dal Journal</span>
+                        </button>
 
                         {/* ROW 8: Actions: Condividi Story 9:16 & Chiudi */}
                         <div className="grid grid-cols-2 gap-2 mt-1 shrink-0">

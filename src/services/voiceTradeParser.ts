@@ -114,7 +114,6 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
     };
 
     for (const [key, symbol] of Object.entries(assetMap)) {
-        // match word boundary
         const regex = new RegExp(`\\b${key}\\b`, 'i');
         if (regex.test(lower)) {
             parsed.asset_pair = symbol;
@@ -129,15 +128,13 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
         parsed.direction = 'SHORT';
     }
 
-    // 3. PnL Detection
-    // "perso 200", "loss 350", "-200", "perdita 400"
-    const lossMatch = lower.match(/\b(?:perso|loss|perdita di|meno|-)\s*(\d+(?:[.,]\d+)?)/i);
+    // 3. PnL / Performance Detection
+    const lossMatch = lower.match(/\b(?:perso|loss|perdita di|perdita|meno|-|sotto)\s*(\d+(?:[.,]\d+)?)/i);
     if (lossMatch) {
         const val = parseFloat(lossMatch[1].replace(',', '.'));
         if (!isNaN(val)) parsed.pnl = -Math.abs(val);
     } else {
-        // "guadagnato 500", "profitto 500", "+500", "preso 300", "utile 400"
-        const gainMatch = lower.match(/\b(?:guadagnato|profitto|preso|utile|fatto|più|\+)\s*(\d+(?:[.,]\d+)?)/i);
+        const gainMatch = lower.match(/\b(?:guadagnato|profitto|preso|utile|fatto|più|\+|netto|pnl|performance)\s*(\d+(?:[.,]\d+)?)/i);
         if (gainMatch) {
             const val = parseFloat(gainMatch[1].replace(',', '.'));
             if (!isNaN(val)) parsed.pnl = Math.abs(val);
@@ -145,8 +142,7 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
     }
 
     // 4. Entry Price Detection
-    // "da 67000", "a 67k", "prezzo 67000", "entry 67000", "entrato a 145"
-    const entryMatch = lower.match(/\b(?:da|entrato a|entry|aperto a|prezzo di entrata|prezzo)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
+    const entryMatch = lower.match(/\b(?:da|entrato a|entry|aperto a|prezzo di entrata|prezzo|quota)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
     if (entryMatch) {
         let val = parseFloat(entryMatch[1].replace(',', '.'));
         if (entryMatch[2]) val *= 1000;
@@ -154,7 +150,6 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
     }
 
     // 5. Exit Price Detection
-    // "chiuso a 68000", "uscito a 68000", "exit 68000", "target 68000"
     const exitMatch = lower.match(/\b(?:chiuso a|uscito a|exit|uscita|target a|venduto a)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
     if (exitMatch) {
         let val = parseFloat(exitMatch[1].replace(',', '.'));
@@ -162,11 +157,27 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
         if (!isNaN(val) && val > 0) parsed.exit_price = val;
     }
 
-    // 6. Discipline Errors Detection
+    // 6. Generic Number Fallback (e.g. "compra btc 68000" or "short eth 2500")
+    if (parsed.entry_price == null && parsed.pnl == null) {
+        const words = lower.split(/\s+/);
+        for (const w of words) {
+            const clean = w.replace(/[^0-9.,kK]/g, '');
+            if (/^\d+(?:[.,]\d+)?(?:k)?$/i.test(clean)) {
+                let val = parseFloat(clean.toLowerCase().replace('k', '').replace(',', '.'));
+                if (clean.toLowerCase().includes('k')) val *= 1000;
+                if (!isNaN(val) && val > 0) {
+                    parsed.entry_price = val;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 7. Discipline Errors Detection
     const detectedErrors: string[] = [];
     if (/\b(fomo)\b/i.test(lower)) detectedErrors.push('FOMO');
-    if (/\b(overtrading|troppi trade)\b/i.test(lower)) detectedErrors.push('OVERTRADING');
-    if (/\b(no stop|senza stop|no stop loss)\b/i.test(lower)) detectedErrors.push('NO STOP LOSS');
+    if (/\b(overtrading|troppi trade|troppe operazioni)\b/i.test(lower)) detectedErrors.push('OVERTRADING');
+    if (/\b(no stop|senza stop|no stop loss|senza stop loss)\b/i.test(lower)) detectedErrors.push('NO STOP LOSS');
     if (/\b(revenge|vendetta|recupero|rabbia)\b/i.test(lower)) detectedErrors.push('REVENGE TRADING');
     if (/\b(early exit|uscito presto|chiuso prima)\b/i.test(lower)) detectedErrors.push('EARLY EXIT');
 
@@ -174,11 +185,11 @@ export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
         parsed.errors = detectedErrors;
     }
 
-    // 7. Psychology State
-    if (/\b(confidence|sicuro|disciplinato|calmo|tranquillo)\b/i.test(lower)) {
-        parsed.psychology = 'CONFIDENCE';
-    } else if (/\b(fear|paura|ansia|agitato|preoccupato)\b/i.test(lower)) {
+    // 8. Psychology State
+    if (/\b(ansioso|ansia|paura|fear|preoccupato|agitato|stress)\b/i.test(lower)) {
         parsed.psychology = 'FEAR';
+    } else if (/\b(confidence|sicuro|disciplinato|calmo|tranquillo|fiducia)\b/i.test(lower)) {
+        parsed.psychology = 'CONFIDENCE';
     } else if (/\b(neutrale|normale|indifferente)\b/i.test(lower)) {
         parsed.psychology = 'NEUTRAL';
     }
