@@ -248,18 +248,20 @@ export const SandboxTestPage: React.FC = () => {
                                 </span>
                             </div>
                             <h1 className="text-base sm:text-xl font-black text-white tracking-tight font-mono mt-0.5">
-                                TRADYX LOAD & PERFORMANCE STRESS TEST
+                                Tradyx Sandbox & Stress Test Utility
                             </h1>
                         </div>
                     </div>
 
-                    <a 
-                        href="/"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-slate-300 hover:text-white transition active:scale-95"
-                    >
-                        <ArrowLeft className="w-4 h-4 text-[#10B981]" />
-                        <span className="hidden sm:inline">Torna all'App</span>
-                    </a>
+                    <div className="flex items-center gap-2">
+                        <a 
+                            href="/"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-slate-300 hover:text-white transition active:scale-95"
+                        >
+                            <ArrowLeft className="w-4 h-4 text-[#10B981]" />
+                            <span className="hidden sm:inline">Torna all'App</span>
+                        </a>
+                    </div>
                 </div>
 
                 {/* 2. REAL-TIME TELEMETRY MONITOR (FPS, MEMORY, LATENCY) */}
@@ -276,7 +278,7 @@ export const SandboxTestPage: React.FC = () => {
                                 {renderLatencyMs > 0 ? `${renderLatencyMs}ms` : `${metrics.computeDuration}ms`}
                             </span>
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 mt-1">Tempo ricalcolo matrici</span>
+                        <span className="text-[10px] font-mono text-slate-500 mt-1">Tempo ricalcolo grafici</span>
                     </div>
 
                     {/* Telemetry Card: Frame Rate (FPS) */}
@@ -319,19 +321,19 @@ export const SandboxTestPage: React.FC = () => {
                             </span>
                             <span className="text-[11px] font-mono text-slate-400">record</span>
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 mt-1">Nello store reattivo</span>
+                        <span className="text-[10px] font-mono text-slate-500 mt-1">Nello store / database</span>
                     </div>
 
                 </div>
 
-                {/* 3. CONTROL PANEL: SIMULAZIONE DEL CARICO (50, 100, 300, 500) */}
+                {/* 3. CONTROL PANEL: INIEZIONE MOCK DATA & RESET DATABASE */}
                 <div className="w-full p-4 sm:p-5 rounded-2xl bg-[#0D111A] border border-white/[0.08] shadow-2xl space-y-4">
                     
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Sliders className="w-4 h-4 text-[#10B981]" />
                             <h2 className="text-sm font-black font-mono uppercase text-white tracking-wide">
-                                PANNELLO DI CONTROLLO SIMULAZIONE CARICO
+                                CONTROLLO INIEZIONE DATI & STRESS TEST
                             </h2>
                         </div>
                         <span className="text-[10px] font-mono text-slate-400">
@@ -339,58 +341,70 @@ export const SandboxTestPage: React.FC = () => {
                         </span>
                     </div>
 
-                    {/* Selector Quantità Trade: 50, 100, 300, 500 */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono uppercase font-bold text-slate-400 tracking-wider">
-                            Seleziona Quantità Trade da Iniettare
-                        </label>
-                        <div className="grid grid-cols-4 gap-2">
-                            {[50, 100, 300, 500].map((qty) => (
-                                <button
-                                    key={qty}
-                                    type="button"
-                                    onClick={() => setInjectCount(qty)}
-                                    className={`py-2.5 rounded-xl text-xs font-mono font-black transition cursor-pointer active:scale-95 border ${
-                                        injectCount === qty
-                                            ? 'bg-[#10B981] text-slate-950 border-[#10B981] shadow-lg shadow-[#10B981]/20'
-                                            : 'bg-[#111318] text-slate-300 hover:text-white border-white/[0.08] hover:border-white/20'
-                                    }`}
-                                >
-                                    {qty} TRADE
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Action Buttons: Inietta Mock Data & Svuota Dati */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Dedicated 1-Click Injection Buttons: 50 Trade & 300 Trade */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         
-                        {/* Pulsante Inietta Mock Data */}
+                        {/* Pulsante Inietta 50 Trade di Test */}
                         <button
                             type="button"
-                            onClick={handleInjectMockData}
+                            onClick={() => {
+                                setInjectCount(50);
+                                setIsInjecting(true);
+                                const start = performance.now();
+                                const mockTrades = generateRealisticMockTrades(50);
+                                injectMockTrades(mockTrades);
+                                const latency = performance.now() - start;
+                                setRenderLatencyMs(Number(latency.toFixed(2)));
+                                setIsInjecting(false);
+                                setLastActionTime(new Date().toLocaleTimeString('it-IT'));
+                                setFeedbackToast(`Iniettati 50 trade di test con successo (${latency.toFixed(1)} ms)`);
+                                setTimeout(() => setFeedbackToast(null), 3500);
+                            }}
                             disabled={isInjecting}
-                            className="h-12 rounded-xl bg-gradient-to-r from-[#10B981] to-[#2563EB] hover:from-[#059669] hover:to-[#1D4ED8] text-white font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-xl shadow-[#10B981]/20"
+                            className="h-13 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:brightness-110 text-white font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-[#10B981]/20 p-2 text-center"
                         >
-                            <Zap className="w-4 h-4 text-white" />
-                            <span>INIETTA {injectCount} MOCK DATA</span>
+                            <Zap className="w-4 h-4 text-white shrink-0" />
+                            <span>Inietta 50 Trade di Test</span>
                         </button>
 
-                        {/* Pulsante Svuota Dati di Test */}
+                        {/* Pulsante Inietta 300 Trade di Test */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setInjectCount(300);
+                                setIsInjecting(true);
+                                const start = performance.now();
+                                const mockTrades = generateRealisticMockTrades(300);
+                                injectMockTrades(mockTrades);
+                                const latency = performance.now() - start;
+                                setRenderLatencyMs(Number(latency.toFixed(2)));
+                                setIsInjecting(false);
+                                setLastActionTime(new Date().toLocaleTimeString('it-IT'));
+                                setFeedbackToast(`Iniettati 300 trade di test con successo (${latency.toFixed(1)} ms)`);
+                                setTimeout(() => setFeedbackToast(null), 3500);
+                            }}
+                            disabled={isInjecting}
+                            className="h-13 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:brightness-110 text-white font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-[#2563EB]/25 p-2 text-center"
+                        >
+                            <Zap className="w-4 h-4 text-cyan-300 shrink-0" />
+                            <span>Inietta 300 Trade di Test</span>
+                        </button>
+
+                        {/* Pulsante Resetta Database Test */}
                         <button
                             type="button"
                             onClick={handleClearData}
-                            className="h-12 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-300 hover:text-red-100 font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg"
+                            className="h-13 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/50 text-red-300 hover:text-white font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg p-2 text-center"
                         >
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                            <span>SVUOTA DATI DI TEST</span>
+                            <Trash2 className="w-4 h-4 text-red-400 shrink-0" />
+                            <span>Resetta Database Test</span>
                         </button>
 
                     </div>
 
                     <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-[11px] font-mono text-slate-400 flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
-                        <span>I dati iniettati simulano asset misti (BTC, ETH, SOL, AAPL, NVDA, EUR), win rate calibrato ~58%, timestamp distribuiti nell'ultimo mese, e note istituzionali.</span>
+                        <span>I trade casuali ma realistici popolano Heatmap, Equity Line, Drawdown, Hourly Distribution ed Error Tracker con dati distribuiti nell'ultimo mese.</span>
                     </div>
 
                 </div>

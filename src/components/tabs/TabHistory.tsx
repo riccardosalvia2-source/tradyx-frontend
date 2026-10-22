@@ -31,6 +31,146 @@ import {
 } from 'lucide-react';
 import { StoryCardModal } from '../StoryCardModal';
 
+interface SwipeableTradeCardProps {
+    trade: Trade;
+    onSelect: (trade: Trade) => void;
+    onDelete: (id: string) => void;
+    formatMoney: (val: number, showSign?: boolean) => string;
+    formatTimestamp: (iso: string) => string;
+}
+
+const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
+    trade,
+    onSelect,
+    onDelete,
+    formatMoney,
+    formatTimestamp
+}) => {
+    const [dragX, setDragX] = useState<number>(0);
+    const pnlVal = Number(trade.pnl) || 0;
+    const isProfit = pnlVal >= 0;
+    const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
+
+    // Red threshold indicator: only visible when physically dragged
+    const isPastThreshold = dragX >= 60;
+    const showRedUnderlay = dragX > 10;
+
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ 
+                opacity: 0, 
+                x: 200, 
+                height: 0, 
+                marginBottom: 0, 
+                paddingTop: 0, 
+                paddingBottom: 0,
+                overflow: 'hidden',
+                transition: { duration: 0.22, ease: 'easeInOut' }
+            }}
+            className="relative w-full rounded-2xl overflow-hidden select-none"
+        >
+            {/* Background rosso: renderizzato SOLO quando la card viene fisicamente trascinata */}
+            {showRedUnderlay && (
+                <div 
+                    className={`absolute inset-0 rounded-2xl flex items-center justify-start pl-5 text-white font-mono font-bold text-xs gap-2 transition-colors duration-150 z-0 ${
+                        isPastThreshold ? 'bg-[#DC2626]' : 'bg-[#DC2626]/70'
+                    }`}
+                >
+                    <Trash2 className={`w-5 h-5 text-white shrink-0 ${isPastThreshold ? 'animate-bounce' : 'opacity-80'}`} />
+                    <span className="uppercase tracking-widest font-black text-[10px]">
+                        {isPastThreshold ? 'Rilascia per Eliminare' : 'Trascina per Eliminare'}
+                    </span>
+                </div>
+            )}
+
+            {/* Card frontale: classico sfondo glassmorphism scuro autonomo */}
+            <motion.div
+                drag="x"
+                dragConstraints={{ left: 0, right: 100 }}
+                dragElastic={0.1}
+                onDrag={(_, info) => {
+                    if (info.offset.x >= 0) {
+                        setDragX(info.offset.x);
+                    }
+                }}
+                onDragEnd={(_, info) => {
+                    if (info.offset.x >= 60) {
+                        onDelete(trade.id);
+                    }
+                    setDragX(0);
+                }}
+                onClick={() => {
+                    if (dragX < 5) {
+                        onSelect(trade);
+                    }
+                }}
+                className="w-full rounded-2xl p-3.5 sm:p-4 transition-colors duration-200 cursor-grab active:cursor-grabbing flex flex-col space-y-2.5 relative z-10 bg-[#111318]/95 backdrop-blur-md border border-white/[0.08] hover:border-white/20 shadow-lg"
+            >
+                {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
+                <div className="flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 rounded-lg border ${
+                            trade.direction === 'LONG'
+                                ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30'
+                                : 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]/30'
+                        }`}>
+                            {trade.direction === 'LONG' ? (
+                                <TrendingUp className="w-4 h-4" />
+                            ) : (
+                                <TrendingDown className="w-4 h-4" />
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-extrabold text-white font-mono">
+                                    {trade.asset_pair}
+                                </span>
+                                <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded uppercase ${
+                                    trade.direction === 'LONG'
+                                        ? 'bg-[#10B981]/20 text-[#10B981]'
+                                        : 'bg-[#DC2626]/20 text-[#DC2626]'
+                                }`}>
+                                    {trade.direction}
+                                </span>
+                            </div>
+                            <span className="text-[10px] text-[#9CA3AF] font-mono">
+                                {formatTimestamp(trade.created_at)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="text-right font-mono">
+                        <div className={`text-sm sm:text-base font-black tabular-nums ${
+                            isProfit ? 'text-[#10B981]' : 'text-[#DC2626]'
+                        }`}>
+                            {formatMoney(pnlVal, true)}
+                        </div>
+                        <div className={`text-[10px] font-bold tabular-nums ${
+                            isProfit ? 'text-[#10B981]/80' : 'text-[#DC2626]/80'
+                        }`}>
+                            ROI {roiFormatted}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card Bottom Row: Strategy & Trigger preview */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF] pointer-events-none">
+                    <span className="text-slate-300 truncate max-w-[180px] sm:max-w-xs">
+                        {trade.strategy || 'Tactical Trend Setup'}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
+                        <span className="text-[9px] text-slate-500">Swipe destra per eliminare</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 export const TabHistory: React.FC = () => {
     const { trades, deleteTrade } = useTradeStore();
     const { baseCurrency, formatMoney } = useSettingsStore();
@@ -112,112 +252,19 @@ export const TabHistory: React.FC = () => {
                 )}
             </div>
 
-            {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO (CON SWIPE-TO-DELETE) */}
+            {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO (CON SWIPE-TO-DELETE ISOLATO) */}
             <div className="space-y-2.5">
                 <AnimatePresence mode="popLayout">
-                    {filteredTrades.map((trade) => {
-                        const pnlVal = Number(trade.pnl) || 0;
-                        const isProfit = pnlVal >= 0;
-                        const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
-
-                        return (
-                            <motion.div
-                                key={trade.id}
-                                layout
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ 
-                                    opacity: 0, 
-                                    x: 250, 
-                                    height: 0, 
-                                    marginBottom: 0, 
-                                    paddingTop: 0, 
-                                    paddingBottom: 0,
-                                    overflow: 'hidden',
-                                    transition: { duration: 0.25, ease: 'easeInOut' }
-                                }}
-                                className="relative w-full rounded-2xl overflow-hidden select-none"
-                            >
-                                {/* Sfondo rosso rivelato durante lo swipe verso destra con icona cestino ed etichetta 'Elimina' */}
-                                <div className="absolute inset-0 bg-[#DC2626] rounded-2xl flex items-center justify-start pl-6 text-white font-mono font-bold text-xs gap-2 z-0">
-                                    <Trash2 className="w-5 h-5 text-white animate-pulse" />
-                                    <span className="uppercase tracking-widest font-black">Elimina</span>
-                                </div>
-
-                                {/* Card trascinabile orizzontalmente verso destra */}
-                                <motion.div
-                                    drag="x"
-                                    dragConstraints={{ left: 0, right: 130 }}
-                                    dragElastic={{ left: 0, right: 0.6 }}
-                                    onDragEnd={(_, info) => {
-                                        if (info.offset.x > 80 || info.velocity.x > 300) {
-                                            deleteTrade(trade.id);
-                                        }
-                                    }}
-                                    onClick={() => setSelectedTrade(trade)}
-                                    className="w-full rounded-2xl glass-panel glass-card-hover p-3.5 sm:p-4 transition-colors duration-200 cursor-grab active:cursor-grabbing flex flex-col space-y-2.5 group relative z-10 bg-[#0D111A]/95"
-                                >
-                                    {/* Card Top Row: Asset Pair, Direction Badge, PnL */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className={`p-1.5 rounded-lg border ${
-                                                trade.direction === 'LONG'
-                                                    ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30'
-                                                    : 'bg-[#DC2626]/15 text-[#DC2626] border-[#DC2626]/30'
-                                            }`}>
-                                                {trade.direction === 'LONG' ? (
-                                                    <TrendingUp className="w-4 h-4" />
-                                                ) : (
-                                                    <TrendingDown className="w-4 h-4" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-sm font-extrabold text-white font-mono">
-                                                        {trade.asset_pair}
-                                                    </span>
-                                                    <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded uppercase ${
-                                                        trade.direction === 'LONG'
-                                                            ? 'bg-[#10B981]/20 text-[#10B981]'
-                                                            : 'bg-[#DC2626]/20 text-[#DC2626]'
-                                                    }`}>
-                                                        {trade.direction}
-                                                    </span>
-                                                </div>
-                                                <span className="text-[10px] text-[#9CA3AF] font-mono">
-                                                    {formatTimestamp(trade.created_at)}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right font-mono">
-                                            <div className={`text-sm sm:text-base font-black tabular-nums ${
-                                                isProfit ? 'text-[#10B981]' : 'text-[#DC2626]'
-                                            }`}>
-                                                {formatMoney(pnlVal, true)}
-                                            </div>
-                                            <div className={`text-[10px] font-bold tabular-nums ${
-                                                isProfit ? 'text-[#10B981]/80' : 'text-[#DC2626]/80'
-                                            }`}>
-                                                ROI {roiFormatted}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Card Bottom Row: Strategy & Trigger preview */}
-                                    <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF]">
-                                        <span className="text-slate-300 truncate max-w-[180px] sm:max-w-xs">
-                                            {trade.strategy || 'Tactical Trend Setup'}
-                                        </span>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF] group-hover:text-white transition-colors">
-                                            <span className="text-[9px] text-slate-500 hidden sm:inline">Swipe destra per eliminare</span>
-                                            <ChevronRight className="w-3.5 h-3.5" />
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            </motion.div>
-                        );
-                    })}
+                    {filteredTrades.map((trade) => (
+                        <SwipeableTradeCard
+                            key={trade.id}
+                            trade={trade}
+                            onSelect={setSelectedTrade}
+                            onDelete={deleteTrade}
+                            formatMoney={formatMoney}
+                            formatTimestamp={formatTimestamp}
+                        />
+                    ))}
                 </AnimatePresence>
 
                 {filteredTrades.length === 0 && (

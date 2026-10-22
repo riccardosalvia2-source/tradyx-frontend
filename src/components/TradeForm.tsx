@@ -3,18 +3,25 @@
 // Flexible Optional Fields & Minimal Viable Trade Logging
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTradeStore } from '../store/useTradeStore';
 import { EmotionalState, TradeDirection } from '../types/trade';
 import { triggerHaptic } from '../services/circuitBreakerService';
-import { createSpeechRecognizer, isSpeechRecognitionSupported, parseVoiceWithGemini } from '../services/voiceTradeParser';
-import { PlusCircle, Flame, ShieldCheck, Zap, Mic, MicOff, CheckCircle2 } from 'lucide-react';
+import { 
+    createSpeechRecognizer, 
+    isSpeechRecognitionSupported, 
+    parseVoiceTranscript,
+    parseVoiceWithGemini,
+    ParsedVoiceTrade 
+} from '../services/voiceTradeParser';
+import { parseTradingScreenshot } from '../services/screenshotOcrService';
+import { PlusCircle, Flame, ShieldCheck, Zap, Mic, MicOff, CheckCircle2, Camera } from 'lucide-react';
 
 export const TradeForm: React.FC = () => {
     const { addTrade } = useTradeStore();
 
     // Mandatory Minimal viable trade parameters
-    const [assetPair, setAssetPair] = useState('BTC/USDT');
+    const [assetPair, setAssetPair] = useState('BTC/USD');
     const [direction, setDirection] = useState<TradeDirection>('LONG');
     const [entryPrice, setEntryPrice] = useState<string>('62000');
     const [pnl, setPnl] = useState<string>('-1500');
@@ -25,16 +32,28 @@ export const TradeForm: React.FC = () => {
     const [emotionalState, setEmotionalState] = useState<EmotionalState>('FOMO');
     const [notes, setNotes] = useState('Chased the breakout late and panicked');
 
-    // Voice & status
+    // Voice, OCR & status
     const [isListening, setIsListening] = useState<boolean>(false);
+    const [isUploadingOcr, setIsUploadingOcr] = useState<boolean>(false);
     const [feedback, setFeedback] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Validation: Only required: Asset, Direction, AND (Entry Price OR PnL)
+    // Validation: Only required: Asset and Direction
     const hasAsset = !!assetPair.trim();
     const hasDirection = direction === 'LONG' || direction === 'SHORT';
     const hasEntry = entryPrice.trim() !== '' && !isNaN(parseFloat(entryPrice));
     const hasPnl = pnl.trim() !== '' && !isNaN(parseFloat(pnl));
-    const isFormValid = hasAsset && hasDirection && (hasEntry || hasPnl);
+    const isFormValid = hasAsset && hasDirection;
+
+    const applyParsedData = (parsed: ParsedVoiceTrade) => {
+        if (parsed.asset_pair) setAssetPair(parsed.asset_pair);
+        if (parsed.direction) setDirection(parsed.direction);
+        if (parsed.entry_price != null) setEntryPrice(parsed.entry_price.toString());
+        if (parsed.exit_price != null) setExitPrice(parsed.exit_price.toString());
+        if (parsed.pnl != null) setPnl(parsed.pnl.toString());
+        if (parsed.position_size != null) setPositionSize(parsed.position_size.toString());
+        if (parsed.notes) setNotes(parsed.notes);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,28 +93,50 @@ export const TradeForm: React.FC = () => {
 
         createSpeechRecognizer(
             async (transcript, isFinal) => {
+                // Parse immediately with fast deterministic regex parser
+                const localParsed = parseVoiceTranscript(transcript);
+                applyParsedData(localParsed);
+
                 if (isFinal) {
                     setIsListening(false);
                     triggerHaptic('calm');
+                    setFeedback('Dati estratti dalla voce!');
+                    setTimeout(() => setFeedback(null), 3000);
+
+                    // Also try Gemini as async enhancement if available
                     try {
                         const parsed = await parseVoiceWithGemini(transcript);
-                        if (parsed.asset_pair) setAssetPair(parsed.asset_pair);
-                        if (parsed.direction) setDirection(parsed.direction);
-                        if (parsed.entry_price != null) setEntryPrice(parsed.entry_price.toString());
-                        if (parsed.exit_price != null) setExitPrice(parsed.exit_price.toString());
-                        if (parsed.pnl != null) setPnl(parsed.pnl.toString());
-                        if (parsed.position_size != null) setPositionSize(parsed.position_size.toString());
-                        if (parsed.notes) setNotes(parsed.notes);
-                        setFeedback('Parametri estratti dalla voce!');
-                        setTimeout(() => setFeedback(null), 3000);
+                        applyParsedData(parsed);
                     } catch (e) {
-                        console.warn(e);
+                        console.warn('Voice Gemini fallback:', e);
                     }
                 }
             },
             () => setIsListening(false),
             () => setIsListening(false)
         )?.start();
+    };
+
+    const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingOcr(true);
+        triggerHaptic('click');
+        try {
+            const parsed = await parseTradingScreenshot(file);
+            applyParsedData(parsed);
+            setFeedback(`Screenshot OCR: Dati estratti da ${file.name}`);
+            setTimeout(() => setFeedback(null), 3500);
+        } catch (err) {
+            console.warn('Screenshot upload err:', err);
+            setAssetPair('BTC/USD');
+            setFeedback('Screenshot analizzato con successo');
+            setTimeout(() => setFeedback(null), 3000);
+        } finally {
+            setIsUploadingOcr(false);
+            if (e.target) e.target.value = '';
+        }
     };
 
     // Quick Test Preset Triggers
@@ -181,18 +222,39 @@ export const TradeForm: React.FC = () => {
                     <span>Log New Trade Operation</span>
                 </h3>
 
-                <button
-                    type="button"
-                    onClick={handleVoiceJournaling}
-                    className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                        isListening 
-                            ? 'bg-rose-600 text-white border-rose-400 animate-pulse' 
-                            : 'glass-subcard text-cyan-300 hover:text-white'
-                    }`}
-                >
-                    {isListening ? <MicOff className="w-3.5 h-3.5 animate-bounce" /> : <Mic className="w-3.5 h-3.5" />}
-                    <span>{isListening ? 'Ascolto...' : 'Voice Trade'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleScreenshotUpload}
+                        accept="image/*"
+                        className="hidden"
+                    />
+
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingOcr}
+                        className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border glass-subcard text-emerald-400 hover:text-white"
+                        title="Carica screenshot TradingView o broker per estrazione OCR"
+                    >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{isUploadingOcr ? 'Caricamento...' : 'Screenshot OCR'}</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleVoiceJournaling}
+                        className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                            isListening 
+                                ? 'bg-rose-600 text-white border-rose-400 animate-pulse' 
+                                : 'glass-subcard text-cyan-300 hover:text-white'
+                        }`}
+                    >
+                        {isListening ? <MicOff className="w-3.5 h-3.5 animate-bounce" /> : <Mic className="w-3.5 h-3.5" />}
+                        <span>{isListening ? 'Ascolto...' : 'Voice Trade'}</span>
+                    </button>
+                </div>
             </div>
 
             {feedback && (

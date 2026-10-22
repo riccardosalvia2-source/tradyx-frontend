@@ -141,12 +141,12 @@ export const TabTrade: React.FC = () => {
     };
 
     // Flexible Validation:
-    // Only required: Asset, Direction, AND (Net P&L OR Entry Price)
+    // User can save even with solely Asset and Direction!
     const hasAsset = !!assetPair.trim();
     const hasDirection = direction === 'LONG' || direction === 'SHORT';
     const hasEntryPrice = entryPrice.trim() !== '' && !isNaN(parseFloat(entryPrice));
     const hasDirectPnl = netPnlInput.trim() !== '' && !isNaN(parseFloat(netPnlInput));
-    const isMinimalTradeReady = hasAsset && hasDirection && (hasEntryPrice || hasDirectPnl);
+    const isMinimalTradeReady = hasAsset && hasDirection;
 
     // Calculate simulated PnL based on entry/exit if direct PnL not provided
     const calculatedPnl = useMemo(() => {
@@ -653,11 +653,11 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 3. CAMPI FLESSIBILI (ALMENO UNO TRA ENTRY PRICE O P&L NETTO RICHIESTO) */}
+                {/* 3. CAMPI FLESSIBILI (ENTRY PRICE O P&L NETTO FACOLTATIVI) */}
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3 font-mono">
                     <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold">
                         <span>DATI FINANZIARI</span>
-                        <span className="text-cyan-400">*Inserisci Entry Price o P&L Netto</span>
+                        <span className="text-cyan-400">Entry Price o P&L (Facoltativi)</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2.5">

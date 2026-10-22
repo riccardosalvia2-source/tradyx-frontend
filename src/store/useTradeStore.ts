@@ -25,8 +25,8 @@ interface TradeState {
     fetchTrades: (userId: string) => Promise<void>;
     addTrade: (tradeData: NewTradeInput) => Promise<void>;
     deleteTrade: (tradeId: string) => Promise<void>;
-    injectMockTrades: (newTrades: Trade[]) => void;
-    clearAllTrades: () => void;
+    injectMockTrades: (newTrades: Trade[]) => Promise<void>;
+    clearAllTrades: () => Promise<void>;
     subscribeToRealtimeTrades: (userId: string) => () => void;
     recalculateBubbleConfig: () => void;
 }
@@ -338,14 +338,42 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         }
     },
 
-    injectMockTrades: (newTrades: Trade[]) => {
+    injectMockTrades: async (newTrades: Trade[]) => {
         set({ trades: newTrades });
         get().recalculateBubbleConfig();
+
+        // Persist to Supabase database if connected
+        try {
+            const rawTrades = newTrades.map(t => ({
+                user_id: t.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+                asset_pair: t.asset_pair,
+                direction: t.direction,
+                entry_price: t.entry_price,
+                exit_price: t.exit_price,
+                pnl: t.pnl,
+                roi: t.roi,
+                position_size: t.position_size,
+                strategy: t.strategy,
+                emotional_state: t.emotional_state,
+                notes: t.notes,
+                created_at: t.created_at
+            }));
+            await supabase.from('trades').insert(rawTrades);
+        } catch (e) {
+            console.warn('Supabase batch insert notice (persisted in local state):', e);
+        }
     },
 
-    clearAllTrades: () => {
+    clearAllTrades: async () => {
         set({ trades: [] });
         get().recalculateBubbleConfig();
+
+        // Delete test data from Supabase
+        try {
+            await supabase.from('trades').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (e) {
+            console.warn('Supabase clear notice (persisted in local state):', e);
+        }
     },
 
     subscribeToRealtimeTrades: (userId: string) => {

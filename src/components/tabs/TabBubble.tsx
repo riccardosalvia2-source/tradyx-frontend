@@ -159,43 +159,36 @@ export const TabBubble: React.FC = () => {
                             }}
                         />
 
-                        {/* Opaque Blob Container: JADE vs PULSATING RED ALARM (#EF4444) */}
+                        {/* 3D Organic Fluid Sphere: JADE vs PULSATING RED ALARM (#EF4444) */}
                         <div 
-                            className={`rounded-full shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105 border ${
+                            className={`flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105 border border-white/25 ${
                                 isTilt
                                     ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50'
-                                    : 'bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble border-white/25 shadow-[0_0_50px_rgba(46,204,113,0.35)]'
+                                    : 'quasar-3d-bubble'
                             }`}
                             style={{
-                                width: '240px',
-                                height: '240px',
-                                minWidth: '240px',
-                                minHeight: '240px'
+                                width: '250px',
+                                height: '250px',
+                                minWidth: '250px',
+                                minHeight: '250px'
                             }}
                         >
                             {/* Organic Soft Specular Highlight */}
-                            <div className="absolute top-4 left-8 w-20 h-10 rounded-full bg-white/25 blur-md pointer-events-none transform -rotate-12" />
+                            <div className="absolute top-5 left-9 w-24 h-12 rounded-full bg-white/25 blur-md pointer-events-none transform -rotate-12" />
 
-                            {/* Center White Quasar Icon */}
-                            <div className={`p-3.5 rounded-2xl mb-2.5 shadow-lg group-hover:rotate-6 transition-transform duration-300 border ${
-                                isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-white/10 backdrop-blur-md border-white/20'
+                            {/* Center Futuristic Quasar AI Icon */}
+                            <div className={`p-4 rounded-2xl mb-3 shadow-2xl group-hover:rotate-6 transition-transform duration-300 border ${
+                                isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-black/30 backdrop-blur-md border-white/20'
                             }`}>
-                                <BrainCircuit className="w-8 h-8 text-white drop-shadow-md" />
+                                <BrainCircuit className="w-9 h-9 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
                             </div>
 
-                            {/* Centered White Badge */}
-                            <div className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/30 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5 text-white" />
+                            {/* Futuristic Centered White/Cyan Badge */}
+                            <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-lg border border-white/40 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                                <Sparkles className="w-3.5 h-3.5 text-[#2ECC71] animate-pulse" />
                                 <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
                             </div>
                         </div>
-
-                        {/* Subtitle / Invitation */}
-                        <span className={`mt-6 text-[11px] font-mono transition-colors tracking-wide text-center px-4 ${
-                            isTilt ? 'text-rose-400 font-bold animate-pulse' : 'text-slate-400 group-hover:text-slate-200'
-                        }`}>
-                            {isTilt ? '⚠️ Tilt Emotivo Rilevato • Circuit Breaker Armato' : 'Tocca la bolla per accedere a Quasar Sentiment Galaxy'}
-                        </span>
                     </div>
 
                 </div>
