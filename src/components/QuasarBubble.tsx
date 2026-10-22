@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 
 import { fetchMultiSourceRealTimeNews, RealNewsItem } from '../services/multiSourceNewsService';
+import { isTiltDetected } from '../services/circuitBreakerService';
 
 interface QuasarBubbleProps {
     config?: BubbleConfig;
@@ -192,16 +193,20 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
 
     const totalPnl = (safeTrades || []).reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
     const isProfitable = totalPnl >= 0;
+    const tiltCheck = isTiltDetected(safeTrades);
+    const isTilt = tiltCheck.isTilt;
 
     return (
-        <div className="w-full max-w-[400px] min-h-[360px] mx-auto my-auto relative flex flex-col items-center justify-center rounded-3xl bg-slate-950/80 border border-slate-800/80 p-4 overflow-hidden shadow-2xl backdrop-blur-xl group">
+        <div className={`w-full max-w-[400px] min-h-[360px] mx-auto my-auto relative flex flex-col items-center justify-center rounded-3xl bg-slate-950/80 p-4 overflow-hidden shadow-2xl backdrop-blur-xl group border ${
+            isTilt ? 'border-rose-600/80 shadow-rose-950/50 ring-1 ring-rose-500/40' : 'border-slate-800/80'
+        }`}>
             
             {/* 1. FLOATING POINT-PARTICLE STARFIELD BACKGROUND */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 {stars.map((star) => (
                     <div
                         key={star.id}
-                        className={`absolute rounded-full opacity-60 animate-star-twinkle ${star.size} ${star.color}`}
+                        className={`absolute rounded-full opacity-60 animate-star-twinkle ${star.size} ${isTilt ? 'bg-rose-400' : star.color}`}
                         style={{
                             top: star.top,
                             left: star.left,
@@ -212,19 +217,31 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                 ))}
 
                 {/* Ambient Galaxy Aura Glow */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-950/25 via-slate-950 to-purple-950/25 pointer-events-none" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 blur-[90px] rounded-full pointer-events-none" />
+                <div className={`absolute inset-0 pointer-events-none ${
+                    isTilt 
+                        ? 'bg-gradient-to-tr from-rose-950/40 via-slate-950 to-amber-950/20' 
+                        : 'bg-gradient-to-tr from-emerald-950/25 via-slate-950 to-purple-950/25'
+                }`} />
+                <div 
+                    className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 blur-[90px] rounded-full pointer-events-none ${
+                        isTilt ? 'bg-rose-600/20' : 'bg-emerald-500/10'
+                    }`} 
+                />
             </div>
 
             {/* FLOATING TOP GLASSMORPHIC BADGE */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-20">
-                <div className="flex items-center gap-2 px-3 py-1 bg-slate-950/80 border border-emerald-500/40 rounded-full text-[11px] font-mono font-extrabold text-emerald-400 shadow-xl backdrop-blur-md">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span>SENTIMENT GALAXY</span>
+                <div className={`flex items-center gap-2 px-3 py-1 bg-slate-950/80 rounded-full text-[11px] font-mono font-extrabold shadow-xl backdrop-blur-md border ${
+                    isTilt 
+                        ? 'border-rose-500/60 text-rose-400' 
+                        : 'border-emerald-500/40 text-emerald-400'
+                }`}>
+                    <span className={`w-2 h-2 rounded-full animate-ping ${isTilt ? 'bg-rose-500' : 'bg-emerald-400'}`} />
+                    <span>{isTilt ? 'TILT ALERT ACTIVE' : 'SENTIMENT GALAXY'}</span>
                 </div>
 
                 <div className="bg-slate-950/80 border border-slate-800 backdrop-blur-md px-3 py-1 rounded-2xl shadow-xl flex items-center gap-2 font-mono text-[11px] text-white">
-                    <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                    <Activity className={`w-3.5 h-3.5 ${isTilt ? 'text-rose-400' : 'text-cyan-400'}`} />
                     <span className="text-slate-400 text-[10px]">PNL:</span>
                     <strong className={isProfitable ? 'text-emerald-400' : 'text-rose-400'}>
                         {totalPnl >= 0 ? `+$${totalPnl.toLocaleString()}` : `-$${Math.abs(totalPnl).toLocaleString()}`}
@@ -232,43 +249,51 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                 </div>
             </div>
 
-            {/* 2. CENTRAL ORGANIC JADE FLUID BUBBLE ORB */}
+            {/* 2. CENTRAL ORGANIC FLUID BUBBLE ORB (JADE vs RED ALARM) */}
             <div 
                 className="relative w-full h-[280px] sm:h-[300px] flex items-center justify-center z-10 cursor-pointer my-auto select-none group/bubble" 
                 onClick={handleBubbleClick}
             >
-                {/* Outer Atmosphere Pulsing Jade Glow */}
+                {/* Outer Atmosphere Pulsing Glow */}
                 <div 
-                    className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full animate-pulse transition-all duration-700 opacity-60 pointer-events-none"
+                    className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full animate-pulse transition-all duration-700 opacity-70 pointer-events-none"
                     style={{
-                        background: 'radial-gradient(circle at center, rgba(46, 204, 113, 0.3) 0%, rgba(39, 174, 96, 0.15) 55%, transparent 75%)',
-                        filter: 'blur(30px)'
+                        background: isTilt
+                            ? 'radial-gradient(circle at center, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.20) 55%, transparent 75%)'
+                            : 'radial-gradient(circle at center, rgba(46, 204, 113, 0.3) 0%, rgba(39, 174, 96, 0.15) 55%, transparent 75%)',
+                        filter: 'blur(32px)'
                     }}
                 />
 
-                {/* Organic Jade Fluid Sphere */}
+                {/* Organic Fluid Sphere: JADE vs PULSATING RED ALARM (#EF4444) */}
                 <div 
-                    className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover/bubble:scale-105 active:scale-95 border border-white/20"
+                    className={`w-48 h-48 sm:w-56 sm:h-56 rounded-full shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover/bubble:scale-105 active:scale-95 border ${
+                        isTilt
+                            ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/40'
+                            : 'bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] animate-jade-bubble border-white/20'
+                    }`}
                 >
                     {/* Organic Specular Highlight */}
-                    <div className="absolute top-4 left-7 w-16 h-8 rounded-full bg-white/20 blur-sm pointer-events-none transform -rotate-12" />
+                    <div className="absolute top-4 left-7 w-16 h-8 rounded-full bg-white/25 blur-sm pointer-events-none transform -rotate-12" />
 
                     {/* Central Floating Overlay Badges & AI Brain Icon */}
-                    <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shadow-xl backdrop-blur-sm mb-2 group-hover/bubble:rotate-6 transition-transform">
+                    <div className={`p-3 rounded-2xl border shadow-xl backdrop-blur-sm mb-2 group-hover/bubble:rotate-6 transition-transform ${
+                        isTilt ? 'bg-rose-950/40 border-rose-400/40' : 'bg-white/10 border-white/20'
+                    }`}>
                         <BrainCircuit className="w-8 h-8 text-white drop-shadow" />
                     </div>
 
-                    <div className="px-3 py-1 bg-black/40 border border-white/30 rounded-full text-[10px] sm:text-xs font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                    <div className="px-3 py-1 bg-black/50 border border-white/30 rounded-full text-[10px] sm:text-xs font-mono font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5">
                         <Sparkles className="w-3 h-3 text-white" />
-                        <span>TAP TO SYNC</span>
+                        <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
                     </div>
                 </div>
             </div>
 
             {/* FLOATING BOTTOM HUD */}
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-around text-[10px] sm:text-[11px] font-mono text-slate-400 bg-slate-950/80 border border-slate-800 backdrop-blur-md py-1.5 px-3 rounded-2xl pointer-events-none z-20">
-                <div>ORB: <span className="text-[#2ECC71] font-bold">ORGANIC JADE</span></div>
-                <div>STATE: <span className="text-white font-bold">{isProfitable ? 'HARMONIC' : 'RECOVERY'}</span></div>
+                <div>ORB: <span className={isTilt ? 'text-[#EF4444] font-bold' : 'text-[#2ECC71] font-bold'}>{isTilt ? 'RED ALARM' : 'ORGANIC JADE'}</span></div>
+                <div>STATE: <span className={`font-bold ${isTilt ? 'text-rose-400' : 'text-white'}`}>{isTilt ? 'TILT COOLDOWN' : (isProfitable ? 'HARMONIC' : 'RECOVERY')}</span></div>
                 <div>SYNC: <span className="text-cyan-400 font-bold">READY</span></div>
             </div>
 

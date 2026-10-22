@@ -2,10 +2,11 @@
 // TRADYX MOBILE TAB 6: COACH (AI Specialist - Live Coaching & Market Data)
 // ============================================================================
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
 import { ChatMessage, UserTradingContext } from '../../types/chat';
-import { generateCoachResponse } from '../../services/aiCoachService';
+import { generateCoachResponse, CoachPersona } from '../../services/aiCoachService';
+import { analyzeCorrelationOfDoom, checkCurrentSessionDoomRisk } from '../../services/correlationOfDoomService';
 import { 
     BrainCircuit, 
     Send, 
@@ -18,17 +19,26 @@ import {
     Activity, 
     TrendingUp, 
     CheckCircle2,
-    ArrowUpRight
+    ArrowUpRight,
+    Flame,
+    AlertTriangle,
+    ShieldAlert
 } from 'lucide-react';
 
 export const TabAICoach: React.FC = () => {
     const { trades } = useTradeStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
+    const [coachPersona, setCoachPersona] = useState<CoachPersona>('TOUGH_LOVE');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputPrompt, setInputPrompt] = useState<string>('');
     const [isTyping, setIsTyping] = useState<boolean>(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Compute Correlation of Doom patterns from trades
+    const doomPatterns = useMemo(() => analyzeCorrelationOfDoom(safeTrades), [safeTrades]);
+    const topDoom = doomPatterns[0];
+    const currentDoomRisk = useMemo(() => checkCurrentSessionDoomRisk(safeTrades), [safeTrades]);
 
     // Auto-scroll when messages update
     useEffect(() => {
@@ -68,7 +78,7 @@ export const TabAICoach: React.FC = () => {
 
         try {
             const context = getTradingContext();
-            const aiResponseText = await generateCoachResponse(query, context);
+            const aiResponseText = await generateCoachResponse(query, context, coachPersona);
 
             const aiMsg: ChatMessage = {
                 id: `ai-${Date.now()}`,
@@ -81,7 +91,9 @@ export const TabAICoach: React.FC = () => {
             const fallbackMsg: ChatMessage = {
                 id: `ai-err-${Date.now()}`,
                 sender: 'assistant',
-                content: 'Ottima osservazione. Il tuo win rate attuale del 60.0% e profit factor di 5.50 riflettono un vantaggio istituzionale solido. Mantieni stop loss ferrei su asset ad alta volatilità come BTC ed evita entrate tardive.',
+                content: coachPersona === 'TOUGH_LOVE'
+                    ? '🏛️ **CRO VERDICT:** La disciplina si misura nei momenti di drawdown, non durante i trend rialzisti facili. Riduci la size del 50%, imposta stop loss ferrei su BTC/USD e non osare toccare il tasto buy senza conferma volumetrica.'
+                    : 'Ottima osservazione. Il tuo win rate attuale del 60.0% e profit factor di 5.50 riflettono un vantaggio istituzionale solido. Mantieni stop loss ferrei su asset ad alta volatilità come BTC ed evita entrate tardive.',
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             setMessages(prev => [...prev, fallbackMsg]);
@@ -91,9 +103,9 @@ export const TabAICoach: React.FC = () => {
     };
 
     const promptSuggestions = [
-        'Analizza il mio Risk/Reward sul BTC/USD',
-        'Come ridurre le perdite emotive?',
-        'Valuta la mia consistenza del 60%'
+        'Come eliminare la mia Correlation of Doom?',
+        'Valuta il mio rischio per trade (Tough Love)',
+        'Analizza la disciplina sui trade in perdita'
     ];
 
     return (
@@ -121,12 +133,77 @@ export const TabAICoach: React.FC = () => {
                 </span>
             </header>
 
+            {/* Persona Switcher: Tough Love vs Empathic */}
+            <div className="w-full flex items-center justify-between p-1.5 rounded-2xl glass-panel text-xs font-mono font-bold">
+                <button
+                    type="button"
+                    onClick={() => setCoachPersona('TOUGH_LOVE')}
+                    className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        coachPersona === 'TOUGH_LOVE'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-md shadow-rose-950/40'
+                            : 'text-slate-400 hover:text-white'
+                    }`}
+                >
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                    <span>CRO Risk Manager (Tough Love)</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setCoachPersona('EMPATHIC')}
+                    className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        coachPersona === 'EMPATHIC'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-md shadow-emerald-950/40'
+                            : 'text-slate-400 hover:text-white'
+                    }`}
+                >
+                    <BrainCircuit className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Empathic Coach</span>
+                </button>
+            </div>
+
+            {/* CORRELATION OF DOOM ENGINE CARD */}
+            {topDoom && (
+                <div className="w-full p-4 rounded-2xl glass-panel border border-amber-500/30 bg-amber-950/15 space-y-2.5 font-mono shadow-xl">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase">
+                            <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+                            <span>CORRELATION OF DOOM ENGINE</span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black bg-rose-950/80 text-rose-300 border border-rose-800">
+                            CRITICAL BIAS
+                        </span>
+                    </div>
+
+                    <div className="space-y-1">
+                        <h4 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
+                            {topDoom.headline}
+                        </h4>
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {topDoom.recommendation}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.08] text-[10px] text-slate-400">
+                        <span>Win Rate nel pattern: <strong className="text-rose-400">{topDoom.winRate}%</strong></span>
+                        <button
+                            type="button"
+                            onClick={() => handleSendMessage(`Come posso neutralizzare la mia Correlation of Doom (${topDoom.dayName} ${topDoom.timeSlot} con ${topDoom.errorTag})?`)}
+                            className="px-2.5 py-1 rounded-lg glass-subcard hover:bg-white/10 text-cyan-300 hover:text-white font-bold transition flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>Disinnesca Pattern</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Chat Content Body */}
-            <div className="flex-1 w-full space-y-3 py-3 overflow-y-auto">
+            <div className="flex-1 w-full space-y-3 py-1 overflow-y-auto">
                 
                 {/* Initial Welcome Screen when no messages */}
                 {messages.length === 0 && (
-                    <div className="w-full py-10 flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="w-full py-6 flex flex-col items-center justify-center text-center space-y-3">
                         <div className="w-16 h-16 rounded-3xl glass-panel flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                             <Star className="w-8 h-8 text-[#10B981] fill-[#10B981]/20 animate-pulse" />
                         </div>

@@ -93,6 +93,11 @@ interface SettingsState {
     // Modal visibility
     isProfileModalOpen: boolean;
     
+    // Prop Firm Shield Preset (Funded Account Protection)
+    propFirmShieldEnabled: boolean;
+    propFirmMaxDailyLossPercent: number; // e.g. 4.0% alert (before 5% hard breach)
+    propFirmAccountSize: number; // e.g. 100,000 $ challenge
+
     // Actions
     setProtocolName: (name: string) => void;
     setEmail: (email: string) => void;
@@ -104,6 +109,7 @@ interface SettingsState {
     setIsProfileModalOpen: (open: boolean) => void;
     terminateOtherSessions: () => void;
     updatePaymentMethod: (pm: { type: 'STRIPE' | 'CARD' | 'WEB3_CRYPTO'; label: string; expires?: string }) => void;
+    setPropFirmShield: (enabled: boolean, maxLossPercent?: number, accountSize?: number) => void;
     
     // Helper
     formatMoney: (amount: number, includeSign?: boolean) => string;
@@ -138,6 +144,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     selectedPlan: cached?.selectedPlan || 'Plus',
     encryptionBadge: 'AES-256 Protocol Active',
     
+    // Prop Firm Shield Defaults
+    propFirmShieldEnabled: cached?.propFirmShieldEnabled !== undefined ? cached.propFirmShieldEnabled : true,
+    propFirmMaxDailyLossPercent: cached?.propFirmMaxDailyLossPercent || 4.0,
+    propFirmAccountSize: cached?.propFirmAccountSize || 100000,
+
     activeSessions: [
         {
             id: 'sess-1',
@@ -242,6 +253,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         set({ paymentMethod: pm });
         saveToCache({ ...get(), paymentMethod: pm });
     },
+
+    setPropFirmShield: (enabled: boolean, maxLossPercent?: number, accountSize?: number) => {
+        set(state => {
+            const updated = {
+                propFirmShieldEnabled: enabled,
+                propFirmMaxDailyLossPercent: maxLossPercent ?? state.propFirmMaxDailyLossPercent,
+                propFirmAccountSize: accountSize ?? state.propFirmAccountSize
+            };
+            saveToCache({ ...get(), ...updated });
+            return updated;
+        });
+    },
     
     formatMoney: (amount: number, includeSign = true) => {
         const { baseCurrency } = get();
@@ -273,7 +296,10 @@ function saveToCache(state: any) {
                 maxRiskPerTrade: state.maxRiskPerTrade,
                 maxRiskType: state.maxRiskType,
                 selectedPlan: state.selectedPlan,
-                paymentMethod: state.paymentMethod
+                paymentMethod: state.paymentMethod,
+                propFirmShieldEnabled: state.propFirmShieldEnabled,
+                propFirmMaxDailyLossPercent: state.propFirmMaxDailyLossPercent,
+                propFirmAccountSize: state.propFirmAccountSize
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
         } catch (e) {

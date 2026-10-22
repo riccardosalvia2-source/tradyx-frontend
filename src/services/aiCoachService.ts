@@ -12,15 +12,31 @@ import { sanitizeTextForAI } from '../../security/ai_sanitizer';
 import { addSystemLog } from './authService';
 import { getDefaultGeminiModel, recordGeminiCall } from './geminiMetricsService';
 
-// Master System Prompt for Tradyx Coach Persona
-export const TRADYX_COACH_SYSTEM_INSTRUCTIONS = `
+export type CoachPersona = 'EMPATHIC' | 'TOUGH_LOVE';
+
+// Master System Prompt for Tradyx Coach Persona (Empathic)
+export const TRADYX_COACH_EMPATHIC_INSTRUCTIONS = `
 Sei "Tradyx Coach", un assistente virtuale altamente specializzato in psicologia del trading, finanza comportamentale e disciplina operativa per la piattaforma Tradyx.
 
 REGOLE FONDAMENTALI ED ETICHE:
 1. NON FORNIRE MAI CONSIGLI FINANZIARI O SEGNALI OPERATIVI. Non suggerire mai se acquistare, vendere, aprire o chiudere posizioni su specifici asset (BTC, ETH, Forex, Azioni). Se l'utente ti chiede un segnale di trading, rifiuta garbatamente ricordandogli che sei un coach psicologico e non un consulente finanziario.
-2. OBIETTIVO PRINCIPALE: Aiutare il trader a identificare e superare i bias cognitivi legati al denaro: FOMO (Fear Of Missing Out), Revenge Trading (trade impulsivi per recuperare una perdita), Avidità (Greed), Over-trading e Ansia da prestazione.
-3. RISPOSTE 100% DINAMICHE ED ANALITICHE: Esamina attentamente le metriche reali del diario operativo dell'utente (PnL recente, emozione dominante, win rate, note operative) ed integrali direttamente nella tua analisi fornendo risposte uniche, pratiche ed altamente personalizzate.
-4. TONO E STILE: Empatico, professionale, analitico e calmo. Rispondi in modo strutturato usando un formato leggibile con elenchi puntati o domande aperte di riflessione.
+2. OBIETTIVO PRINCIPALE: Aiutare il trader a identificare e superare i bias cognitivi legati al denaro: FOMO (Fear Of Missing Out), Revenge Trading, Avidità, Over-trading e Ansia da prestazione.
+3. RISPOSTE DINAMICHE ED ANALITICHE: Esamina attentamente le metriche reali del diario operativo ed integrali direttamente nell'analisi.
+4. TONO E STILE: Empatico, riflessivo, professionale e calmo.
+`;
+
+// Institutional Risk Manager Master Prompt (Tough Love)
+export const TRADYX_TOUGH_LOVE_INSTRUCTIONS = `
+Sei il "Chief Risk Officer (CRO) Istituzionale" di Tradyx e di un prop trading desk di Wall Street.
+La tua persona è "TOUGH LOVE RISK MANAGER": schietto, inflessibile, professionale, autoritario e senza fronzoli.
+Il tuo compito assoluto è PROTEGGERE IL CAPITALE del trader ed eliminare ogni traccia di dilettantismo emotivo.
+
+LINEE GUIDA PERSONA:
+1. NESSUN COMPLIMENTO FACILE: Se il trader vince per fortuna o dopo aver rotto le regole, redarguiscilo ("Hai guadagnato violando il risk plan: un colpo di fortuna che rafforza cattive abitudini è più velenoso di una perdita").
+2. TOLLERANZA ZERO PER FOMO / REVENGE: Se vedi FOMO o Revenge Trading, sbattigli in faccia la realtà ("Stai giocando alla slot machine", "Chiudi il terminale immediatamente prima che il mercato confischi il tuo conto").
+3. FOCUS SUGLI ERRORI E SUL PROCESSO: Valuta il drawdown, l'eccesso di size e la violazione dei limiti.
+4. NON FORNIRE MAI SEGNALI DI TRADING O CONSIGLI DI INVESTIMENTO (rifiuta ricordando che il tuo lavoro è la gestione del rischio e la disciplina, non le scommesse).
+5. TONO: Diretto, lapidario, pungente ma orientato alla sopravvivenza a lungo termine del trader.
 `;
 
 // Financial Advice Trigger Keywords
@@ -37,11 +53,12 @@ export function isFinancialAdviceQuery(text: string): boolean {
 
 /**
  * Generates a dynamic AI response from Tradyx Coach powered by Gemini API,
- * incorporating user trading journal metrics (PnL, Emotional state, WinRate).
+ * incorporating user trading journal metrics (PnL, Emotional state, WinRate) and chosen Persona.
  */
 export async function generateCoachResponse(
     rawUserPrompt: string, 
-    context?: UserTradingContext
+    context?: UserTradingContext,
+    persona: CoachPersona = 'TOUGH_LOVE'
 ): Promise<string> {
     const activeModel = getDefaultGeminiModel();
     const startTime = performance.now();
@@ -83,7 +100,11 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
 `;
     }
 
-    const fullPrompt = `${TRADYX_COACH_SYSTEM_INSTRUCTIONS}\n${journalContextStr}\n\n[DOMANDA UTENTE]\n${sanitizedPrompt}`;
+    const selectedInstructions = persona === 'TOUGH_LOVE' 
+        ? TRADYX_TOUGH_LOVE_INSTRUCTIONS 
+        : TRADYX_COACH_EMPATHIC_INSTRUCTIONS;
+
+    const fullPrompt = `${selectedInstructions}\n${journalContextStr}\n\n[DOMANDA UTENTE]\n${sanitizedPrompt}`;
 
     // 4. Retrieve Gemini API Key from Environment
     const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
@@ -137,7 +158,7 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
     }
 
     // 5. Dynamic Analytical Response Synthesizer (Fallback when API key is unconfigured)
-    const fallbackAns = generateDynamicContextualAnalysis(sanitizedPrompt, context);
+    const fallbackAns = generateDynamicContextualAnalysis(sanitizedPrompt, context, persona);
     const latency = Math.round(performance.now() - startTime) || 180;
     const inTokens = Math.round(fullPrompt.length / 4);
     const outTokens = Math.round(fallbackAns.length / 4);
@@ -148,11 +169,53 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
 /**
  * Dynamic Contextual Analysis Generator synthesizing user trading journal metrics and prompt text.
  */
-function generateDynamicContextualAnalysis(prompt: string, context?: UserTradingContext): string {
+function generateDynamicContextualAnalysis(
+    prompt: string, 
+    context?: UserTradingContext,
+    persona: CoachPersona = 'TOUGH_LOVE'
+): string {
     const pnl = context?.recentPnL ?? 0;
     const emotion = context?.recentEmotion || 'Disciplined';
     const winRate = context?.totalWinRate ?? 50;
     const isNegativePnL = pnl < 0;
+
+    if (persona === 'TOUGH_LOVE') {
+        let toughHeader = `🏛️ **INSTITUTIONAL RISK MANAGER (TOUGH LOVE)**\n\n`;
+
+        if (isNegativePnL || emotion === 'FOMO' || emotion === 'Frustrated' || emotion === 'Anxious') {
+            toughHeader += `⚠️ **DESK WARNING:** Sei in rosso di \`-$${Math.abs(pnl).toLocaleString()}\` e registri uno stato di \`${emotion}\`. Smettila di cercare giustificazioni nel rumore di mercato.\n\n`;
+        } else {
+            toughHeader += `📊 PnL Attuale: \`+$${pnl.toLocaleString()}\` | Win Rate: \`${winRate}%\`. Ottimo, ma ricorda: un singolo trade fuori dalle regole può cancellare una settimana di disciplina.\n\n`;
+        }
+
+        const lowerPrompt = prompt.toLowerCase();
+        if (lowerPrompt.includes('revenge') || lowerPrompt.includes('recuperare') || lowerPrompt.includes('perdita')) {
+            return toughHeader + `🛑 **VIOLAZIONE CRITICA: TENTATIVO DI REVENGE TRADING.**
+- **La Dura Verità:** Il mercato non sa chi sei e non ti deve assolutamente nulla. Tentare di "recuperare" forzando la size è la via più veloce per la squalifica del conto.
+- **Ordine Operativo del Risk Desk:**
+  1. Chiudi la piattaforma adesso. Cooldown minimo di 15-30 minuti.
+  2. Registra la perdita a bilancio. I professionisti pagano le perdite come costi d'impresa, i principianti le combattono come un'offesa personale.
+  3. Se riapri un ordine senza setup verificato, sei fuori dal desk.`;
+        }
+
+        if (lowerPrompt.includes('fomo') || lowerPrompt.includes('scappare') || lowerPrompt.includes('tardi')) {
+            return toughHeader + `🔥 **DIAGNOSI: SINDROME FOMO DA DILETTANTE.**
+- **La Dura Verità:** Inseguire candele verdi giganti significa comprare la liquidità di uscita di chi è entrato ore prima di te. Sei il loro exit liquidity provider.
+- **Protocollo Istituzionale:**
+  1. No setup = No trade. Punto.
+  2. Un trade perso costa ZERO euro. Un trade da FOMO ti costa il capitale e la concentrazione.
+  3. Attendi che il prezzo formi una struttura tecnica valida.`;
+        }
+
+        return toughHeader + `💼 **VERDETTO SULLA TUA SESSIONE:**
+> "${prompt}"
+
+- **Focus di Sopravvivenza:** Il tuo unico lavoro come trader non è fare soldi su ogni singola candela, ma proteggere il tuo capitale per poter operare domani.
+- **Regole d'Oro del Desk:**
+  - Non rischiare mai più del tuo max risk prefissato.
+  - Se avverti agitazione o rabbia, alzati e spegni il monitor.
+  - La disciplina è il tuo unico vero vantaggio statistico.`;
+    }
 
     let responseHeader = `🧠 **Analisi Psicologica Tradyx Coach**\n\n`;
 

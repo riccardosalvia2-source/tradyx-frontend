@@ -1,47 +1,112 @@
 // ============================================================================
 // TRADYX TRADE FORM COMPONENT (src/components/TradeForm.tsx)
+// Flexible Optional Fields & Minimal Viable Trade Logging
 // ============================================================================
 
 import React, { useState } from 'react';
 import { useTradeStore } from '../store/useTradeStore';
 import { EmotionalState, TradeDirection } from '../types/trade';
-import { PlusCircle, Flame, ShieldCheck, Zap } from 'lucide-react';
+import { triggerHaptic } from '../services/circuitBreakerService';
+import { createSpeechRecognizer, isSpeechRecognitionSupported, parseVoiceWithGemini } from '../services/voiceTradeParser';
+import { PlusCircle, Flame, ShieldCheck, Zap, Mic, MicOff, CheckCircle2 } from 'lucide-react';
 
 export const TradeForm: React.FC = () => {
     const { addTrade } = useTradeStore();
 
+    // Mandatory Minimal viable trade parameters
     const [assetPair, setAssetPair] = useState('BTC/USDT');
     const [direction, setDirection] = useState<TradeDirection>('LONG');
-    const [entryPrice, setEntryPrice] = useState(62000);
-    const [exitPrice, setExitPrice] = useState(60500);
-    const [positionSize, setPositionSize] = useState(1.0);
-    const [pnl, setPnl] = useState(-1500);
+    const [entryPrice, setEntryPrice] = useState<string>('62000');
+    const [pnl, setPnl] = useState<string>('-1500');
+
+    // Optional fields
+    const [exitPrice, setExitPrice] = useState<string>('60500');
+    const [positionSize, setPositionSize] = useState<string>('1.0');
     const [emotionalState, setEmotionalState] = useState<EmotionalState>('FOMO');
     const [notes, setNotes] = useState('Chased the breakout late and panicked');
 
+    // Voice & status
+    const [isListening, setIsListening] = useState<boolean>(false);
+    const [feedback, setFeedback] = useState<string | null>(null);
+
+    // Validation: Only required: Asset, Direction, AND (Entry Price OR PnL)
+    const hasAsset = !!assetPair.trim();
+    const hasDirection = direction === 'LONG' || direction === 'SHORT';
+    const hasEntry = entryPrice.trim() !== '' && !isNaN(parseFloat(entryPrice));
+    const hasPnl = pnl.trim() !== '' && !isNaN(parseFloat(pnl));
+    const isFormValid = hasAsset && hasDirection && (hasEntry || hasPnl);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isFormValid) return;
+
+        triggerHaptic('calm');
         await addTrade({
             user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            asset_pair: assetPair,
+            asset_pair: assetPair.trim(),
             direction,
-            entry_price: Number(entryPrice),
-            exit_price: Number(exitPrice),
-            position_size: Number(positionSize),
-            pnl: Number(pnl),
+            entry_price: hasEntry ? parseFloat(entryPrice) : undefined,
+            exit_price: exitPrice ? parseFloat(exitPrice) : undefined,
+            position_size: positionSize ? parseFloat(positionSize) : 1.0,
+            pnl: hasPnl ? parseFloat(pnl) : 0,
             emotional_state: emotionalState,
-            notes
+            notes: notes || undefined
         });
+
+        setFeedback('Session Log Committed');
+        setTimeout(() => setFeedback(null), 3000);
+    };
+
+    const handleVoiceJournaling = () => {
+        if (!isSpeechRecognitionSupported()) {
+            setFeedback('Web Speech API non disponibile');
+            setTimeout(() => setFeedback(null), 2500);
+            return;
+        }
+
+        if (isListening) {
+            setIsListening(false);
+            return;
+        }
+
+        triggerHaptic('click');
+        setIsListening(true);
+
+        createSpeechRecognizer(
+            async (transcript, isFinal) => {
+                if (isFinal) {
+                    setIsListening(false);
+                    triggerHaptic('calm');
+                    try {
+                        const parsed = await parseVoiceWithGemini(transcript);
+                        if (parsed.asset_pair) setAssetPair(parsed.asset_pair);
+                        if (parsed.direction) setDirection(parsed.direction);
+                        if (parsed.entry_price != null) setEntryPrice(parsed.entry_price.toString());
+                        if (parsed.exit_price != null) setExitPrice(parsed.exit_price.toString());
+                        if (parsed.pnl != null) setPnl(parsed.pnl.toString());
+                        if (parsed.position_size != null) setPositionSize(parsed.position_size.toString());
+                        if (parsed.notes) setNotes(parsed.notes);
+                        setFeedback('Parametri estratti dalla voce!');
+                        setTimeout(() => setFeedback(null), 3000);
+                    } catch (e) {
+                        console.warn(e);
+                    }
+                }
+            },
+            () => setIsListening(false),
+            () => setIsListening(false)
+        )?.start();
     };
 
     // Quick Test Preset Triggers
     const triggerLossFomoPreset = () => {
+        triggerHaptic('tilt');
         setAssetPair('BTC/USDT');
         setDirection('LONG');
-        setEntryPrice(65000);
-        setExitPrice(63500);
-        setPositionSize(1.5);
-        setPnl(-2250);
+        setEntryPrice('65000');
+        setExitPrice('63500');
+        setPositionSize('1.5');
+        setPnl('-2250');
         setEmotionalState('FOMO');
         setNotes('Panic sold during sudden dip due to high leverage');
         
@@ -59,12 +124,13 @@ export const TradeForm: React.FC = () => {
     };
 
     const triggerCalmProfitPreset = () => {
+        triggerHaptic('calm');
         setAssetPair('EUR/USD');
         setDirection('SHORT');
-        setEntryPrice(1.0850);
-        setExitPrice(1.0800);
-        setPositionSize(10.0);
-        setPnl(5000);
+        setEntryPrice('1.0850');
+        setExitPrice('1.0800');
+        setPositionSize('10.0');
+        setPnl('5000');
         setEmotionalState('Disciplined');
         setNotes('Executed according to backtested strategy rules');
 
@@ -82,12 +148,13 @@ export const TradeForm: React.FC = () => {
     };
 
     const triggerGreedyPreset = () => {
+        triggerHaptic('calm');
         setAssetPair('NVDA');
         setDirection('LONG');
-        setEntryPrice(120);
-        setExitPrice(135);
-        setPositionSize(200);
-        setPnl(3000);
+        setEntryPrice('120');
+        setExitPrice('135');
+        setPositionSize('200');
+        setPnl('3000');
         setEmotionalState('Greedy');
         setNotes('Held past profit target wanting extra gains');
 
@@ -111,9 +178,29 @@ export const TradeForm: React.FC = () => {
             <div className="flex items-center justify-between">
                 <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
                     <PlusCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-                    Log New Trade Operation
+                    <span>Log New Trade Operation</span>
                 </h3>
+
+                <button
+                    type="button"
+                    onClick={handleVoiceJournaling}
+                    className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                        isListening 
+                            ? 'bg-rose-600 text-white border-rose-400 animate-pulse' 
+                            : 'glass-subcard text-cyan-300 hover:text-white'
+                    }`}
+                >
+                    {isListening ? <MicOff className="w-3.5 h-3.5 animate-bounce" /> : <Mic className="w-3.5 h-3.5" />}
+                    <span>{isListening ? 'Ascolto...' : 'Voice Trade'}</span>
+                </button>
             </div>
+
+            {feedback && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{feedback}</span>
+                </div>
+            )}
 
             {/* Quick Test Presets */}
             <div className="space-y-2">
@@ -146,21 +233,25 @@ export const TradeForm: React.FC = () => {
                 </div>
             </div>
 
-            {/* Manual Entry Form */}
+            {/* Flexible Entry Form (Only Asset, Direction, & (Entry OR PnL) Required) */}
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Asset Pair</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                            Asset Pair <span className="text-emerald-400">*</span>
+                        </label>
                         <input
                             type="text"
                             value={assetPair}
-                            onChange={(e) => setAssetPair(e.target.value)}
+                            onChange={(e) => setAssetPair(e.target.value.toUpperCase())}
                             className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Direction</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                            Direction <span className="text-emerald-400">*</span>
+                        </label>
                         <select
                             value={direction}
                             onChange={(e) => setDirection(e.target.value as TradeDirection)}
@@ -174,32 +265,10 @@ export const TradeForm: React.FC = () => {
                         <label className="block text-xs font-medium text-slate-400 mb-1">Entry Price ($)</label>
                         <input
                             type="number"
+                            step="any"
                             value={entryPrice}
-                            onChange={(e) => setEntryPrice(Number(e.target.value))}
-                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Position Size</label>
-                        <input
-                            type="number"
-                            step="0.1"
-                            value={positionSize}
-                            onChange={(e) => setPositionSize(Number(e.target.value))}
-                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
-                            required
-                        />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Exit Price ($)</label>
-                        <input
-                            type="number"
-                            value={exitPrice}
-                            onChange={(e) => setExitPrice(Number(e.target.value))}
+                            onChange={(e) => setEntryPrice(e.target.value)}
+                            placeholder="Opzionale se c'è PnL"
                             className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
                         />
                     </div>
@@ -207,13 +276,38 @@ export const TradeForm: React.FC = () => {
                         <label className="block text-xs font-medium text-slate-400 mb-1">PnL ($)</label>
                         <input
                             type="number"
+                            step="any"
                             value={pnl}
-                            onChange={(e) => setPnl(Number(e.target.value))}
+                            onChange={(e) => setPnl(e.target.value)}
+                            placeholder="Es. +500 o -200"
                             className="glass-subcard text-white rounded-xl h-11 px-3 text-sm font-mono focus:border-emerald-500 outline-none w-full"
                         />
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Emotional State</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">Exit Price ($) (Facoltativo)</label>
+                        <input
+                            type="number"
+                            step="any"
+                            value={exitPrice}
+                            onChange={(e) => setExitPrice(e.target.value)}
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">Position Size (Facoltativo)</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            value={positionSize}
+                            onChange={(e) => setPositionSize(e.target.value)}
+                            className="glass-subcard text-white rounded-xl h-11 px-3 text-sm focus:border-emerald-500 outline-none w-full font-mono"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">Emotional State (Facoltativo)</label>
                         <select
                             value={emotionalState}
                             onChange={(e) => setEmotionalState(e.target.value as EmotionalState)}
@@ -230,7 +324,7 @@ export const TradeForm: React.FC = () => {
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Journal Notes</label>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Journal Notes (Facoltativo)</label>
                     <input
                         type="text"
                         value={notes}
@@ -242,9 +336,14 @@ export const TradeForm: React.FC = () => {
 
                 <button
                     type="submit"
-                    className="w-full min-h-[44px] py-3 bg-[#10B981] hover:bg-[#059669] text-white font-mono font-bold rounded-2xl transition shadow-lg shadow-[#10B981]/20 active:scale-[0.99] cursor-pointer"
+                    disabled={!isFormValid}
+                    className={`w-full min-h-[48px] py-3 text-white font-mono font-bold rounded-2xl transition shadow-lg cursor-pointer ${
+                        isFormValid 
+                            ? 'bg-[#10B981] hover:bg-[#059669] shadow-[#10B981]/20 active:scale-[0.99]'
+                            : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                    }`}
                 >
-                    Log Trade & Update Quasar Bubble
+                    COMMIT SESSION LOG
                 </button>
             </form>
         </div>

@@ -20,6 +20,7 @@ import {
     Database,
     KeyRound
 } from 'lucide-react';
+import { PropFirmShieldWidget } from '../PropFirmShieldWidget';
 
 interface TabWalletProps {
     authUser: UserAccount | null;
@@ -161,6 +162,9 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                     </div>
                 </div>
             </section>
+
+            {/* PROP FIRM SHIELD PRESET WIDGET (4% ALERT / 5% DRAWDOWN GUARD) */}
+            <PropFirmShieldWidget />
 
             {/* 4. BOX "ACTIVE MONTH ALLOCATIONS" */}
             <section className="w-full rounded-2xl glass-panel p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3">

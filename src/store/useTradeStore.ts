@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Trade, NewTradeInput, EmotionalState } from '../types/trade';
 import { BubbleConfig } from '../types/bubble';
 import { addSystemLog } from '../services/authService';
+import { isTiltDetected } from '../services/circuitBreakerService';
 
 // Initialize Supabase Client dynamically from environment variables
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://dummy.supabase.co';
@@ -79,6 +80,19 @@ export function computeBubbleConfig(trades: Trade[]): BubbleConfig {
     });
 
     // 3. Transformation Matrix Logic
+    // Case 0: Tilt Detector Triggered (2 consecutive losses or FOMO/Revenge -> Pulsing Red Alarm #EF4444)
+    const tiltCheck = isTiltDetected(recentTrades);
+    if (tiltCheck.isTilt) {
+        return {
+            primaryColor: '#EF4444',
+            secondaryColor: '#991B1B',
+            speed: 3.2,
+            turbulence: 0.95,
+            pulseRate: 3.0,
+            glowIntensity: 2.2
+        };
+    }
+
     const isProfitable = totalPnl >= 0;
 
     // Case A: Profit + Calm / Disciplined (Harmonic & Fluid Cyan/Blue)
@@ -253,12 +267,15 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     },
 
     addTrade: async (tradeData: NewTradeInput) => {
+        const assetLabel = (tradeData as any).symbol || tradeData.asset_pair || 'UNKNOWN';
+        const pnlLabel = tradeData.pnl != null ? `${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl}` : 'Open';
+
         // Log System Audit Event
         addSystemLog(
             'TRADE_LOGGED',
-            `Trade registrato: ${tradeData.symbol} ${tradeData.direction} (${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl})`,
+            `Trade registrato: ${assetLabel} ${tradeData.direction} (${pnlLabel})`,
             'trader.pro@tradyx.ai',
-            { symbol: tradeData.symbol, pnl: tradeData.pnl, emotional_state: tradeData.emotional_state }
+            { symbol: assetLabel, pnl: tradeData.pnl, emotional_state: tradeData.emotional_state }
         );
 
         // 1. Optimistic UI Update: Create transient trade object

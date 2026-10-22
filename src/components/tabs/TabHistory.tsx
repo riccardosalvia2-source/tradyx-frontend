@@ -24,8 +24,10 @@ import {
     DollarSign,
     CheckCircle2,
     FileText,
-    Percent
+    Percent,
+    Share2
 } from 'lucide-react';
+import { StoryCardModal } from '../StoryCardModal';
 
 export const TabHistory: React.FC = () => {
     const { trades } = useTradeStore();
@@ -34,6 +36,7 @@ export const TabHistory: React.FC = () => {
 
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+    const [storyTrade, setStoryTrade] = useState<Trade | null>(null);
 
     // Filter trades based on search query
     const filteredTrades = useMemo(() => {
@@ -319,16 +322,35 @@ export const TabHistory: React.FC = () => {
                             </p>
                         </div>
 
-                        {/* ROW 8: Prominent Close Button */}
-                        <button
-                            type="button"
-                            onClick={() => setSelectedTrade(null)}
-                            className="w-full h-12 rounded-xl glass-subcard hover:bg-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer active:scale-[0.99] mt-1 shrink-0"
-                        >
-                            Chiudi Scheda Trade
-                        </button>
+                        {/* ROW 8: Actions: Condividi Story 9:16 & Chiudi */}
+                        <div className="grid grid-cols-2 gap-2 mt-1 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setStoryTrade(selectedTrade)}
+                                className="h-12 rounded-xl bg-gradient-to-r from-[#10B981] to-[#2563EB] hover:from-[#059669] hover:to-[#1D4ED8] text-white font-mono text-xs font-black uppercase transition cursor-pointer active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-lg shadow-[#10B981]/25"
+                            >
+                                <Share2 className="w-4 h-4 shrink-0" />
+                                <span>Condividi Story</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedTrade(null)}
+                                className="h-12 rounded-xl glass-subcard hover:bg-white/10 text-white font-mono text-xs font-bold uppercase transition cursor-pointer active:scale-[0.99]"
+                            >
+                                Chiudi
+                            </button>
+                        </div>
                     </div>
                 </div>
+            )}
+
+            {/* VIRAL LOOP: LUXURY 9:16 STORY CARD MODAL */}
+            {storyTrade && (
+                <StoryCardModal
+                    trade={storyTrade}
+                    onClose={() => setStoryTrade(null)}
+                />
             )}
 
         </div>

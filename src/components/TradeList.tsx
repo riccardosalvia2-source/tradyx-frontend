@@ -55,7 +55,7 @@ export const TradeList: React.FC = () => {
                                         </span>
                                     </div>
                                     <div className="text-xs text-slate-400 mt-0.5 truncate">
-                                        Size: {trade.position_size} | Entry: ${trade.entry_price.toLocaleString()}
+                                        Size: {trade.position_size ?? 1.0} | Entry: {trade.entry_price != null ? `$${trade.entry_price.toLocaleString()}` : 'Market Price'}
                                     </div>
                                 </div>
                             </div>
