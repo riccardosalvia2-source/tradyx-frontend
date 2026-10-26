@@ -1,13 +1,16 @@
 // ============================================================================
-// TRADYX SCREENSHOT OCR UPLOADER & MULTIMODAL PARSER
+// TRADYX SCREENSHOT OCR UPLOADER & MULTIMODAL VISION PARSER
 // (src/services/screenshotOcrService.ts)
 // ============================================================================
 
 import { ParsedVoiceTrade } from './voiceTradeParser';
 
-/**
- * Converts a File to base64 string
- */
+export interface ScreenshotOcrResult extends ParsedVoiceTrade {
+    asset?: string;
+    pnl_netto?: number;
+    roi_percentage?: number;
+}
+
 /**
  * Converts a File to base64 string safely without rejecting
  */
@@ -30,13 +33,13 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Parses a TradingView / broker screenshot using Gemini Vision API or heuristic fallback
- * Never throws exceptions - always returns a valid ParsedVoiceTrade object.
+ * Parses a TradingView / broker screenshot using Gemini 1.5 Flash Vision API or heuristic fallback.
+ * Never throws exceptions - always returns a valid object for form population.
  */
-export async function parseTradingScreenshot(file: File): Promise<ParsedVoiceTrade> {
+export async function parseTradingScreenshot(file: File): Promise<ScreenshotOcrResult> {
     const fileName = file?.name?.toLowerCase() || 'screenshot.png';
 
-    // Heuristic default values
+    // Heuristic default fallback values
     let detectedAsset = 'BTC/USD';
     let detectedDirection: 'LONG' | 'SHORT' = 'LONG';
     let detectedEntry = 64250.00;
@@ -61,27 +64,27 @@ export async function parseTradingScreenshot(file: File): Promise<ParsedVoiceTra
     try {
         const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
                              import.meta.env?.GEMINI_API_KEY || 
-                             (typeof process !== 'undefined' ? process.env?.VITE_GEMINI_API_KEY : undefined);
+                             (typeof process !== 'undefined' ? (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY) : undefined);
 
         const base64Data = await fileToBase64(file);
         const mimeType = file?.type || 'image/jpeg';
         const base64ImageBytes = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
-        if (geminiApiKey && geminiApiKey !== 'dummy_gemini_key' && base64ImageBytes) {
+        if (geminiApiKey && geminiApiKey !== 'dummy_gemini_key' && !geminiApiKey.includes('Dummy') && base64ImageBytes) {
             try {
-                const prompt = `Analizza questo screenshot di trading (broker o TradingView).
-Estrai i dati essenziali dell'operazione. Rispondi ESCLUSIVAMENTE con un JSON con questi campi:
+                const prompt = `Analizza questo screenshot di trading (TradingView, MT4/MT5, Binance, Bybit) ed estrai in formato JSON: asset, direction (LONG/SHORT), entry_price, exit_price, pnl_netto, roi_percentage.
+Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown o backtick \`\`\`json):
 {
-  "asset_pair": string ("BTC/USD", "ETH/USD", "EUR/USD", "AAPL", "NVDA", ecc.),
+  "asset": string ("BTC/USD", "ETH/USD", "EUR/USD", "AAPL", "NVDA", ecc.),
   "direction": "LONG" | "SHORT",
   "entry_price": number,
   "exit_price": number,
-  "pnl": number,
-  "position_size": number,
+  "pnl_netto": number,
+  "roi_percentage": number,
   "notes": string
 }`;
 
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -106,12 +109,22 @@ Estrai i dati essenziali dell'operazione. Rispondi ESCLUSIVAMENTE con un JSON co
                     if (textReply) {
                         const cleaned = textReply.replace(/```json/g, '').replace(/```/g, '').trim();
                         const json = JSON.parse(cleaned);
+                        const asset = json.asset || json.asset_pair || detectedAsset;
+                        const direction = json.direction === 'SHORT' ? 'SHORT' : 'LONG';
+                        const entry_price = json.entry_price != null ? Number(json.entry_price) : detectedEntry;
+                        const exit_price = json.exit_price != null ? Number(json.exit_price) : detectedExit;
+                        const pnl_netto = json.pnl_netto != null ? Number(json.pnl_netto) : (json.pnl != null ? Number(json.pnl) : detectedPnl);
+                        const roi_percentage = json.roi_percentage != null ? Number(json.roi_percentage) : undefined;
+
                         return {
-                            asset_pair: json.asset_pair || detectedAsset,
-                            direction: json.direction === 'SHORT' ? 'SHORT' : 'LONG',
-                            entry_price: json.entry_price != null ? Number(json.entry_price) : detectedEntry,
-                            exit_price: json.exit_price != null ? Number(json.exit_price) : detectedExit,
-                            pnl: json.pnl != null ? Number(json.pnl) : detectedPnl,
+                            asset,
+                            asset_pair: asset,
+                            direction,
+                            entry_price,
+                            exit_price,
+                            pnl: pnl_netto,
+                            pnl_netto,
+                            roi_percentage,
                             position_size: json.position_size != null ? Number(json.position_size) : 1.0,
                             notes: json.notes || `Screenshot analizzato: ${file?.name || 'immagine'}`,
                             rawTranscript: `Screenshot OCR: ${file?.name || 'immagine'}`
@@ -128,11 +141,13 @@ Estrai i dati essenziali dell'operazione. Rispondi ESCLUSIVAMENTE con un JSON co
 
     // Heuristic safe fallback
     return {
+        asset: detectedAsset,
         asset_pair: detectedAsset,
         direction: detectedDirection,
         entry_price: detectedEntry,
         exit_price: detectedExit,
         pnl: detectedPnl,
+        pnl_netto: detectedPnl,
         position_size: 1.0,
         notes: `Importato da screenshot: ${file?.name || 'immagine'}`,
         rawTranscript: `OCR file: ${file?.name || 'immagine'}`

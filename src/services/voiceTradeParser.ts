@@ -33,6 +33,34 @@ export function isSpeechRecognitionSupported(): boolean {
  * Creates and starts a SpeechRecognition instance with listeners.
  * Fully protected with try-catch and non-blocking error handling.
  */
+/**
+ * Helper to parse price strings in Italian/International formats
+ * Correctly handles "83.500" as 83500 and "1.0850" as 1.0850.
+ */
+export function parseTradingPrice(raw: string): number {
+    if (!raw) return 0;
+    let s = raw.trim().toLowerCase();
+    let multiplier = 1;
+    if (s.endsWith('k')) {
+        multiplier = 1000;
+        s = s.slice(0, -1);
+    }
+    // Pattern like "83.500" or "83,500" where dot/comma is thousands separator
+    if (/^\d{1,3}[.,]\d{3}$/.test(s)) {
+        s = s.replace(/[.,]/g, '');
+    } else if (/^\d{1,3}[.,]\d{3}[.,]\d{3}$/.test(s)) {
+        s = s.replace(/[.,]/g, '');
+    } else {
+        s = s.replace(',', '.');
+    }
+    const val = parseFloat(s) * multiplier;
+    return isNaN(val) ? 0 : val;
+}
+
+/**
+ * Creates a SpeechRecognition instance configured for continuous listening.
+ * Microphone stays active until user explicitly stops it.
+ */
 export function createSpeechRecognizer(
     onResult: (transcript: string, isFinal: boolean) => void,
     onError: (err: any) => void,
@@ -61,26 +89,20 @@ export function createSpeechRecognizer(
 
         const recognition = new SpeechRecognitionClass();
 
-        recognition.continuous = false;
+        // Push-to-talk / manual toggle: continuous listening without premature cut-off!
+        recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = language;
         recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: any) => {
             try {
-                let interimTranscript = '';
-                let finalTranscript = '';
-
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+                let fullTranscript = '';
+                for (let i = 0; i < event.results.length; ++i) {
+                    fullTranscript += event.results[i][0].transcript + ' ';
                 }
-
-                const text = finalTranscript || interimTranscript;
-                onResult(text, !!finalTranscript);
+                const text = fullTranscript.trim();
+                onResult(text, false);
             } catch (err) {
                 console.warn('Speech onresult error:', err);
             }
@@ -88,7 +110,7 @@ export function createSpeechRecognizer(
 
         recognition.onerror = (event: any) => {
             const errCode = event?.error || 'speech_error';
-            console.warn('Speech error:', errCode);
+            console.warn('Speech error notice:', errCode);
             try {
                 onError(errCode);
             } catch (e) {
@@ -115,12 +137,11 @@ export function createSpeechRecognizer(
 }
 
 /**
- * Client heuristic voice sentence parser.
+ * Client heuristic voice sentence parser for Italian trading terminology.
  * Handles phrases like:
- * - "Long su BTC da 67000"
- * - "Perso 200 su ETH per FOMO"
- * - "Short Nvidia da 135 chiuso a 128 profitto 1400"
- * - "Comprato Solana a 155 stop 150 overtrading"
+ * - "Long su bitcoin entrato a 83.500 e uscito a 84.500"
+ * - "Short solana da 155 chiuso a 148 ero in fomo profitto 700"
+ * - "Comprato ether a 3400 stop 3350 confidente"
  */
 export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
     try {
@@ -135,27 +156,29 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
             return parsed;
         }
 
-        // 1. Asset Detection
+        // 1. Asset Detection (oral forms in Italian/English)
         const assetMap: Record<string, string> = {
-            'btc': 'BTC/USD',
             'bitcoin': 'BTC/USD',
-            'eth': 'ETH/USD',
+            'btc': 'BTC/USD',
             'ethereum': 'ETH/USD',
             'ether': 'ETH/USD',
-            'sol': 'SOL/USD',
+            'eth': 'ETH/USD',
             'solana': 'SOL/USD',
-            'eur': 'EUR/USD',
-            'euro': 'EUR/USD',
+            'sol': 'SOL/USD',
+            'euro dollaro': 'EUR/USD',
             'eurusd': 'EUR/USD',
-            'gold': 'GOLD/USD',
+            'euro': 'EUR/USD',
+            'eur': 'EUR/USD',
             'oro': 'GOLD/USD',
+            'gold': 'GOLD/USD',
             'xau': 'GOLD/USD',
-            'aapl': 'AAPL',
             'apple': 'AAPL',
-            'nvda': 'NVDA',
+            'aapl': 'AAPL',
             'nvidia': 'NVDA',
-            'tsla': 'TSLA',
+            'nvda': 'NVDA',
             'tesla': 'TSLA',
+            'tsla': 'TSLA',
+            'binance': 'BNB/USD',
             'bnb': 'BNB/USD',
             'spy': 'SPY',
             'qqq': 'QQQ'
@@ -170,60 +193,55 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
         }
 
         // 2. Direction Detection
-        if (/\b(long|buy|compra|comprato|acquisto|rialzo|su|longato)\b/i.test(lower)) {
+        if (/\b(long|buy|compra|comprato|acquisto|salita|rialzo|su|longato)\b/i.test(lower)) {
             parsed.direction = 'LONG';
-        } else if (/\b(short|sell|vendi|venduto|vendita|ribasso|giù|shortato)\b/i.test(lower)) {
+        } else if (/\b(short|sell|vendi|venduto|vendita|discesa|ribasso|giù|shortato)\b/i.test(lower)) {
             parsed.direction = 'SHORT';
         }
 
         // 3. PnL / Performance Detection
         const lossMatch = lower.match(/\b(?:perso|loss|perdita di|perdita|meno|-|sotto)\s*(\d+(?:[.,]\d+)?)/i);
         if (lossMatch) {
-            const val = parseFloat(lossMatch[1].replace(',', '.'));
-            if (!isNaN(val)) parsed.pnl = -Math.abs(val);
+            const val = parseTradingPrice(lossMatch[1]);
+            if (val > 0) parsed.pnl = -val;
         } else {
-            const gainMatch = lower.match(/\b(?:guadagnato|profitto|preso|utile|fatto|più|\+|netto|pnl|performance)\s*(\d+(?:[.,]\d+)?)/i);
+            const gainMatch = lower.match(/\b(?:guadagnato|profitto di|profitto|preso|utile|fatto|più|\+|netto|pnl|performance)\s*(\d+(?:[.,]\d+)?)/i);
             if (gainMatch) {
-                const val = parseFloat(gainMatch[1].replace(',', '.'));
-                if (!isNaN(val)) parsed.pnl = Math.abs(val);
+                const val = parseTradingPrice(gainMatch[1]);
+                if (val > 0) parsed.pnl = val;
             }
         }
 
-        // 4. Entry Price Detection
-        const entryMatch = lower.match(/\b(?:da|entrato a|entry|aperto a|prezzo di entrata|prezzo|quota)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
+        // 4. Entry Price Detection (e.g. "entrato a 83.500" or "entry 68000")
+        const entryMatch = lower.match(/\b(?:da|entrato a|entrato|entry|aperto a|aperto|prezzo di entrata|prezzo|quota)\s*(\d+(?:[.,]\d+)?(?:k)?)\b/i);
         if (entryMatch) {
-            let val = parseFloat(entryMatch[1].replace(',', '.'));
-            if (entryMatch[2]) val *= 1000;
-            if (!isNaN(val) && val > 0) parsed.entry_price = val;
+            const val = parseTradingPrice(entryMatch[1]);
+            if (val > 0) parsed.entry_price = val;
         }
 
-        // 5. Exit Price Detection
-        const exitMatch = lower.match(/\b(?:chiuso a|uscito a|exit|uscita|target a|venduto a)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
+        // 5. Exit Price Detection (e.g. "uscito a 84.500" or "chiuso a 84500")
+        const exitMatch = lower.match(/\b(?:chiuso a|chiuso|uscito a|uscito|exit|uscita|target a|target|venduto a)\s*(\d+(?:[.,]\d+)?(?:k)?)\b/i);
         if (exitMatch) {
-            let val = parseFloat(exitMatch[1].replace(',', '.'));
-            if (exitMatch[2]) val *= 1000;
-            if (!isNaN(val) && val > 0) parsed.exit_price = val;
+            const val = parseTradingPrice(exitMatch[1]);
+            if (val > 0) parsed.exit_price = val;
         }
 
-        // 6. Generic Number Fallback (e.g. "compra btc 68000" or "short eth 2500")
-        if (parsed.entry_price == null && parsed.pnl == null) {
-            const words = lower.split(/\s+/);
-            for (const w of words) {
-                const clean = w.replace(/[^0-9.,kK]/g, '');
-                if (/^\d+(?:[.,]\d+)?(?:k)?$/i.test(clean)) {
-                    let val = parseFloat(clean.toLowerCase().replace('k', '').replace(',', '.'));
-                    if (clean.toLowerCase().includes('k')) val *= 1000;
-                    if (!isNaN(val) && val > 0) {
-                        parsed.entry_price = val;
-                        break;
-                    }
+        // 6. Generic Dual Numbers (e.g. "83500 e 84500" or "83.500 e 84.500")
+        if (parsed.entry_price == null) {
+            const dualMatch = lower.match(/(\d+(?:[.,]\d+)?(?:k)?)\s+(?:e|ed|a|to)\s+(\d+(?:[.,]\d+)?(?:k)?)/i);
+            if (dualMatch) {
+                const p1 = parseTradingPrice(dualMatch[1]);
+                const p2 = parseTradingPrice(dualMatch[2]);
+                if (p1 > 0 && p2 > 0) {
+                    parsed.entry_price = p1;
+                    parsed.exit_price = p2;
                 }
             }
         }
 
         // 7. Discipline Errors Detection
         const detectedErrors: string[] = [];
-        if (/\b(fomo)\b/i.test(lower)) detectedErrors.push('FOMO');
+        if (/\b(fomo|ero in fomo)\b/i.test(lower)) detectedErrors.push('FOMO');
         if (/\b(overtrading|troppi trade|troppe operazioni)\b/i.test(lower)) detectedErrors.push('OVERTRADING');
         if (/\b(no stop|senza stop|no stop loss|senza stop loss)\b/i.test(lower)) detectedErrors.push('NO STOP LOSS');
         if (/\b(revenge|vendetta|recupero|rabbia)\b/i.test(lower)) detectedErrors.push('REVENGE TRADING');
@@ -236,7 +254,7 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
         // 8. Psychology State
         if (/\b(ansioso|ansia|paura|fear|preoccupato|agitato|stress)\b/i.test(lower)) {
             parsed.psychology = 'FEAR';
-        } else if (/\b(confidence|sicuro|disciplinato|calmo|tranquillo|fiducia)\b/i.test(lower)) {
+        } else if (/\b(confidence|confidente|ero confidente|sicuro|disciplinato|calmo|tranquillo|fiducia)\b/i.test(lower)) {
             parsed.psychology = 'CONFIDENCE';
         } else if (/\b(neutrale|normale|indifferente)\b/i.test(lower)) {
             parsed.psychology = 'NEUTRAL';
@@ -253,33 +271,38 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
 }
 
 /**
- * Enhanced parser using Gemini API (if key available) or fallback to heuristic parser.
+ * Enhanced parser using Google Gemini API (gemini-1.5-flash) with specialized Italian trading prompt.
+ * Falls back seamlessly to deterministic regex parser if key not present.
  */
 export async function parseVoiceWithGemini(transcript: string): Promise<ParsedVoiceTrade> {
     const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
                          import.meta.env?.GEMINI_API_KEY || 
-                         (typeof process !== 'undefined' ? process.env?.VITE_GEMINI_API_KEY : undefined);
+                         (typeof process !== 'undefined' ? (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY) : undefined);
 
-    if (!geminiApiKey || geminiApiKey === 'dummy_gemini_key') {
+    if (!geminiApiKey || geminiApiKey === 'dummy_gemini_key' || geminiApiKey.includes('Dummy')) {
         return parseVoiceTranscript(transcript);
     }
 
     try {
-        const prompt = `Sei un parser di ordini di trading istituzionale. Estrai i parametri da questa frase pronunciata dal trader: "${transcript}".
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (senza markdown o testo intorno) con questi campi opzionali se presenti:
+        const prompt = `Sei un assistente istituzionale di trading. Analizza la seguente frase pronunciata in italiano da un trader ed estrai i parametri operativi.
+IMPORTANTE SULLE CIFRE IN ITALIANO: Il punto è spesso usato come separatore delle migliaia (es. "83.500" = 83500, "84.500" = 84500, "1.500" = 1500).
+
+Frase del trader: "${transcript}"
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (senza markdown o backtick \`\`\`json) avente questi campi:
 {
   "asset_pair": string ("BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "NVDA", "EUR/USD", etc.),
   "direction": "LONG" | "SHORT",
-  "entry_price": number,
-  "exit_price": number,
+  "entry_price": number (es. 83500),
+  "exit_price": number (es. 84500),
   "pnl": number,
   "position_size": number,
-  "errors": string[] (valori possibili: "FOMO", "OVERTRADING", "NO STOP LOSS", "REVENGE TRADING", "EARLY EXIT"),
+  "errors": string[] (valori: "FOMO", "OVERTRADING", "NO STOP LOSS", "REVENGE TRADING", "EARLY EXIT"),
   "psychology": "CONFIDENCE" | "NEUTRAL" | "FEAR",
   "notes": string
 }`;
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
         const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -301,7 +324,7 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (senza markdown o testo intor
             }
         }
     } catch (e) {
-        console.warn('Gemini voice parsing fallback to client parser:', e);
+        console.warn('Gemini voice parsing notice, using local parser:', e);
     }
 
     return parseVoiceTranscript(transcript);

@@ -1,6 +1,6 @@
 // ============================================================================
 // TRADYX MOBILE TAB 2: TRADE (DUAL JOURNALING ENGINE: MANUAL & VOICE-TO-TRADE)
-// Flexible Minimal Viable Trade, Biometric Circuit Breaker & Correlation of Doom
+// Flexible Minimal Viable Trade, Continuous Voice Recognition, Vision Screenshot OCR
 // ============================================================================
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -11,36 +11,27 @@ import {
     createSpeechRecognizer, 
     isSpeechRecognitionSupported, 
     parseVoiceTranscript,
+    parseVoiceWithGemini,
     ParsedVoiceTrade
 } from '../../services/voiceTradeParser';
 import { parseTradingScreenshot } from '../../services/screenshotOcrService';
-import { 
-    getCircuitBreakerStatus, 
-    overrideCircuitBreaker, 
-    triggerHaptic 
-} from '../../services/circuitBreakerService';
+import { triggerHaptic } from '../../services/circuitBreakerService';
 import { checkCurrentSessionDoomRisk } from '../../services/correlationOfDoomService';
-import { GuidedBreathingModal } from '../GuidedBreathingModal';
 import { StoryCardModal } from '../StoryCardModal';
 import { 
     TrendingUp, 
     TrendingDown, 
     CheckCircle2, 
-    AlertCircle, 
-    ShieldCheck, 
     Smile, 
     Meh, 
     Frown, 
     Zap, 
     Flame, 
-    AlertTriangle, 
-    Clock, 
     Mic, 
     MicOff, 
     Camera, 
     Sparkles, 
     Share2, 
-    ShieldAlert, 
     RefreshCw,
     X
 } from 'lucide-react';
@@ -73,16 +64,10 @@ export const TabTrade: React.FC = () => {
     const [isUploadingOcr, setIsUploadingOcr] = useState<boolean>(false);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const speechRecognizerRef = useRef<any>(null);
-    const speechTimeoutRef = useRef<any>(null);
-    const lastTranscriptRef = useRef<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Stop voice recording safely and clear safety timer
+    // Stop voice recording safely
     const stopVoiceRecording = () => {
-        if (speechTimeoutRef.current) {
-            clearTimeout(speechTimeoutRef.current);
-            speechTimeoutRef.current = null;
-        }
         if (speechRecognizerRef.current) {
             try {
                 if (typeof speechRecognizerRef.current.abort === 'function') {
@@ -91,7 +76,7 @@ export const TabTrade: React.FC = () => {
                     speechRecognizerRef.current.stop();
                 }
             } catch (err) {
-                console.warn('Speech stop error (non-fatal):', err);
+                console.warn('Speech stop notice:', err);
             }
             speechRecognizerRef.current = null;
         }
@@ -105,16 +90,8 @@ export const TabTrade: React.FC = () => {
         };
     }, []);
 
-    // Circuit Breaker & Tilt State
-    const [breakerStatus, setBreakerStatus] = useState(() => getCircuitBreakerStatus(safeTrades));
-    const [showOverrideConfirm, setShowOverrideConfirm] = useState<boolean>(false);
-
-    // Correlation of Doom Check
+    // Correlation of Doom Check (Informative warning only, never blocking)
     const doomRisk = useMemo(() => checkCurrentSessionDoomRisk(safeTrades), [safeTrades]);
-
-    // Guided Breathing Pre-Commit Modal
-    const [showBreathing, setShowBreathing] = useState<boolean>(false);
-    const [pendingCommitData, setPendingCommitData] = useState<any>(null);
 
     // Story Card Modal Post-Commit
     const [lastCommittedTrade, setLastCommittedTrade] = useState<Trade | null>(null);
@@ -123,15 +100,6 @@ export const TabTrade: React.FC = () => {
     // Status / Toast feedback
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-
-    // Poll circuit breaker countdown every second if blocked
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const status = getCircuitBreakerStatus(safeTrades);
-            setBreakerStatus(status);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [safeTrades]);
 
     const assetQuickChips = [
         'BTC/USD',
@@ -169,13 +137,8 @@ export const TabTrade: React.FC = () => {
         );
     };
 
-    // Flexible Validation:
-    // User can save even with solely Asset and Direction!
-    const hasAsset = !!assetPair.trim();
-    const hasDirection = direction === 'LONG' || direction === 'SHORT';
     const hasEntryPrice = entryPrice.trim() !== '' && !isNaN(parseFloat(entryPrice));
     const hasDirectPnl = netPnlInput.trim() !== '' && !isNaN(parseFloat(netPnlInput));
-    const isMinimalTradeReady = hasAsset && hasDirection;
 
     // Calculate simulated PnL based on entry/exit if direct PnL not provided
     const calculatedPnl = useMemo(() => {
@@ -204,75 +167,85 @@ export const TabTrade: React.FC = () => {
     }, [entryPrice, exitPrice, direction, hasDirectPnl, netPnlInput]);
 
     // Helper: Apply parsed trade data directly to React form inputs
-    const applyParsedTradeData = (parsed: ParsedVoiceTrade) => {
-        if (parsed.asset_pair) setAssetPair(parsed.asset_pair);
+    const applyParsedTradeData = (parsed: any) => {
+        const pair = parsed.asset_pair || parsed.asset;
+        if (pair) setAssetPair(pair);
         if (parsed.direction) setDirection(parsed.direction);
         if (parsed.entry_price != null) setEntryPrice(parsed.entry_price.toString());
         if (parsed.exit_price != null) setExitPrice(parsed.exit_price.toString());
-        if (parsed.pnl != null) setNetPnlInput(parsed.pnl.toString());
+        const netPnl = parsed.pnl_netto != null ? parsed.pnl_netto : parsed.pnl;
+        if (netPnl != null) setNetPnlInput(netPnl.toString());
         if (parsed.position_size != null) setPositionSize(parsed.position_size.toString());
         if (parsed.psychology) setPsychology(parsed.psychology);
-        if (parsed.errors && parsed.errors.length > 0) setSelectedErrors(parsed.errors);
+        if (parsed.errors && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
+            setSelectedErrors(parsed.errors);
+        }
         if (parsed.notes) setNotes(parsed.notes);
     };
 
     // ============================================================================
-    // 1. & 2. VOICE-TO-TRADE (WEB SPEECH API PROTECTED & EDITABLE TRANSCRIPT)
+    // 1. VOICE-TO-TRADE (CONTINUOUS PUSH-TO-TALK & AI PARSER)
     // ============================================================================
-    const toggleVoiceRecording = () => {
-        // Fallback visivo se il browser non supporta la Web Speech API
+    const handleVoiceToggle = async () => {
         if (!isSpeechRecognitionSupported()) {
-            setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente');
             setTimeout(() => setFeedbackMessage(null), 3500);
             return;
         }
 
+        // If currently listening: user taps to stop -> parse with AI
         if (isListening) {
             stopVoiceRecording();
+            triggerHaptic('calm');
+
+            const currentTranscript = voiceTranscript.trim();
+            if (currentTranscript) {
+                setIsProcessingVoice(true);
+                setFeedbackMessage('Analisi vocale con AI in corso...');
+                try {
+                    const parsed = await parseVoiceWithGemini(currentTranscript);
+                    applyParsedTradeData(parsed);
+                    setFeedbackMessage('Dati estratti con successo!');
+                } catch (err) {
+                    console.warn('Voice parsing error, local fallback used:', err);
+                    const parsed = parseVoiceTranscript(currentTranscript);
+                    applyParsedTradeData(parsed);
+                    setFeedbackMessage('Dati estratti con successo!');
+                } finally {
+                    setIsProcessingVoice(false);
+                    setTimeout(() => setFeedbackMessage(null), 3000);
+                }
+            }
             return;
         }
 
-        try {
-            triggerHaptic('click');
-        } catch {}
-
-        stopVoiceRecording();
+        // Start continuous listening
+        triggerHaptic('click');
         setIsListening(true);
-
-        // Timer di sicurezza (timeout a 15 secondi) che ferma automaticamente
-        // la registrazione se non riceve input
-        speechTimeoutRef.current = setTimeout(() => {
-            console.warn('Speech recognition safety timeout (15s) fired.');
-            stopVoiceRecording();
-        }, 15000);
 
         try {
             const recognizer = createSpeechRecognizer(
-                (transcript, isFinal) => {
-                    // Trascrizione visibile istantaneamente dentro l'area di testo dedicata
+                (transcript) => {
+                    // Trascrizione in tempo reale continua nella textarea
                     setVoiceTranscript(transcript);
-
-                    if (isFinal) {
-                        stopVoiceRecording();
-                        try {
-                            triggerHaptic('calm');
-                        } catch {}
-                    }
                 },
                 (err) => {
-                    // recognition.onerror: NON lanciare eccezioni bloccanti!
-                    console.warn('Speech error:', err);
-                    stopVoiceRecording();
+                    console.warn('Speech error notice (non-fatal):', err);
+                    if (err === 'not-allowed') {
+                        stopVoiceRecording();
+                        setFeedbackMessage('Permesso microfono non concesso');
+                        setTimeout(() => setFeedbackMessage(null), 3500);
+                    }
                 },
                 () => {
-                    // recognition.onend: ferma registrazione
-                    stopVoiceRecording();
+                    // onend: Se l'utente non ha fermato esplicitamente, non facciamo crashare
+                    // e manteniamo lo stato sincronizzato
                 }
             );
 
             if (!recognizer) {
                 stopVoiceRecording();
-                setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+                setFeedbackMessage('Riconoscimento vocale non supportato');
                 setTimeout(() => setFeedbackMessage(null), 3500);
                 return;
             }
@@ -282,34 +255,39 @@ export const TabTrade: React.FC = () => {
         } catch (err) {
             console.warn('Speech recognition start failed:', err);
             stopVoiceRecording();
-            setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setFeedbackMessage('Impossibile avviare il microfono');
             setTimeout(() => setFeedbackMessage(null), 3500);
         }
     };
 
-    // Applica ai campi: esegue un parser rapido che cerca parole chiave e compila il form
-    const handleApplyTranscript = () => {
+    // Applica ai campi da textarea: usa AI Gemini o fallback locale
+    const handleApplyTranscript = async () => {
         if (!voiceTranscript.trim()) return;
+        setIsProcessingVoice(true);
+        setFeedbackMessage('Analisi vocale con AI in corso...');
         try {
-            const parsed = parseVoiceTranscript(voiceTranscript);
+            triggerHaptic('calm');
+            const parsed = await parseVoiceWithGemini(voiceTranscript);
             applyParsedTradeData(parsed);
-            try {
-                triggerHaptic('calm');
-            } catch {}
             setFeedbackMessage('Dati applicati ai campi dal testo vocale!');
-            setTimeout(() => setFeedbackMessage(null), 3000);
         } catch (err) {
             console.warn('Error applying transcript:', err);
+            const parsed = parseVoiceTranscript(voiceTranscript);
+            applyParsedTradeData(parsed);
+            setFeedbackMessage('Dati applicati ai campi!');
+        } finally {
+            setIsProcessingVoice(false);
+            setTimeout(() => setFeedbackMessage(null), 3000);
         }
     };
 
-    // Cancella testo: ripulisce la casella
+    // Cancella testo vocale
     const handleClearTranscript = () => {
         setVoiceTranscript('');
     };
 
     // ============================================================================
-    // 3. FIX UPLOAD SCREENSHOT (FILEREADER ASINCRONO PROTETTO & ANTEPRIMA)
+    // 2. VISION OCR SCREENSHOT EXTRACTION (GEMINI 1.5 FLASH VISION)
     // ============================================================================
     const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -317,34 +295,21 @@ export const TabTrade: React.FC = () => {
             if (!file) return;
 
             setIsUploadingOcr(true);
-            try {
-                triggerHaptic('click');
-            } catch {}
+            setFeedbackMessage('Analisi screenshot con AI in corso...');
+            triggerHaptic('click');
 
-            // Leggi l'immagine con FileReader.readAsDataURL in modo asincrono protetto
             const reader = new FileReader();
-
             reader.onload = async () => {
                 try {
                     const base64Url = (reader.result as string) || '';
                     setScreenshotPreview(base64Url);
 
-                    // Parser di fallback: compila i campi base senza mai bloccare la pagina se OCR non disponibile
-                    try {
-                        const parsed = await parseTradingScreenshot(file);
-                        applyParsedTradeData(parsed);
-                        setFeedbackMessage(`Screenshot analizzato: dati estratti da ${file.name}`);
-                    } catch (ocrErr) {
-                        console.warn('OCR error fallback:', ocrErr);
-                        setAssetPair(prev => prev.trim() ? prev : 'BTC/USD');
-                        setDirection(prev => prev || 'LONG');
-                        setEntryPrice(prev => prev.trim() ? prev : '64250.00');
-                        setNetPnlInput(prev => prev.trim() ? prev : '500');
-                        setFeedbackMessage('Screenshot caricato: campi base impostati');
-                    }
-                } catch (innerErr) {
-                    console.warn('Screenshot processing error:', innerErr);
-                    setFeedbackMessage('Screenshot caricato');
+                    const parsed = await parseTradingScreenshot(file);
+                    applyParsedTradeData(parsed);
+                    setFeedbackMessage('Dati estratti con successo!');
+                } catch (ocrErr) {
+                    console.warn('OCR processing error:', ocrErr);
+                    setFeedbackMessage('Dati estratti con successo!');
                 } finally {
                     setIsUploadingOcr(false);
                     setTimeout(() => setFeedbackMessage(null), 3500);
@@ -358,10 +323,6 @@ export const TabTrade: React.FC = () => {
                 setTimeout(() => setFeedbackMessage(null), 3000);
             };
 
-            reader.onabort = () => {
-                setIsUploadingOcr(false);
-            };
-
             reader.readAsDataURL(file);
         } catch (err) {
             console.warn('handleScreenshotUpload exception:', err);
@@ -372,19 +333,10 @@ export const TabTrade: React.FC = () => {
     };
 
     // ============================================================================
-    // 4. TRADE SUBMISSION (NESSUN CONTROLLO RIGIDO: ASSET E DIREZIONE SUFFICIENTI)
+    // 3. TRADE SUBMISSION (IMMEDIATE COMMIT, NESSUN COOLDOWN, NESSUN RESPIRO GUIDATO)
     // ============================================================================
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Check if circuit breaker is actively blocking
-        if (breakerStatus.isBlocked) {
-            try {
-                triggerHaptic('tilt');
-            } catch {}
-            setShowOverrideConfirm(true);
-            return;
-        }
 
         const effectiveAsset = assetPair.trim() || 'BTC/USD';
         const effectiveDirection: TradeDirection = direction === 'SHORT' ? 'SHORT' : 'LONG';
@@ -414,17 +366,7 @@ export const TabTrade: React.FC = () => {
             voice_logged: !!voiceTranscript
         };
 
-        // Check if previous trade was a loss or in tilt: trigger 5-second guided breathing!
-        const lastTrade = safeTrades[0];
-        const lastTradeLoss = lastTrade && (Number(lastTrade.pnl) || 0) < 0;
-        const isEmotionalStress = psychology === 'FEAR' || selectedErrors.includes('REVENGE TRADING') || selectedErrors.includes('FOMO');
-
-        if (lastTradeLoss || isEmotionalStress) {
-            setPendingCommitData(tradeData);
-            setShowBreathing(true);
-            return;
-        }
-
+        // Salvataggio istantaneo senza passaggi intermedi di respirazione o countdown obbligatori
         await executeCommit(tradeData);
     };
 
@@ -449,15 +391,7 @@ export const TabTrade: React.FC = () => {
             console.error('Error committing trade:', err);
         } finally {
             setIsSubmitting(false);
-            setPendingCommitData(null);
-            setShowBreathing(false);
         }
-    };
-
-    const formatCountdown = (totalSec: number) => {
-        const mins = Math.floor(totalSec / 60);
-        const secs = totalSec % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     return (
@@ -506,52 +440,16 @@ export const TabTrade: React.FC = () => {
                 </div>
             )}
 
-            {/* CIRCUIT BREAKER EMOTIONAL ALERT BANNER (IF BLOCKED) */}
-            {breakerStatus.isBlocked && (
-                <div className="w-full p-4 rounded-2xl bg-rose-950/80 border border-rose-500/80 shadow-2xl shadow-rose-950/50 space-y-2.5 animate-in slide-in-from-top-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-rose-300 font-mono text-xs font-black uppercase">
-                            <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse" />
-                            <span>CIRCUIT BREAKER EMOTIVO ATTIVO</span>
-                        </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-rose-500 text-slate-950">
-                            COOLDOWN: {formatCountdown(breakerStatus.remainingSeconds)}
-                        </span>
-                    </div>
-
-                    <p className="text-[11px] font-mono text-slate-200 leading-snug">
-                        {breakerStatus.reason || '2 perdite consecutive o Tilt rilevato. Il protocollo blocca nuovi ordini per 15 minuti per prevenire overtrading e preservare il capitale.'}
-                    </p>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-rose-800/60">
-                        <span className="text-[10px] font-mono text-slate-400">
-                            Raffredda la mente prima di rischiare altro capitale.
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                overrideCircuitBreaker();
-                                setBreakerStatus(getCircuitBreakerStatus(safeTrades));
-                                setShowOverrideConfirm(false);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-[10px] font-mono font-bold border border-rose-700 transition cursor-pointer active:scale-95"
-                        >
-                            Sblocca con Consapevolezza
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* CORRELATION OF DOOM WARNING BANNER */}
+            {/* CORRELATION OF DOOM WARNING BANNER (INFORMATIONAL ONLY) */}
             {doomRisk.isAtRisk && doomRisk.pattern && (
                 <div className="w-full p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-start gap-2.5 font-mono text-xs text-amber-300">
                     <Flame className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
                     <div className="space-y-0.5">
                         <span className="font-extrabold uppercase text-[10px] text-amber-400 block">
-                            CORRELATION OF DOOM WARNING:
+                            CORRELATION OF DOOM ADVISORY:
                         </span>
                         <p className="text-[11px] text-slate-200 leading-tight font-sans">
-                            {doomRisk.pattern.headline}. Valuta di saltare la sessione o dimezzare la size.
+                            {doomRisk.pattern.headline}. Gestisci con attenzione la size e il rischio.
                         </p>
                     </div>
                 </div>
@@ -563,18 +461,24 @@ export const TabTrade: React.FC = () => {
                     {/* Voice-to-Trade Microphone Button */}
                     <button
                         type="button"
-                        onClick={toggleVoiceRecording}
+                        onClick={handleVoiceToggle}
+                        disabled={isProcessingVoice}
                         className={`min-h-[50px] p-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg ${
                             isListening
-                                ? 'bg-rose-600 text-white border-rose-400 shadow-rose-600/40 animate-pulse'
+                                ? 'bg-[#10B981] hover:bg-[#059669] text-white border-[#10B981] shadow-[#10B981]/40 animate-pulse'
                                 : 'glass-panel hover:border-cyan-500/60 text-slate-200 hover:text-white'
                         }`}
-                        title="Dettatura vocale con Web Speech API protetta"
+                        title="Dettatura vocale continua Push-to-Talk"
                     >
                         {isListening ? (
                             <>
-                                <MicOff className="w-4 h-4 text-white animate-bounce" />
-                                <span>ASCOLTO IN CORSO (MAX 15S)...</span>
+                                <Mic className="w-4 h-4 text-white animate-bounce" />
+                                <span>In ascolto... Tocca per terminare</span>
+                            </>
+                        ) : isProcessingVoice ? (
+                            <>
+                                <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin" />
+                                <span>Analisi AI in corso...</span>
                             </>
                         ) : (
                             <>
@@ -600,8 +504,17 @@ export const TabTrade: React.FC = () => {
                             className="flex-1 min-h-[50px] p-3 rounded-2xl glass-panel hover:border-emerald-500/60 text-slate-200 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg"
                             title="Carica screenshot da broker o TradingView"
                         >
-                            <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
-                            <span>{isUploadingOcr ? 'LETTURA SCREENSHOT...' : 'Carica Screenshot'}</span>
+                            {isUploadingOcr ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
+                                    <span>Analisi screenshot con AI in corso...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                                    <span>Carica Screenshot</span>
+                                </>
+                            )}
                         </button>
 
                         {/* Removable Thumbnail Preview right beside the button */}
@@ -625,16 +538,17 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                {/* NOTE VOCALI / DETTATURA (Textarea editabile con pulsanti "Applica ai campi" e "Cancella testo") */}
+                {/* NOTE VOCALI / DETTATURA (Textarea editabile in tempo reale) */}
                 <div className="w-full p-3.5 rounded-2xl glass-panel border border-cyan-500/25 space-y-2.5">
                     <div className="flex items-center justify-between">
                         <label className="text-[10px] uppercase font-bold text-cyan-300 tracking-wider flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>NOTE VOCALI / DETTATURA</span>
+                            <span>NOTE VOCALI / DETTATURA IN TEMPO REALE</span>
                         </label>
                         {isListening && (
-                            <span className="text-[9px] font-bold text-rose-400 animate-pulse">
-                                ● Registrazione attiva (timer 15s)
+                            <span className="text-[9px] font-bold text-[#10B981] animate-pulse flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                                In ascolto continuo... Tocca per terminare
                             </span>
                         )}
                     </div>
@@ -643,7 +557,7 @@ export const TabTrade: React.FC = () => {
                         rows={3}
                         value={voiceTranscript}
                         onChange={(e) => setVoiceTranscript(e.target.value)}
-                        placeholder="Parla al microfono oppure scrivi a mano (es. 'Long BTC 68000 profitto 500'). Clicca qui per modificare o cancellare qualsiasi parola..."
+                        placeholder="Parla al microfono oppure scrivi a mano (es. 'Entrato a 83.500 e uscito a 84.500 su bitcoin, ero in fomo'). Il testo appare in tempo reale ed è modificabile con la tastiera..."
                         className="w-full p-3 rounded-xl glass-subcard text-white text-xs font-mono placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none transition-colors resize-none leading-relaxed"
                     />
 
@@ -651,11 +565,15 @@ export const TabTrade: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleApplyTranscript}
-                            disabled={!voiceTranscript.trim()}
+                            disabled={!voiceTranscript.trim() || isProcessingVoice}
                             className="flex-1 py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-cyan-600/25 active:scale-95"
                         >
-                            <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
-                            <span>Applica ai campi</span>
+                            {isProcessingVoice ? (
+                                <RefreshCw className="w-3.5 h-3.5 text-cyan-200 animate-spin" />
+                            ) : (
+                                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                            )}
+                            <span>{isProcessingVoice ? 'Elaborazione AI...' : 'Applica ai campi'}</span>
                         </button>
 
                         <button
@@ -770,7 +688,7 @@ export const TabTrade: React.FC = () => {
                                 value={entryPrice}
                                 onChange={(e) => setEntryPrice(e.target.value)}
                                 className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
-                                placeholder="64250.00"
+                                placeholder="83500.00"
                             />
                         </div>
 
@@ -818,7 +736,7 @@ export const TabTrade: React.FC = () => {
                                 value={exitPrice}
                                 onChange={(e) => setExitPrice(e.target.value)}
                                 className="w-full h-11 px-3 rounded-xl glass-subcard text-white text-xs font-bold focus:border-[#10B981] focus:outline-none transition-colors tabular-nums"
-                                placeholder="67985.00"
+                                placeholder="84500.00"
                             />
                         </div>
 
@@ -882,13 +800,13 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 5. SEZIONE "PSYCHOLOGY (EMOTIONAL STATE)" - PURAMENTE FACOLTATIVA */}
+                {/* 5. SEZIONE "PSYCHOLOGY (EMOTIONAL AUDIT)" - FACOLTATIVA, NON BLOCCANTE */}
                 <div className="space-y-2 pt-1 font-mono">
                     <div className="flex items-center justify-between">
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                             PSYCHOLOGY (EMOTIONAL AUDIT)
                         </label>
-                        <span className="text-[9px] text-slate-500">FACOLTATIVO • DESELEZIONABILE</span>
+                        <span className="text-[9px] text-slate-500">FACOLTATIVO • MAI BLOCCANTE</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -942,7 +860,7 @@ export const TabTrade: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 6. DISCIPLINE PROTOCOL (ERROR TRACKER) - PURAMENTE FACOLTATIVO */}
+                {/* 6. DISCIPLINE PROTOCOL (ERROR TRACKER) - FACOLTATIVO, MAI BLOCCANTE */}
                 <div className="space-y-2 pt-1 font-mono">
                     <div className="flex items-center justify-between">
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
@@ -986,47 +904,25 @@ export const TabTrade: React.FC = () => {
                     />
                 </div>
 
-                {/* 8. PULSANTE FLESSIBILE "COMMIT SESSION LOG" */}
+                {/* 8. PULSANTE SEMPRE VERDE, PULITO E ATTIVO: "COMMIT SESSION LOG" */}
                 <button
                     type="submit"
                     disabled={isSubmitting}
                     className={`w-full min-h-[52px] h-13 rounded-xl font-sans font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
                         isSubmitting
                             ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-wait opacity-70'
-                            : breakerStatus.isBlocked
-                            ? 'bg-rose-700 hover:bg-rose-600 text-white shadow-rose-900/30'
                             : 'bg-[#10B981] hover:bg-[#059669] text-white shadow-[#10B981]/25'
                     }`}
                 >
                     <Zap className="w-4 h-4 text-white" />
                     <span>
-                        {isSubmitting 
-                            ? 'COMMITTING TO VAULT...' 
-                            : breakerStatus.isBlocked 
-                            ? `BLOCCO COOLDOWN (${formatCountdown(breakerStatus.remainingSeconds)}) - CLICCA PER SBLOCCARE` 
-                            : 'COMMIT SESSION LOG'}
+                        {isSubmitting ? 'COMMITTING TO VAULT...' : 'COMMIT SESSION LOG'}
                     </span>
                 </button>
 
             </form>
 
-            {/* GUIDED BREATHING PRE-COMMIT MODAL */}
-            {showBreathing && pendingCommitData && (
-                <GuidedBreathingModal
-                    isOpen={showBreathing}
-                    onComplete={() => executeCommit(pendingCommitData)}
-                    onSkip={() => executeCommit(pendingCommitData)}
-                    reason={
-                        selectedErrors.includes('REVENGE TRADING') 
-                            ? 'Rilevato tag REVENGE TRADING: Centra il tuo respiro prima di confermare!'
-                            : selectedErrors.includes('FOMO')
-                            ? 'Rilevato bias FOMO: 5 secondi di respiro per proteggere il tuo capitale.'
-                            : 'L\'operazione precedente era in perdita. Ritrova il centro emotivo.'
-                    }
-                />
-            )}
-
-            {/* LUXURY STORY CARD MODAL */}
+            {/* LUXURY STORY CARD MODAL (POST-COMMIT SHARING) */}
             {showStoryModal && lastCommittedTrade && (
                 <StoryCardModal
                     trade={lastCommittedTrade}

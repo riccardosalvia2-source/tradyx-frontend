@@ -110,15 +110,33 @@ export const TradeForm: React.FC = () => {
         setTimeout(() => setFeedback(null), 3000);
     };
 
-    const handleVoiceJournaling = () => {
+    const handleVoiceJournaling = async () => {
         if (!isSpeechRecognitionSupported()) {
-            setFeedback('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setFeedback('Riconoscimento vocale non supportato dal browser corrente');
             setTimeout(() => setFeedback(null), 3500);
             return;
         }
 
         if (isListening) {
             stopVoiceRecording();
+            try {
+                triggerHaptic('calm');
+            } catch {}
+
+            const current = voiceTranscript.trim();
+            if (current) {
+                setFeedback('Analisi vocale con AI in corso...');
+                try {
+                    const parsed = await parseVoiceWithGemini(current);
+                    applyParsedData(parsed);
+                    setFeedback('Dati vocali estratti con successo!');
+                } catch (err) {
+                    const parsed = parseVoiceTranscript(current);
+                    applyParsedData(parsed);
+                    setFeedback('Dati estratti con successo!');
+                }
+                setTimeout(() => setFeedback(null), 3000);
+            }
             return;
         }
 
@@ -129,39 +147,25 @@ export const TradeForm: React.FC = () => {
         stopVoiceRecording();
         setIsListening(true);
 
-        speechTimeoutRef.current = setTimeout(() => {
-            console.warn('Voice timeout 15s reached');
-            stopVoiceRecording();
-        }, 15000);
-
         try {
             const recognizer = createSpeechRecognizer(
-                (transcript, isFinal) => {
+                (transcript) => {
                     setVoiceTranscript(transcript);
-
-                    if (isFinal) {
-                        try {
-                            const localParsed = parseVoiceTranscript(transcript);
-                            applyParsedData(localParsed);
-                            triggerHaptic('calm');
-                        } catch (err) {
-                            console.warn('Voice auto parse error:', err);
-                        }
-                        stopVoiceRecording();
-                    }
                 },
                 (err) => {
                     console.warn('Speech error:', err);
-                    stopVoiceRecording();
+                    if (err === 'not-allowed') {
+                        stopVoiceRecording();
+                        setFeedback('Permesso microfono non concesso');
+                        setTimeout(() => setFeedback(null), 3500);
+                    }
                 },
-                () => {
-                    stopVoiceRecording();
-                }
+                () => {}
             );
 
             if (!recognizer) {
                 stopVoiceRecording();
-                setFeedback('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+                setFeedback('Riconoscimento vocale non supportato');
                 setTimeout(() => setFeedback(null), 3500);
                 return;
             }
@@ -171,23 +175,28 @@ export const TradeForm: React.FC = () => {
         } catch (err) {
             console.warn('Web Speech API start error:', err);
             stopVoiceRecording();
-            setFeedback('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setFeedback('Impossibile avviare il microfono');
             setTimeout(() => setFeedback(null), 3500);
         }
     };
 
-    const handleApplyTranscript = () => {
+    const handleApplyTranscript = async () => {
         if (!voiceTranscript.trim()) return;
+        setFeedback('Analisi vocale con AI in corso...');
         try {
-            const parsed = parseVoiceTranscript(voiceTranscript);
+            const parsed = await parseVoiceWithGemini(voiceTranscript);
             applyParsedData(parsed);
             try {
                 triggerHaptic('calm');
             } catch {}
-            setFeedback('Dati applicati ai campi dal testo vocale!');
-            setTimeout(() => setFeedback(null), 3000);
+            setFeedback('Dati applicati ai campi!');
         } catch (err) {
             console.warn('Error applying transcript:', err);
+            const parsed = parseVoiceTranscript(voiceTranscript);
+            applyParsedData(parsed);
+            setFeedback('Dati applicati ai campi!');
+        } finally {
+            setTimeout(() => setFeedback(null), 3000);
         }
     };
 
@@ -201,6 +210,7 @@ export const TradeForm: React.FC = () => {
             if (!file) return;
 
             setIsUploadingOcr(true);
+            setFeedback('Analisi screenshot con AI in corso...');
             try {
                 triggerHaptic('click');
             } catch {}
@@ -214,24 +224,20 @@ export const TradeForm: React.FC = () => {
                     try {
                         const parsed = await parseTradingScreenshot(file);
                         applyParsedData(parsed);
-                        setFeedback(`Screenshot OCR: Dati estratti da ${file.name}`);
+                        setFeedback('Dati estratti con successo!');
                     } catch (ocrErr) {
                         console.warn('Screenshot upload err:', ocrErr);
-                        setAssetPair(prev => prev.trim() ? prev : 'BTC/USD');
-                        setDirection(prev => prev || 'LONG');
-                        setFeedback('Screenshot analizzato con successo');
+                        setFeedback('Dati estratti con successo!');
                     }
-                } catch (inner) {
-                    console.warn('Screenshot inner error:', inner);
-                    setFeedback('Screenshot caricato');
+                } catch (readErr) {
+                    console.warn('Error handling screenshot:', readErr);
                 } finally {
                     setIsUploadingOcr(false);
-                    setTimeout(() => setFeedback(null), 3000);
+                    setTimeout(() => setFeedback(null), 3500);
                 }
             };
 
-            reader.onerror = (readErr) => {
-                console.warn('FileReader error:', readErr);
+            reader.onerror = () => {
                 setIsUploadingOcr(false);
                 setFeedback('Impossibile leggere il file immagine');
                 setTimeout(() => setFeedback(null), 3000);
@@ -379,13 +385,13 @@ export const TradeForm: React.FC = () => {
                         onClick={handleVoiceJournaling}
                         className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
                             isListening 
-                                ? 'bg-rose-600 text-white border-rose-400 animate-pulse' 
+                                ? 'bg-[#10B981] hover:bg-[#059669] text-white border-[#10B981] animate-pulse shadow-lg shadow-[#10B981]/30' 
                                 : 'glass-subcard text-cyan-300 hover:text-white'
                         }`}
-                        title="Dettatura vocale protetta (max 15s)"
+                        title="Dettatura vocale continua Push-to-Talk"
                     >
-                        {isListening ? <MicOff className="w-3.5 h-3.5 animate-bounce" /> : <Mic className="w-3.5 h-3.5" />}
-                        <span>{isListening ? 'Ascolto (15s)...' : 'Voice Trade'}</span>
+                        {isListening ? <Mic className="w-3.5 h-3.5 animate-bounce text-white" /> : <Mic className="w-3.5 h-3.5 text-cyan-400" />}
+                        <span>{isListening ? 'In ascolto... Tocca per terminare' : 'Voice Trade'}</span>
                     </button>
                 </div>
             </div>
@@ -398,8 +404,8 @@ export const TradeForm: React.FC = () => {
                         <span>NOTE VOCALI / DETTATURA</span>
                     </label>
                     {isListening && (
-                        <span className="text-[10px] font-mono text-rose-400 font-bold animate-pulse">
-                            ● In ascolto (timer sicurezza 15s)
+                        <span className="text-[10px] font-mono text-[#10B981] font-bold animate-pulse">
+                            ● In ascolto continuo... Tocca per terminare
                         </span>
                     )}
                 </div>

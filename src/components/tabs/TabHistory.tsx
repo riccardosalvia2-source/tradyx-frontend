@@ -27,7 +27,8 @@ import {
     FileText,
     Percent,
     Share2,
-    Trash2
+    Trash2,
+    RotateCcw
 } from 'lucide-react';
 import { StoryCardModal } from '../StoryCardModal';
 
@@ -46,14 +47,10 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
     formatMoney,
     formatTimestamp
 }) => {
-    const [dragX, setDragX] = useState<number>(0);
+    const [isRevealed, setIsRevealed] = useState<boolean>(false);
     const pnlVal = Number(trade.pnl) || 0;
     const isProfit = pnlVal >= 0;
     const roiFormatted = trade.roi !== undefined ? `${trade.roi > 0 ? '+' : ''}${trade.roi}%` : '+0.0%';
-
-    // Red threshold indicator: only visible when physically dragged
-    const isPastThreshold = dragX >= 60;
-    const showRedUnderlay = dragX > 10;
 
     return (
         <motion.div
@@ -62,48 +59,47 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ 
                 opacity: 0, 
-                x: 200, 
                 height: 0, 
                 marginBottom: 0, 
-                paddingTop: 0, 
-                paddingBottom: 0,
                 overflow: 'hidden',
-                transition: { duration: 0.22, ease: 'easeInOut' }
+                transition: { duration: 0.2, ease: 'easeInOut' }
             }}
             className="relative w-full rounded-2xl overflow-hidden select-none"
         >
-            {/* Background rosso: renderizzato SOLO quando la card viene fisicamente trascinata */}
-            {showRedUnderlay && (
-                <div 
-                    className={`absolute inset-0 rounded-2xl flex items-center justify-start pl-5 text-white font-mono font-bold text-xs gap-2 transition-colors duration-150 z-0 ${
-                        isPastThreshold ? 'bg-[#DC2626]' : 'bg-[#DC2626]/70'
-                    }`}
+            {/* Background rosso sottostante con pulsante "ELIMINA" (stile iOS nativo) */}
+            <div className="absolute inset-y-0 right-0 w-24 bg-[#DC2626] rounded-r-2xl flex items-center justify-center z-0">
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(trade.id);
+                    }}
+                    className="w-full h-full flex flex-col items-center justify-center gap-1 text-white font-mono font-black text-[11px] uppercase tracking-wider cursor-pointer active:scale-95 hover:bg-red-700 transition"
                 >
-                    <Trash2 className={`w-5 h-5 text-white shrink-0 ${isPastThreshold ? 'animate-bounce' : 'opacity-80'}`} />
-                    <span className="uppercase tracking-widest font-black text-[10px]">
-                        {isPastThreshold ? 'Rilascia per Eliminare' : 'Trascina per Eliminare'}
-                    </span>
-                </div>
-            )}
+                    <Trash2 className="w-5 h-5 text-white animate-pulse" />
+                    <span>ELIMINA</span>
+                </button>
+            </div>
 
-            {/* Card frontale: classico sfondo glassmorphism scuro autonomo */}
+            {/* Card frontale trascinabile: al rilascio NON si cancella mai, rivela solo il pulsante */}
             <motion.div
                 drag="x"
-                dragConstraints={{ left: 0, right: 100 }}
-                dragElastic={0.1}
-                onDrag={(_, info) => {
-                    if (info.offset.x >= 0) {
-                        setDragX(info.offset.x);
-                    }
-                }}
+                dragConstraints={{ left: -96, right: 0 }}
+                dragElastic={0.15}
+                animate={{ x: isRevealed ? -96 : 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 onDragEnd={(_, info) => {
-                    if (info.offset.x >= 60) {
-                        onDelete(trade.id);
+                    // Solo swipe esplicito a sinistra aggancia il pulsante ELIMINA
+                    if (info.offset.x < -35 || info.velocity.x < -250) {
+                        setIsRevealed(true);
+                    } else {
+                        setIsRevealed(false);
                     }
-                    setDragX(0);
                 }}
                 onClick={() => {
-                    if (dragX < 5) {
+                    if (isRevealed) {
+                        setIsRevealed(false);
+                    } else {
                         onSelect(trade);
                     }
                 }}
@@ -162,8 +158,10 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
                         {trade.strategy || 'Tactical Trend Setup'}
                     </span>
                     <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
-                        <span className="text-[9px] text-slate-500">Swipe destra per eliminare</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-[9px] text-slate-500">
+                            {isRevealed ? 'Tocca ELIMINA o richiudi' : 'Swipe sinistra per opzioni'}
+                        </span>
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 text-slate-400 ${isRevealed ? 'rotate-180 text-rose-400' : ''}`} />
                     </div>
                 </div>
             </motion.div>
@@ -172,13 +170,22 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
 };
 
 export const TabHistory: React.FC = () => {
-    const { trades, deleteTrade } = useTradeStore();
+    const { 
+        trades, 
+        deletedTrades, 
+        deleteTrade, 
+        restoreTrade, 
+        emptyTrash, 
+        permanentDeleteTrade 
+    } = useTradeStore();
     const { baseCurrency, formatMoney } = useSettingsStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
+    const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
     const [storyTrade, setStoryTrade] = useState<Trade | null>(null);
+    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
     // Filter trades based on search query
     const filteredTrades = useMemo(() => {
@@ -193,6 +200,16 @@ export const TabHistory: React.FC = () => {
         );
     }, [safeTrades, searchQuery]);
 
+    const filteredDeletedTrades = useMemo(() => {
+        const safeDeleted = Array.isArray(deletedTrades) ? deletedTrades : [];
+        if (!searchQuery.trim()) return safeDeleted;
+        const q = searchQuery.toLowerCase();
+        return safeDeleted.filter(t =>
+            t.asset_pair.toLowerCase().includes(q) ||
+            (t.notes && t.notes.toLowerCase().includes(q))
+        );
+    }, [deletedTrades, searchQuery]);
+
     const formatTimestamp = (isoDate: string) => {
         try {
             const d = new Date(isoDate);
@@ -204,6 +221,20 @@ export const TabHistory: React.FC = () => {
             });
         } catch {
             return 'Recent';
+        }
+    };
+
+    const handleRestore = (id: string) => {
+        restoreTrade(id);
+        setFeedbackMessage('Trade ripristinato con successo!');
+        setTimeout(() => setFeedbackMessage(null), 3000);
+    };
+
+    const handleEmptyTrash = () => {
+        if (window.confirm('Sei sicuro di voler svuotare definitivamente il cestino?')) {
+            emptyTrash();
+            setFeedbackMessage('Cestino svuotato');
+            setTimeout(() => setFeedbackMessage(null), 3000);
         }
     };
 
@@ -226,10 +257,50 @@ export const TabHistory: React.FC = () => {
                     </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-[#10B981] font-bold">
-                    {safeTrades.length} RECORDED
-                </span>
+                {/* Tabs Switch: Attivi vs Cestino */}
+                <div className="flex items-center gap-1.5 p-1 rounded-xl glass-subcard border border-white/10 font-mono text-[10px] font-bold">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('active')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+                            activeTab === 'active'
+                                ? 'bg-[#10B981] text-slate-950 font-black'
+                                : 'text-slate-400 hover:text-white'
+                        }`}
+                    >
+                        <span>Attivi</span>
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-black/20">
+                            {safeTrades.length}
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('trash')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+                            activeTab === 'trash'
+                                ? 'bg-rose-600 text-white font-black'
+                                : 'text-slate-400 hover:text-white'
+                        }`}
+                    >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Cestino</span>
+                        {deletedTrades.length > 0 && (
+                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-white/20">
+                                {deletedTrades.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
             </header>
+
+            {/* Feedback notification toast */}
+            {feedbackMessage && (
+                <div className="w-full p-2.5 rounded-xl bg-[#10B981]/15 border border-[#10B981]/40 text-[#10B981] font-mono text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{feedbackMessage}</span>
+                </div>
+            )}
 
             {/* BARRA DI RICERCA */}
             <div className="w-full relative">
@@ -238,7 +309,7 @@ export const TabHistory: React.FC = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search assets, strategies or notes..."
+                    placeholder={activeTab === 'active' ? "Cerca asset, strategie o note..." : "Cerca nel cestino..."}
                     className="w-full h-11 pl-10 pr-4 rounded-xl glass-subcard text-white text-xs font-mono placeholder:text-slate-500 focus:border-[#10B981] focus:outline-none transition-colors"
                 />
                 {searchQuery && (
@@ -252,27 +323,128 @@ export const TabHistory: React.FC = () => {
                 )}
             </div>
 
-            {/* LISTA VERTICALE A CARD PER OGNI TRADE REGISTRATO (CON SWIPE-TO-DELETE ISOLATO) */}
-            <div className="space-y-2.5">
-                <AnimatePresence mode="popLayout">
-                    {filteredTrades.map((trade) => (
-                        <SwipeableTradeCard
-                            key={trade.id}
-                            trade={trade}
-                            onSelect={setSelectedTrade}
-                            onDelete={deleteTrade}
-                            formatMoney={formatMoney}
-                            formatTimestamp={formatTimestamp}
-                        />
-                    ))}
-                </AnimatePresence>
+            {/* SEZIONE 1: STORICO ATTIVO */}
+            {activeTab === 'active' && (
+                <div className="space-y-2.5">
+                    <AnimatePresence mode="popLayout">
+                        {filteredTrades.map((trade) => (
+                            <SwipeableTradeCard
+                                key={trade.id}
+                                trade={trade}
+                                onSelect={setSelectedTrade}
+                                onDelete={deleteTrade}
+                                formatMoney={formatMoney}
+                                formatTimestamp={formatTimestamp}
+                            />
+                        ))}
+                    </AnimatePresence>
 
-                {filteredTrades.length === 0 && (
-                    <div className="w-full p-8 text-center rounded-2xl glass-panel text-[#9CA3AF] font-mono text-xs">
-                        No trade logs found matching "{searchQuery}"
+                    {filteredTrades.length === 0 && (
+                        <div className="w-full p-8 text-center rounded-2xl glass-panel text-[#9CA3AF] font-mono text-xs">
+                            Nessun trade trovato per "{searchQuery}"
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* SEZIONE 2: CESTINO / RECUPERO ELIMINATI DI RECENTE */}
+            {activeTab === 'trash' && (
+                <div className="space-y-3 font-mono">
+                    <div className="p-3 rounded-xl glass-panel border border-rose-500/20 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 text-rose-300">
+                            <Trash2 className="w-4 h-4" />
+                            <span>Cestino ({deletedTrades.length} trade eliminati)</span>
+                        </div>
+                        {deletedTrades.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleEmptyTrash}
+                                className="px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-700 text-rose-200 text-[10px] font-bold transition cursor-pointer active:scale-95"
+                            >
+                                Svuota definitivamente
+                            </button>
+                        )}
                     </div>
-                )}
-            </div>
+
+                    <div className="space-y-2.5">
+                        <AnimatePresence mode="popLayout">
+                            {filteredDeletedTrades.map((trade) => {
+                                const pnlVal = Number(trade.pnl) || 0;
+                                return (
+                                    <motion.div
+                                        key={trade.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="w-full rounded-2xl p-3.5 glass-panel border border-white/10 flex flex-col space-y-2.5"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-extrabold text-white">
+                                                    {trade.asset_pair}
+                                                </span>
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                                                    trade.direction === 'LONG'
+                                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                                        : 'bg-rose-500/20 text-rose-400'
+                                                }`}>
+                                                    {trade.direction}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400">
+                                                    {formatTimestamp(trade.created_at)}
+                                                </span>
+                                            </div>
+
+                                            <span className={`text-sm font-black tabular-nums ${
+                                                pnlVal >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                            }`}>
+                                                {formatMoney(pnlVal, true)}
+                                            </span>
+                                        </div>
+
+                                        {trade.notes && (
+                                            <p className="text-[11px] text-slate-400 italic truncate">
+                                                "{trade.notes}"
+                                            </p>
+                                        )}
+
+                                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/5">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRestore(trade.id)}
+                                                className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            >
+                                                <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+                                                <span>Ripristina</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    permanentDeleteTrade(trade.id);
+                                                    setFeedbackMessage('Trade eliminato definitivamente');
+                                                    setTimeout(() => setFeedbackMessage(null), 3000);
+                                                }}
+                                                className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <span>Elimina per sempre</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+
+                        {filteredDeletedTrades.length === 0 && (
+                            <div className="w-full p-8 text-center rounded-2xl glass-panel text-[#9CA3AF] text-xs">
+                                Il cestino è vuoto. Nessun trade eliminato di recente.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ============================================================================ */}
             {/* RESOLUTION OF TRADE HISTORY DETAIL DRAWER / MODAL (GLASSMORPHISM FINTECH)   */}

@@ -35,6 +35,8 @@ export interface Trade {
     reasoning?: string | null;
     voice_logged?: boolean;
     screenshot_url?: string | null;
+    is_deleted?: boolean;
+    deleted_at?: string;
 }
 
 export type NewTradeInput = Omit<Trade, 'id' | 'created_at'>;

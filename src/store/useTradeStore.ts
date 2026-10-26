@@ -17,6 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface TradeState {
     trades: Trade[];
+    deletedTrades: Trade[];
     isLoading: boolean;
     error: string | null;
     bubbleConfig: BubbleConfig;
@@ -25,6 +26,9 @@ interface TradeState {
     fetchTrades: (userId: string) => Promise<void>;
     addTrade: (tradeData: NewTradeInput) => Promise<void>;
     deleteTrade: (tradeId: string) => Promise<void>;
+    restoreTrade: (tradeId: string) => Promise<void>;
+    emptyTrash: () => Promise<void>;
+    permanentDeleteTrade: (tradeId: string) => Promise<void>;
     injectMockTrades: (newTrades: Trade[]) => Promise<void>;
     clearAllTrades: () => Promise<void>;
     subscribeToRealtimeTrades: (userId: string) => () => void;
@@ -241,8 +245,27 @@ export const DEFAULT_MOCK_TRADES: Trade[] = [
     }
 ];
 
+const loadInitialDeletedTrades = (): Trade[] => {
+    try {
+        if (typeof window === 'undefined') return [];
+        const stored = localStorage.getItem('tradyx_deleted_trades');
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveDeletedTrades = (trades: Trade[]) => {
+    try {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('tradyx_deleted_trades', JSON.stringify(trades));
+        }
+    } catch {}
+};
+
 export const useTradeStore = create<TradeState>((set, get) => ({
     trades: DEFAULT_MOCK_TRADES,
+    deletedTrades: loadInitialDeletedTrades(),
     isLoading: false,
     error: null,
     bubbleConfig: computeBubbleConfig(DEFAULT_MOCK_TRADES),
@@ -318,24 +341,72 @@ export const useTradeStore = create<TradeState>((set, get) => ({
 
     deleteTrade: async (tradeId: string) => {
         const tradeToDelete = get().trades.find(t => t.id === tradeId);
+        if (!tradeToDelete) return;
+
         const updatedTrades = get().trades.filter(t => t.id !== tradeId);
-        set({ trades: updatedTrades });
+        const softDeletedTrade: Trade = {
+            ...tradeToDelete,
+            is_deleted: true,
+            deleted_at: new Date().toISOString()
+        };
+        const updatedDeletedTrades = [softDeletedTrade, ...get().deletedTrades];
+
+        set({ trades: updatedTrades, deletedTrades: updatedDeletedTrades });
+        saveDeletedTrades(updatedDeletedTrades);
         get().recalculateBubbleConfig();
 
-        if (tradeToDelete) {
-            addSystemLog(
-                'TRADE_DELETED',
-                `Trade eliminato: ${tradeToDelete.asset_pair} ${tradeToDelete.direction}`,
-                'trader.pro@tradyx.ai',
-                { id: tradeId, symbol: tradeToDelete.asset_pair }
-            );
-        }
+        addSystemLog(
+            'TRADE_DELETED',
+            `Trade spostato nel cestino: ${tradeToDelete.asset_pair} ${tradeToDelete.direction}`,
+            'trader.pro@tradyx.ai',
+            { id: tradeId, symbol: tradeToDelete.asset_pair }
+        );
+    },
 
-        try {
-            await supabase.from('trades').delete().eq('id', tradeId);
-        } catch (err: any) {
-            console.warn('Delete trade notice (persisted in local state):', err.message);
-        }
+    restoreTrade: async (tradeId: string) => {
+        const tradeToRestore = get().deletedTrades.find(t => t.id === tradeId);
+        if (!tradeToRestore) return;
+
+        const updatedDeleted = get().deletedTrades.filter(t => t.id !== tradeId);
+        const restoredTrade: Trade = {
+            ...tradeToRestore,
+            is_deleted: false,
+            deleted_at: undefined
+        };
+        const updatedTrades = [restoredTrade, ...get().trades];
+
+        set({ trades: updatedTrades, deletedTrades: updatedDeleted });
+        saveDeletedTrades(updatedDeleted);
+        get().recalculateBubbleConfig();
+
+        addSystemLog(
+            'TRADE_RESTORED',
+            `Trade ripristinato dal cestino: ${restoredTrade.asset_pair} ${restoredTrade.direction}`,
+            'trader.pro@tradyx.ai',
+            { id: tradeId, symbol: restoredTrade.asset_pair }
+        );
+    },
+
+    emptyTrash: async () => {
+        set({ deletedTrades: [] });
+        saveDeletedTrades([]);
+        addSystemLog(
+            'TRASH_EMPTIED',
+            'Cestino svuotato definitivamente',
+            'trader.pro@tradyx.ai'
+        );
+    },
+
+    permanentDeleteTrade: async (tradeId: string) => {
+        const updatedDeleted = get().deletedTrades.filter(t => t.id !== tradeId);
+        set({ deletedTrades: updatedDeleted });
+        saveDeletedTrades(updatedDeleted);
+        addSystemLog(
+            'TRADE_PERMANENTLY_DELETED',
+            `Trade eliminato definitivamente dal cestino: ${tradeId}`,
+            'trader.pro@tradyx.ai',
+            { id: tradeId }
+        );
     },
 
     injectMockTrades: async (newTrades: Trade[]) => {
