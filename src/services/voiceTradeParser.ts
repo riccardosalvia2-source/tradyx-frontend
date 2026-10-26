@@ -22,11 +22,16 @@ export interface ParsedVoiceTrade {
 // Check Web Speech API browser availability
 export function isSpeechRecognitionSupported(): boolean {
     if (typeof window === 'undefined') return false;
-    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    try {
+        return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    } catch {
+        return false;
+    }
 }
 
 /**
  * Creates and starts a SpeechRecognition instance with listeners.
+ * Fully protected with try-catch and non-blocking error handling.
  */
 export function createSpeechRecognizer(
     onResult: (transcript: string, isFinal: boolean) => void,
@@ -35,43 +40,78 @@ export function createSpeechRecognizer(
     language = 'it-IT'
 ) {
     if (!isSpeechRecognitionSupported()) {
-        onError(new Error('Web Speech API non supportata in questo browser.'));
+        try {
+            onError('not-supported');
+        } catch (e) {
+            console.warn('Error callback failure:', e);
+        }
         return null;
     }
 
-    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionClass();
-
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = language;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
-            } else {
-                interimTranscript += event.results[i][0].transcript;
+    try {
+        const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognitionClass) {
+            try {
+                onError('not-supported');
+            } catch (e) {
+                console.warn('Error callback failure:', e);
             }
+            return null;
         }
 
-        const text = finalTranscript || interimTranscript;
-        onResult(text, !!finalTranscript);
-    };
+        const recognition = new SpeechRecognitionClass();
 
-    recognition.onerror = (event: any) => {
-        onError(event.error || event);
-    };
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = language;
+        recognition.maxAlternatives = 1;
 
-    recognition.onend = () => {
-        onEnd();
-    };
+        recognition.onresult = (event: any) => {
+            try {
+                let interimTranscript = '';
+                let finalTranscript = '';
 
-    return recognition;
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const text = finalTranscript || interimTranscript;
+                onResult(text, !!finalTranscript);
+            } catch (err) {
+                console.warn('Speech onresult error:', err);
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            const errCode = event?.error || 'speech_error';
+            console.warn('Speech error:', errCode);
+            try {
+                onError(errCode);
+            } catch (e) {
+                console.warn('Speech onError handler failed:', e);
+            }
+        };
+
+        recognition.onend = () => {
+            try {
+                onEnd();
+            } catch (e) {
+                console.warn('Speech onEnd handler failed:', e);
+            }
+        };
+
+        return recognition;
+    } catch (err) {
+        console.warn('SpeechRecognition initialization error:', err);
+        try {
+            onError(err);
+        } catch {}
+        return null;
+    }
 }
 
 /**
@@ -82,119 +122,134 @@ export function createSpeechRecognizer(
  * - "Short Nvidia da 135 chiuso a 128 profitto 1400"
  * - "Comprato Solana a 155 stop 150 overtrading"
  */
-export function parseVoiceTranscript(rawText: string): ParsedVoiceTrade {
-    const text = rawText.trim();
-    const lower = text.toLowerCase();
-    const parsed: ParsedVoiceTrade = {
-        rawTranscript: text,
-        notes: text
-    };
+export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
+    try {
+        const text = (rawText || '').trim();
+        const lower = text.toLowerCase();
+        const parsed: ParsedVoiceTrade = {
+            rawTranscript: text,
+            notes: text
+        };
 
-    // 1. Asset Detection
-    const assetMap: Record<string, string> = {
-        'btc': 'BTC/USD',
-        'bitcoin': 'BTC/USD',
-        'eth': 'ETH/USD',
-        'ethereum': 'ETH/USD',
-        'ether': 'ETH/USD',
-        'sol': 'SOL/USD',
-        'solana': 'SOL/USD',
-        'eur': 'EUR/USD',
-        'euro': 'EUR/USD',
-        'eurusd': 'EUR/USD',
-        'gold': 'GOLD/USD',
-        'oro': 'GOLD/USD',
-        'xau': 'GOLD/USD',
-        'aapl': 'AAPL',
-        'apple': 'AAPL',
-        'nvda': 'NVDA',
-        'nvidia': 'NVDA',
-        'tsla': 'TSLA',
-        'tesla': 'TSLA'
-    };
-
-    for (const [key, symbol] of Object.entries(assetMap)) {
-        const regex = new RegExp(`\\b${key}\\b`, 'i');
-        if (regex.test(lower)) {
-            parsed.asset_pair = symbol;
-            break;
+        if (!text) {
+            return parsed;
         }
-    }
 
-    // 2. Direction Detection
-    if (/\b(long|buy|compra|comprato|acquisto|rialzo|su|longato)\b/i.test(lower)) {
-        parsed.direction = 'LONG';
-    } else if (/\b(short|sell|vendi|venduto|vendita|ribasso|giù|shortato)\b/i.test(lower)) {
-        parsed.direction = 'SHORT';
-    }
+        // 1. Asset Detection
+        const assetMap: Record<string, string> = {
+            'btc': 'BTC/USD',
+            'bitcoin': 'BTC/USD',
+            'eth': 'ETH/USD',
+            'ethereum': 'ETH/USD',
+            'ether': 'ETH/USD',
+            'sol': 'SOL/USD',
+            'solana': 'SOL/USD',
+            'eur': 'EUR/USD',
+            'euro': 'EUR/USD',
+            'eurusd': 'EUR/USD',
+            'gold': 'GOLD/USD',
+            'oro': 'GOLD/USD',
+            'xau': 'GOLD/USD',
+            'aapl': 'AAPL',
+            'apple': 'AAPL',
+            'nvda': 'NVDA',
+            'nvidia': 'NVDA',
+            'tsla': 'TSLA',
+            'tesla': 'TSLA',
+            'bnb': 'BNB/USD',
+            'spy': 'SPY',
+            'qqq': 'QQQ'
+        };
 
-    // 3. PnL / Performance Detection
-    const lossMatch = lower.match(/\b(?:perso|loss|perdita di|perdita|meno|-|sotto)\s*(\d+(?:[.,]\d+)?)/i);
-    if (lossMatch) {
-        const val = parseFloat(lossMatch[1].replace(',', '.'));
-        if (!isNaN(val)) parsed.pnl = -Math.abs(val);
-    } else {
-        const gainMatch = lower.match(/\b(?:guadagnato|profitto|preso|utile|fatto|più|\+|netto|pnl|performance)\s*(\d+(?:[.,]\d+)?)/i);
-        if (gainMatch) {
-            const val = parseFloat(gainMatch[1].replace(',', '.'));
-            if (!isNaN(val)) parsed.pnl = Math.abs(val);
+        for (const [key, symbol] of Object.entries(assetMap)) {
+            const regex = new RegExp(`\\b${key}\\b`, 'i');
+            if (regex.test(lower)) {
+                parsed.asset_pair = symbol;
+                break;
+            }
         }
-    }
 
-    // 4. Entry Price Detection
-    const entryMatch = lower.match(/\b(?:da|entrato a|entry|aperto a|prezzo di entrata|prezzo|quota)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
-    if (entryMatch) {
-        let val = parseFloat(entryMatch[1].replace(',', '.'));
-        if (entryMatch[2]) val *= 1000;
-        if (!isNaN(val) && val > 0) parsed.entry_price = val;
-    }
+        // 2. Direction Detection
+        if (/\b(long|buy|compra|comprato|acquisto|rialzo|su|longato)\b/i.test(lower)) {
+            parsed.direction = 'LONG';
+        } else if (/\b(short|sell|vendi|venduto|vendita|ribasso|giù|shortato)\b/i.test(lower)) {
+            parsed.direction = 'SHORT';
+        }
 
-    // 5. Exit Price Detection
-    const exitMatch = lower.match(/\b(?:chiuso a|uscito a|exit|uscita|target a|venduto a)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
-    if (exitMatch) {
-        let val = parseFloat(exitMatch[1].replace(',', '.'));
-        if (exitMatch[2]) val *= 1000;
-        if (!isNaN(val) && val > 0) parsed.exit_price = val;
-    }
+        // 3. PnL / Performance Detection
+        const lossMatch = lower.match(/\b(?:perso|loss|perdita di|perdita|meno|-|sotto)\s*(\d+(?:[.,]\d+)?)/i);
+        if (lossMatch) {
+            const val = parseFloat(lossMatch[1].replace(',', '.'));
+            if (!isNaN(val)) parsed.pnl = -Math.abs(val);
+        } else {
+            const gainMatch = lower.match(/\b(?:guadagnato|profitto|preso|utile|fatto|più|\+|netto|pnl|performance)\s*(\d+(?:[.,]\d+)?)/i);
+            if (gainMatch) {
+                const val = parseFloat(gainMatch[1].replace(',', '.'));
+                if (!isNaN(val)) parsed.pnl = Math.abs(val);
+            }
+        }
 
-    // 6. Generic Number Fallback (e.g. "compra btc 68000" or "short eth 2500")
-    if (parsed.entry_price == null && parsed.pnl == null) {
-        const words = lower.split(/\s+/);
-        for (const w of words) {
-            const clean = w.replace(/[^0-9.,kK]/g, '');
-            if (/^\d+(?:[.,]\d+)?(?:k)?$/i.test(clean)) {
-                let val = parseFloat(clean.toLowerCase().replace('k', '').replace(',', '.'));
-                if (clean.toLowerCase().includes('k')) val *= 1000;
-                if (!isNaN(val) && val > 0) {
-                    parsed.entry_price = val;
-                    break;
+        // 4. Entry Price Detection
+        const entryMatch = lower.match(/\b(?:da|entrato a|entry|aperto a|prezzo di entrata|prezzo|quota)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
+        if (entryMatch) {
+            let val = parseFloat(entryMatch[1].replace(',', '.'));
+            if (entryMatch[2]) val *= 1000;
+            if (!isNaN(val) && val > 0) parsed.entry_price = val;
+        }
+
+        // 5. Exit Price Detection
+        const exitMatch = lower.match(/\b(?:chiuso a|uscito a|exit|uscita|target a|venduto a)\s*(\d+(?:[.,]\d+)?)(k)?\b/i);
+        if (exitMatch) {
+            let val = parseFloat(exitMatch[1].replace(',', '.'));
+            if (exitMatch[2]) val *= 1000;
+            if (!isNaN(val) && val > 0) parsed.exit_price = val;
+        }
+
+        // 6. Generic Number Fallback (e.g. "compra btc 68000" or "short eth 2500")
+        if (parsed.entry_price == null && parsed.pnl == null) {
+            const words = lower.split(/\s+/);
+            for (const w of words) {
+                const clean = w.replace(/[^0-9.,kK]/g, '');
+                if (/^\d+(?:[.,]\d+)?(?:k)?$/i.test(clean)) {
+                    let val = parseFloat(clean.toLowerCase().replace('k', '').replace(',', '.'));
+                    if (clean.toLowerCase().includes('k')) val *= 1000;
+                    if (!isNaN(val) && val > 0) {
+                        parsed.entry_price = val;
+                        break;
+                    }
                 }
             }
         }
+
+        // 7. Discipline Errors Detection
+        const detectedErrors: string[] = [];
+        if (/\b(fomo)\b/i.test(lower)) detectedErrors.push('FOMO');
+        if (/\b(overtrading|troppi trade|troppe operazioni)\b/i.test(lower)) detectedErrors.push('OVERTRADING');
+        if (/\b(no stop|senza stop|no stop loss|senza stop loss)\b/i.test(lower)) detectedErrors.push('NO STOP LOSS');
+        if (/\b(revenge|vendetta|recupero|rabbia)\b/i.test(lower)) detectedErrors.push('REVENGE TRADING');
+        if (/\b(early exit|uscito presto|chiuso prima)\b/i.test(lower)) detectedErrors.push('EARLY EXIT');
+
+        if (detectedErrors.length > 0) {
+            parsed.errors = detectedErrors;
+        }
+
+        // 8. Psychology State
+        if (/\b(ansioso|ansia|paura|fear|preoccupato|agitato|stress)\b/i.test(lower)) {
+            parsed.psychology = 'FEAR';
+        } else if (/\b(confidence|sicuro|disciplinato|calmo|tranquillo|fiducia)\b/i.test(lower)) {
+            parsed.psychology = 'CONFIDENCE';
+        } else if (/\b(neutrale|normale|indifferente)\b/i.test(lower)) {
+            parsed.psychology = 'NEUTRAL';
+        }
+
+        return parsed;
+    } catch (err) {
+        console.warn('parseVoiceTranscript error fallback:', err);
+        return {
+            rawTranscript: rawText || '',
+            notes: rawText || ''
+        };
     }
-
-    // 7. Discipline Errors Detection
-    const detectedErrors: string[] = [];
-    if (/\b(fomo)\b/i.test(lower)) detectedErrors.push('FOMO');
-    if (/\b(overtrading|troppi trade|troppe operazioni)\b/i.test(lower)) detectedErrors.push('OVERTRADING');
-    if (/\b(no stop|senza stop|no stop loss|senza stop loss)\b/i.test(lower)) detectedErrors.push('NO STOP LOSS');
-    if (/\b(revenge|vendetta|recupero|rabbia)\b/i.test(lower)) detectedErrors.push('REVENGE TRADING');
-    if (/\b(early exit|uscito presto|chiuso prima)\b/i.test(lower)) detectedErrors.push('EARLY EXIT');
-
-    if (detectedErrors.length > 0) {
-        parsed.errors = detectedErrors;
-    }
-
-    // 8. Psychology State
-    if (/\b(ansioso|ansia|paura|fear|preoccupato|agitato|stress)\b/i.test(lower)) {
-        parsed.psychology = 'FEAR';
-    } else if (/\b(confidence|sicuro|disciplinato|calmo|tranquillo|fiducia)\b/i.test(lower)) {
-        parsed.psychology = 'CONFIDENCE';
-    } else if (/\b(neutrale|normale|indifferente)\b/i.test(lower)) {
-        parsed.psychology = 'NEUTRAL';
-    }
-
-    return parsed;
 }
 
 /**

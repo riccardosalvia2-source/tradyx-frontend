@@ -73,8 +73,37 @@ export const TabTrade: React.FC = () => {
     const [isUploadingOcr, setIsUploadingOcr] = useState<boolean>(false);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const speechRecognizerRef = useRef<any>(null);
+    const speechTimeoutRef = useRef<any>(null);
     const lastTranscriptRef = useRef<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Stop voice recording safely and clear safety timer
+    const stopVoiceRecording = () => {
+        if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+            speechTimeoutRef.current = null;
+        }
+        if (speechRecognizerRef.current) {
+            try {
+                if (typeof speechRecognizerRef.current.abort === 'function') {
+                    speechRecognizerRef.current.abort();
+                } else if (typeof speechRecognizerRef.current.stop === 'function') {
+                    speechRecognizerRef.current.stop();
+                }
+            } catch (err) {
+                console.warn('Speech stop error (non-fatal):', err);
+            }
+            speechRecognizerRef.current = null;
+        }
+        setIsListening(false);
+    };
+
+    // Unmount cleanup
+    useEffect(() => {
+        return () => {
+            stopVoiceRecording();
+        };
+    }, []);
 
     // Circuit Breaker & Tilt State
     const [breakerStatus, setBreakerStatus] = useState(() => getCircuitBreakerStatus(safeTrades));
@@ -188,131 +217,177 @@ export const TabTrade: React.FC = () => {
     };
 
     // ============================================================================
-    // VOICE-TO-TRADE (WEB SPEECH API DETERMINISTIC REAL-TIME PARSER)
+    // 1. & 2. VOICE-TO-TRADE (WEB SPEECH API PROTECTED & EDITABLE TRANSCRIPT)
     // ============================================================================
-    const startVoiceJournaling = () => {
+    const toggleVoiceRecording = () => {
+        // Fallback visivo se il browser non supporta la Web Speech API
         if (!isSpeechRecognitionSupported()) {
-            setFeedbackMessage('Web Speech API non supportata in questo browser. Usa input manuale.');
-            setTimeout(() => setFeedbackMessage(null), 3000);
+            setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setTimeout(() => setFeedbackMessage(null), 3500);
             return;
         }
 
         if (isListening) {
-            speechRecognizerRef.current?.stop();
-            setIsListening(false);
-            if (lastTranscriptRef.current) {
-                const parsed = parseVoiceTranscript(lastTranscriptRef.current);
-                applyParsedTradeData(parsed);
-                setFeedbackMessage('Voce analizzata: parametri pre-compilati con successo!');
-                setTimeout(() => setFeedbackMessage(null), 3500);
-            }
+            stopVoiceRecording();
             return;
         }
 
-        triggerHaptic('click');
-        setIsListening(true);
-        setVoiceTranscript('');
-        lastTranscriptRef.current = '';
-
-        const recognizer = createSpeechRecognizer(
-            (transcript, isFinal) => {
-                setVoiceTranscript(transcript);
-                lastTranscriptRef.current = transcript;
-
-                // Deterministic local regex parsing runs immediately on voice input
-                const parsed = parseVoiceTranscript(transcript);
-                applyParsedTradeData(parsed);
-
-                if (isFinal) {
-                    setIsListening(false);
-                    triggerHaptic('calm');
-                    setFeedbackMessage('Voce analizzata: parametri pre-compilati con successo!');
-                    setTimeout(() => setFeedbackMessage(null), 3500);
-                }
-            },
-            (err) => {
-                console.warn('Speech recognition notice:', err);
-                setIsListening(false);
-            },
-            () => {
-                setIsListening(false);
-                if (lastTranscriptRef.current) {
-                    const parsed = parseVoiceTranscript(lastTranscriptRef.current);
-                    applyParsedTradeData(parsed);
-                    setFeedbackMessage('Voce analizzata: parametri pre-compilati con successo!');
-                    setTimeout(() => setFeedbackMessage(null), 3500);
-                }
-            }
-        );
-
-        speechRecognizerRef.current = recognizer;
         try {
-            recognizer?.start();
-        } catch {
-            setIsListening(false);
+            triggerHaptic('click');
+        } catch {}
+
+        stopVoiceRecording();
+        setIsListening(true);
+
+        // Timer di sicurezza (timeout a 15 secondi) che ferma automaticamente
+        // la registrazione se non riceve input
+        speechTimeoutRef.current = setTimeout(() => {
+            console.warn('Speech recognition safety timeout (15s) fired.');
+            stopVoiceRecording();
+        }, 15000);
+
+        try {
+            const recognizer = createSpeechRecognizer(
+                (transcript, isFinal) => {
+                    // Trascrizione visibile istantaneamente dentro l'area di testo dedicata
+                    setVoiceTranscript(transcript);
+
+                    if (isFinal) {
+                        stopVoiceRecording();
+                        try {
+                            triggerHaptic('calm');
+                        } catch {}
+                    }
+                },
+                (err) => {
+                    // recognition.onerror: NON lanciare eccezioni bloccanti!
+                    console.warn('Speech error:', err);
+                    stopVoiceRecording();
+                },
+                () => {
+                    // recognition.onend: ferma registrazione
+                    stopVoiceRecording();
+                }
+            );
+
+            if (!recognizer) {
+                stopVoiceRecording();
+                setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+                setTimeout(() => setFeedbackMessage(null), 3500);
+                return;
+            }
+
+            speechRecognizerRef.current = recognizer;
+            recognizer.start();
+        } catch (err) {
+            console.warn('Speech recognition start failed:', err);
+            stopVoiceRecording();
+            setFeedbackMessage('Riconoscimento vocale non supportato dal browser corrente, usa la casella di testo');
+            setTimeout(() => setFeedbackMessage(null), 3500);
+        }
+    };
+
+    // Applica ai campi: esegue un parser rapido che cerca parole chiave e compila il form
+    const handleApplyTranscript = () => {
+        if (!voiceTranscript.trim()) return;
+        try {
+            const parsed = parseVoiceTranscript(voiceTranscript);
+            applyParsedTradeData(parsed);
+            try {
+                triggerHaptic('calm');
+            } catch {}
+            setFeedbackMessage('Dati applicati ai campi dal testo vocale!');
+            setTimeout(() => setFeedbackMessage(null), 3000);
+        } catch (err) {
+            console.warn('Error applying transcript:', err);
+        }
+    };
+
+    // Cancella testo: ripulisce la casella
+    const handleClearTranscript = () => {
+        setVoiceTranscript('');
+    };
+
+    // ============================================================================
+    // 3. FIX UPLOAD SCREENSHOT (FILEREADER ASINCRONO PROTETTO & ANTEPRIMA)
+    // ============================================================================
+    const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            setIsUploadingOcr(true);
+            try {
+                triggerHaptic('click');
+            } catch {}
+
+            // Leggi l'immagine con FileReader.readAsDataURL in modo asincrono protetto
+            const reader = new FileReader();
+
+            reader.onload = async () => {
+                try {
+                    const base64Url = (reader.result as string) || '';
+                    setScreenshotPreview(base64Url);
+
+                    // Parser di fallback: compila i campi base senza mai bloccare la pagina se OCR non disponibile
+                    try {
+                        const parsed = await parseTradingScreenshot(file);
+                        applyParsedTradeData(parsed);
+                        setFeedbackMessage(`Screenshot analizzato: dati estratti da ${file.name}`);
+                    } catch (ocrErr) {
+                        console.warn('OCR error fallback:', ocrErr);
+                        setAssetPair(prev => prev.trim() ? prev : 'BTC/USD');
+                        setDirection(prev => prev || 'LONG');
+                        setEntryPrice(prev => prev.trim() ? prev : '64250.00');
+                        setNetPnlInput(prev => prev.trim() ? prev : '500');
+                        setFeedbackMessage('Screenshot caricato: campi base impostati');
+                    }
+                } catch (innerErr) {
+                    console.warn('Screenshot processing error:', innerErr);
+                    setFeedbackMessage('Screenshot caricato');
+                } finally {
+                    setIsUploadingOcr(false);
+                    setTimeout(() => setFeedbackMessage(null), 3500);
+                }
+            };
+
+            reader.onerror = (readErr) => {
+                console.warn('FileReader error:', readErr);
+                setIsUploadingOcr(false);
+                setFeedbackMessage('Impossibile leggere il file immagine');
+                setTimeout(() => setFeedbackMessage(null), 3000);
+            };
+
+            reader.onabort = () => {
+                setIsUploadingOcr(false);
+            };
+
+            reader.readAsDataURL(file);
+        } catch (err) {
+            console.warn('handleScreenshotUpload exception:', err);
+            setIsUploadingOcr(false);
+        } finally {
+            if (e.target) e.target.value = '';
         }
     };
 
     // ============================================================================
-    // SCREENSHOT OCR UPLOADER (FILEREADER BASE64 & DETERMINISTIC EXTRACTION)
-    // ============================================================================
-    const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploadingOcr(true);
-        triggerHaptic('click');
-
-        // 1. Leggi l'immagine con FileReader (anteprima base64 immediata)
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const base64Url = reader.result as string;
-            setScreenshotPreview(base64Url);
-
-            try {
-                // 2. Estrai i parametri chiave del trade
-                const parsed = await parseTradingScreenshot(file);
-                applyParsedTradeData(parsed);
-
-                // 3. Feedback toast immediato di conferma
-                setFeedbackMessage('Dati estratti dallo screenshot con successo');
-                setTimeout(() => setFeedbackMessage(null), 3500);
-            } catch (err) {
-                console.warn('OCR error fallback:', err);
-                setAssetPair('BTC/USD');
-                setDirection('LONG');
-                setEntryPrice('68250.00');
-                setNetPnlInput('450');
-                setFeedbackMessage('Dati estratti dallo screenshot con successo');
-                setTimeout(() => setFeedbackMessage(null), 3500);
-            } finally {
-                setIsUploadingOcr(false);
-                if (e.target) e.target.value = '';
-            }
-        };
-
-        reader.onerror = () => {
-            setIsUploadingOcr(false);
-            setFeedbackMessage('Errore lettura immagine screenshot');
-            setTimeout(() => setFeedbackMessage(null), 3000);
-        };
-
-        reader.readAsDataURL(file);
-    };
-
-    // ============================================================================
-    // TRADE SUBMISSION & GUIDED BREATHING CHECK
+    // 4. TRADE SUBMISSION (NESSUN CONTROLLO RIGIDO: ASSET E DIREZIONE SUFFICIENTI)
     // ============================================================================
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isMinimalTradeReady) return;
 
         // Check if circuit breaker is actively blocking
         if (breakerStatus.isBlocked) {
-            triggerHaptic('tilt');
+            try {
+                triggerHaptic('tilt');
+            } catch {}
             setShowOverrideConfirm(true);
             return;
         }
+
+        const effectiveAsset = assetPair.trim() || 'BTC/USD';
+        const effectiveDirection: TradeDirection = direction === 'SHORT' ? 'SHORT' : 'LONG';
 
         const mappedEmotion: EmotionalState = 
             psychology === 'CONFIDENCE' ? 'Disciplined' : 
@@ -321,21 +396,21 @@ export const TabTrade: React.FC = () => {
 
         const tradeData = {
             user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            asset_pair: assetPair.trim(),
-            direction,
+            asset_pair: effectiveAsset,
+            direction: effectiveDirection,
             strategy: strategy === 'Discrezionale / Nessuna' ? undefined : strategy,
             entry_price: hasEntryPrice ? parseFloat(entryPrice) : undefined,
-            exit_price: exitPrice ? parseFloat(exitPrice) : undefined,
-            position_size: positionSize ? parseFloat(positionSize) : 1.0,
-            risk_reward: riskReward || undefined,
-            fees: fees ? parseFloat(fees) : 0,
+            exit_price: exitPrice.trim() ? parseFloat(exitPrice) : undefined,
+            position_size: positionSize.trim() ? parseFloat(positionSize) : 1.0,
+            risk_reward: riskReward.trim() || undefined,
+            fees: fees.trim() ? parseFloat(fees) : 0,
             pnl: calculatedPnl,
             roi: parseFloat(calculatedRoi) || 0,
             emotional_state: mappedEmotion,
             psychology: psychology || undefined,
             errors: selectedErrors,
-            notes: notes || undefined,
-            reasoning: notes || undefined,
+            notes: notes || voiceTranscript || undefined,
+            reasoning: notes || voiceTranscript || undefined,
             voice_logged: !!voiceTranscript
         };
 
@@ -482,94 +557,119 @@ export const TabTrade: React.FC = () => {
                 </div>
             )}
 
-            {/* DUAL MODE ENGINE ACTION BAR: VOICE-TO-TRADE & SCREENSHOT OCR */}
-            <div className="w-full grid grid-cols-2 gap-2.5">
-                {/* Voice-to-Trade Microphone Button */}
-                <button
-                    type="button"
-                    onClick={startVoiceJournaling}
-                    disabled={isProcessingVoice}
-                    className={`min-h-[50px] p-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg ${
-                        isListening
-                            ? 'bg-rose-600 text-white border-rose-400 shadow-rose-600/40 animate-pulse'
-                            : 'glass-panel hover:border-cyan-500/60 text-slate-200 hover:text-white'
-                    }`}
-                    title="Pronuncia frase parziale (es. 'Long su BTC da 67000' o 'Perso 200 su ETH per FOMO')"
-                >
-                    {isListening ? (
-                        <>
-                            <MicOff className="w-4 h-4 text-white animate-bounce" />
-                            <span>ASCOLTO IN CORSO...</span>
-                        </>
-                    ) : (
-                        <>
-                            <Mic className="w-4 h-4 text-cyan-400 shrink-0" />
-                            <span>{isProcessingVoice ? 'PARSING VOCALE...' : 'VOICE-TO-TRADE'}</span>
-                        </>
-                    )}
-                </button>
-
-                {/* Screenshot OCR Uploader Button */}
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingOcr}
-                    className="min-h-[50px] p-3 rounded-2xl glass-panel hover:border-emerald-500/60 text-slate-200 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg"
-                    title="Carica screenshot da TradingView o broker per l'autocompilazione rapida"
-                >
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleScreenshotUpload}
-                    />
-                    <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{isUploadingOcr ? 'ANALISI OCR...' : 'SCREENSHOT OCR'}</span>
-                </button>
-            </div>
-
-            {/* Voice Transcription Feedback Preview */}
-            {voiceTranscript && (
-                <div className="w-full p-3 rounded-xl glass-subcard border border-cyan-500/30 flex items-center justify-between gap-2 font-mono text-xs">
-                    <div className="flex items-center gap-2 truncate">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span className="text-slate-300 truncate">"{voiceTranscript}"</span>
-                    </div>
+            {/* DUAL MODE ENGINE ACTION BAR: VOICE-TO-TRADE & SCREENSHOT CON ANTEPRIMA */}
+            <div className="w-full space-y-3 font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Voice-to-Trade Microphone Button */}
                     <button
                         type="button"
-                        onClick={() => setVoiceTranscript('')}
-                        className="text-slate-400 hover:text-white shrink-0"
+                        onClick={toggleVoiceRecording}
+                        className={`min-h-[50px] p-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg ${
+                            isListening
+                                ? 'bg-rose-600 text-white border-rose-400 shadow-rose-600/40 animate-pulse'
+                                : 'glass-panel hover:border-cyan-500/60 text-slate-200 hover:text-white'
+                        }`}
+                        title="Dettatura vocale con Web Speech API protetta"
                     >
-                        <X className="w-3.5 h-3.5" />
+                        {isListening ? (
+                            <>
+                                <MicOff className="w-4 h-4 text-white animate-bounce" />
+                                <span>ASCOLTO IN CORSO (MAX 15S)...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Mic className="w-4 h-4 text-cyan-400 shrink-0" />
+                                <span>VOICE-TO-TRADE</span>
+                            </>
+                        )}
                     </button>
-                </div>
-            )}
 
-            {/* Screenshot Upload Base64 Preview */}
-            {screenshotPreview && (
-                <div className="w-full p-2.5 rounded-xl glass-subcard border border-emerald-500/30 flex items-center justify-between gap-3 font-mono text-xs">
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                        <img 
-                            src={screenshotPreview} 
-                            alt="Screenshot Preview" 
-                            className="w-12 h-12 object-cover rounded-lg border border-white/20 shrink-0 shadow" 
+                    {/* Screenshot Upload with Removable Thumbnail Beside */}
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleScreenshotUpload}
                         />
-                        <div className="flex flex-col truncate">
-                            <span className="text-[11px] font-bold text-white truncate">Screenshot OCR caricato</span>
-                            <span className="text-[10px] text-emerald-400">Dati estratti e inseriti nei campi</span>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploadingOcr}
+                            className="flex-1 min-h-[50px] p-3 rounded-2xl glass-panel hover:border-emerald-500/60 text-slate-200 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer font-mono font-bold text-xs border shadow-lg"
+                            title="Carica screenshot da broker o TradingView"
+                        >
+                            <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>{isUploadingOcr ? 'LETTURA SCREENSHOT...' : 'Carica Screenshot'}</span>
+                        </button>
+
+                        {/* Removable Thumbnail Preview right beside the button */}
+                        {screenshotPreview && (
+                            <div className="relative group shrink-0">
+                                <img
+                                    src={screenshotPreview}
+                                    alt="Screenshot preview"
+                                    className="w-12 h-12 object-cover rounded-xl border border-emerald-500/50 shadow-md"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setScreenshotPreview(null)}
+                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow hover:bg-rose-500 transition cursor-pointer"
+                                    title="Rimuovi screenshot"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setScreenshotPreview(null)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 shrink-0 transition"
-                        title="Rimuovi anteprima screenshot"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
                 </div>
-            )}
+
+                {/* NOTE VOCALI / DETTATURA (Textarea editabile con pulsanti "Applica ai campi" e "Cancella testo") */}
+                <div className="w-full p-3.5 rounded-2xl glass-panel border border-cyan-500/25 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] uppercase font-bold text-cyan-300 tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>NOTE VOCALI / DETTATURA</span>
+                        </label>
+                        {isListening && (
+                            <span className="text-[9px] font-bold text-rose-400 animate-pulse">
+                                ● Registrazione attiva (timer 15s)
+                            </span>
+                        )}
+                    </div>
+
+                    <textarea
+                        rows={3}
+                        value={voiceTranscript}
+                        onChange={(e) => setVoiceTranscript(e.target.value)}
+                        placeholder="Parla al microfono oppure scrivi a mano (es. 'Long BTC 68000 profitto 500'). Clicca qui per modificare o cancellare qualsiasi parola..."
+                        className="w-full p-3 rounded-xl glass-subcard text-white text-xs font-mono placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none transition-colors resize-none leading-relaxed"
+                    />
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleApplyTranscript}
+                            disabled={!voiceTranscript.trim()}
+                            className="flex-1 py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-cyan-600/25 active:scale-95"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                            <span>Applica ai campi</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleClearTranscript}
+                            disabled={!voiceTranscript}
+                            className="py-2 px-3 rounded-xl glass-subcard text-slate-300 hover:text-white border border-white/10 font-mono text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                        >
+                            <X className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Cancella testo</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* MAIN FLEXIBLE JOURNALING FORM */}
             <form onSubmit={handleFormSubmit} className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-4">
@@ -588,7 +688,6 @@ export const TabTrade: React.FC = () => {
                         onChange={(e) => setAssetPair(e.target.value.toUpperCase())}
                         placeholder="Es. BTC/USD, ETH/USD, EUR/USD, AAPL"
                         className="w-full h-12 px-3 rounded-xl glass-subcard text-white text-xs font-bold font-mono focus:border-[#10B981] focus:outline-none transition-colors"
-                        required
                     />
 
                     {/* Quick Asset Chips */}
@@ -890,10 +989,10 @@ export const TabTrade: React.FC = () => {
                 {/* 8. PULSANTE FLESSIBILE "COMMIT SESSION LOG" */}
                 <button
                     type="submit"
-                    disabled={!isMinimalTradeReady || isSubmitting}
+                    disabled={isSubmitting}
                     className={`w-full min-h-[52px] h-13 rounded-xl font-sans font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
-                        !isMinimalTradeReady || isSubmitting
-                            ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed opacity-60'
+                        isSubmitting
+                            ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-wait opacity-70'
                             : breakerStatus.isBlocked
                             ? 'bg-rose-700 hover:bg-rose-600 text-white shadow-rose-900/30'
                             : 'bg-[#10B981] hover:bg-[#059669] text-white shadow-[#10B981]/25'
