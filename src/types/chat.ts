@@ -17,4 +17,10 @@ export interface UserTradingContext {
     totalWinRate?: number;
     lastTradeNotes?: string;
     tradeCount?: number;
+    cortisolClearingActive?: boolean;
+    cortisolRemainingMinutes?: number;
+    dispositionEffectDetected?: boolean;
+    dispositionDetails?: string;
+    delayDiscountingDetected?: boolean;
+    delayDiscountingDetails?: string;
 }

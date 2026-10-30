@@ -36,6 +36,9 @@ import {
 
 import { fetchMultiSourceRealTimeNews, RealNewsItem } from '../services/multiSourceNewsService';
 import { isTiltDetected } from '../services/circuitBreakerService';
+import { getCortisolClearingStatus } from '../services/neuroPsychService';
+import { NewsMarketImpactCard } from './NewsMarketImpactCard';
+import { HeartPulse } from 'lucide-react';
 
 interface QuasarBubbleProps {
     config?: BubbleConfig;
@@ -195,6 +198,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
     const isProfitable = totalPnl >= 0;
     const tiltCheck = isTiltDetected(safeTrades);
     const isTilt = tiltCheck.isTilt;
+    const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
 
     return (
         <div className={`w-full max-w-[400px] min-h-[360px] mx-auto my-auto relative flex flex-col items-center justify-center rounded-3xl bg-slate-950/80 p-4 overflow-hidden shadow-2xl backdrop-blur-xl group border ${
@@ -248,6 +252,17 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                     </strong>
                 </div>
             </div>
+
+            {/* CORTISOL CLEARING WINDOW INDICATOR */}
+            {cortisolStatus.isClearingActive && (
+                <div className="absolute top-14 left-4 right-4 z-20 flex items-center justify-between px-3 py-1 bg-rose-950/80 rounded-xl text-[10px] font-mono text-rose-300 border border-rose-500/40 shadow-lg pointer-events-none animate-pulse">
+                    <div className="flex items-center gap-1.5 font-bold">
+                        <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Cortisol Window: ~{cortisolStatus.remainingMinutes} min</span>
+                    </div>
+                    <span className="text-[9px] text-rose-400 font-extrabold">{cortisolStatus.percentCleared}% CLEARED</span>
+                </div>
+            )}
 
             {/* 2. CENTRAL ORGANIC FLUID BUBBLE ORB (JADE vs RED ALARM) */}
             <div 
@@ -488,6 +503,14 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                                                             <ExternalLink className="w-3 h-3" />
                                                         </span>
                                                     </a>
+
+                                                    {/* NEWS MARKET IMPACT & ASSET INTELLIGENCE CARD */}
+                                                    <NewsMarketImpactCard
+                                                        title={news.title}
+                                                        summary={news.summary}
+                                                        sourceType={news.sourceType}
+                                                        sentimentHint={news.sentiment}
+                                                    />
 
                                                     {/* Box del Commento Predittivo Quasar */}
                                                     {isSelected && (

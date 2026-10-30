@@ -23,6 +23,12 @@ import {
     Activity 
 } from 'lucide-react';
 
+import { 
+    getCortisolClearingStatus, 
+    analyzeDispositionEffect, 
+    analyzeDelayDiscounting 
+} from '../services/neuroPsychService';
+
 interface AICoachDrawerProps {
     isOpenExternal?: boolean;
     setIsOpenExternal?: (open: boolean) => void;
@@ -66,12 +72,22 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
         const wins = trades.filter(t => (t.pnl || 0) > 0).length;
         const winRate = Number(((wins / trades.length) * 100).toFixed(1));
 
+        const cortisolStatus = getCortisolClearingStatus(trades);
+        const disposition = analyzeDispositionEffect(trades);
+        const delay = analyzeDelayDiscounting(trades);
+
         return {
             recentEmotion: recent.emotional_state,
             recentPnL: recent.pnl || 0,
             totalWinRate: winRate,
             lastTradeNotes: recent.notes || undefined,
-            tradeCount: trades.length
+            tradeCount: trades.length,
+            cortisolClearingActive: cortisolStatus.isClearingActive,
+            cortisolRemainingMinutes: cortisolStatus.remainingMinutes,
+            dispositionEffectDetected: disposition.detected,
+            dispositionDetails: disposition.clinicalAssessment,
+            delayDiscountingDetected: delay.detected,
+            delayDiscountingDetails: delay.clinicalAssessment
         };
     };
 
@@ -140,6 +156,27 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
 
                     {/* Quick Prompt Chips */}
                     <div className="px-4 py-2 bg-slate-900/40 border-b border-slate-800/60 overflow-x-auto flex gap-2 no-scrollbar">
+                        <button
+                            type="button"
+                            onClick={() => handleSendMessage('⚖️ Analizza il mio Disposition Effect (taglio prematuro dei profitti)')}
+                            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-cyan-300 rounded-full whitespace-nowrap transition"
+                        >
+                            ⚖️ Disposition Effect
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSendMessage('⏳ Verifica se soffro di Delay Discounting (raddoppio della size post-perdita)')}
+                            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-amber-300 rounded-full whitespace-nowrap transition"
+                        >
+                            ⏳ Delay Discounting
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSendMessage('🧪 Qual è lo stato della mia Cortisol Clearing Window?')}
+                            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-rose-300 rounded-full whitespace-nowrap transition"
+                        >
+                            🧪 Cortisol Window
+                        </button>
                         <button
                             type="button"
                             onClick={() => handleSendMessage('🧠 Ho appena fatto Revenge Trading, come mi calmo?')}

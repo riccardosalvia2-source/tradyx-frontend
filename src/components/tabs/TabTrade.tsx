@@ -18,6 +18,7 @@ import { parseTradingScreenshot } from '../../services/screenshotOcrService';
 import { triggerHaptic } from '../../services/circuitBreakerService';
 import { checkCurrentSessionDoomRisk } from '../../services/correlationOfDoomService';
 import { StoryCardModal } from '../StoryCardModal';
+import { UlyssesProtocolModal } from '../UlyssesProtocolModal';
 import { 
     TrendingUp, 
     TrendingDown, 
@@ -33,13 +34,20 @@ import {
     Sparkles, 
     Share2, 
     RefreshCw,
-    X
+    X,
+    ShieldAlert
 } from 'lucide-react';
 
 export const TabTrade: React.FC = () => {
     const { trades, addTrade } = useTradeStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
     const { baseCurrency, formatMoney } = useSettingsStore();
+
+    // Ulysses Protocol Active Friction & Rational Unlock State
+    const [showUlyssesModal, setShowUlyssesModal] = useState<boolean>(false);
+    const [ulyssesReason, setUlyssesReason] = useState<string>('');
+    const [pendingTradeData, setPendingTradeData] = useState<any | null>(null);
+    const [isUlyssesUnlocked, setIsUlyssesUnlocked] = useState<boolean>(false);
 
     // 1. Mandatory Minimal Parameters
     const [assetPair, setAssetPair] = useState<string>('BTC/USD');
@@ -332,8 +340,39 @@ export const TabTrade: React.FC = () => {
         }
     };
 
+    // Helper: Detect Critical Emotional Sequence (2 consecutive losses OR Revenge/FOMO error tags)
+    const checkCriticalSequence = (): { isCritical: boolean; reason: string } => {
+        const hasRevenge = selectedErrors.some(e => e.toUpperCase().includes('REVENGE'));
+        const hasFomo = selectedErrors.some(e => e.toUpperCase().includes('FOMO'));
+        if (hasRevenge) {
+            return { 
+                isCritical: true, 
+                reason: 'Rilevato tag REVENGE TRADING selezionato nel form. Attivazione immediata del protocollo di frizione.' 
+            };
+        }
+        if (hasFomo) {
+            return { 
+                isCritical: true, 
+                reason: 'Rilevato tag FOMO selezionato nel form. Attivazione della Triade Razionale pre-commit.' 
+            };
+        }
+
+        if (safeTrades.length >= 2) {
+            const p1 = Number(safeTrades[0]?.pnl) || 0;
+            const p2 = Number(safeTrades[1]?.pnl) || 0;
+            if (p1 < 0 && p2 < 0) {
+                return {
+                    isCritical: true,
+                    reason: `2 perdite consecutive registrate nella sessione (${p1 < 0 ? '-' : ''}$${Math.abs(p1)} e ${p2 < 0 ? '-' : ''}$${Math.abs(p2)}).`
+                };
+            }
+        }
+
+        return { isCritical: false, reason: '' };
+    };
+
     // ============================================================================
-    // 3. TRADE SUBMISSION (IMMEDIATE COMMIT, NESSUN COOLDOWN, NESSUN RESPIRO GUIDATO)
+    // 3. TRADE SUBMISSION (INSTANT FOR ORDINARY TRADES, ULYSSES FRICTION ON TILT)
     // ============================================================================
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -366,8 +405,21 @@ export const TabTrade: React.FC = () => {
             voice_logged: !!voiceTranscript
         };
 
-        // Salvataggio istantaneo senza passaggi intermedi di respirazione o countdown obbligatori
+        // 1. IL PROTOCOLLO DI FRIZIONE ATTIVA (ULYSSES CONTRACT & SISTEMA 2 TRIGGER)
+        // Se si verifica una sequenza critica (2 perdite consecutive o tag REVENGE/FOMO),
+        // attiva il modal ULYSSES RE-CENTERING PROTOCOL con la Triade di Sblocco Razionale.
+        // Se ordinario (senza tilt conclamato), il salvataggio rimane istantaneo con un solo tocco su "SALVA TRADE".
+        const critical = checkCriticalSequence();
+        if (critical.isCritical && !isUlyssesUnlocked) {
+            setPendingTradeData(tradeData);
+            setUlyssesReason(critical.reason);
+            setShowUlyssesModal(true);
+            return;
+        }
+
+        // Salvataggio istantaneo
         await executeCommit(tradeData);
+        setIsUlyssesUnlocked(false);
     };
 
     const executeCommit = async (data: any) => {
@@ -414,6 +466,12 @@ export const TabTrade: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                    {checkCriticalSequence().isCritical && (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-mono font-bold flex items-center gap-1 animate-pulse">
+                            <ShieldAlert className="w-3 h-3 text-rose-400" />
+                            <span>ULYSSES ARMED</span>
+                        </span>
+                    )}
                     <span className="px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-[#10B981] font-bold">
                         PROTOCOL 4.2 ({baseCurrency.code})
                     </span>
@@ -929,6 +987,31 @@ export const TabTrade: React.FC = () => {
                     onClose={() => setShowStoryModal(false)}
                 />
             )}
+
+            {/* ULYSSES RE-CENTERING PROTOCOL MODAL */}
+            <UlyssesProtocolModal
+                isOpen={showUlyssesModal}
+                reason={ulyssesReason}
+                onUnlockSuccess={async () => {
+                    setShowUlyssesModal(false);
+                    setIsUlyssesUnlocked(true);
+                    if (pendingTradeData) {
+                        const committed = { ...pendingTradeData };
+                        setPendingTradeData(null);
+                        await executeCommit(committed);
+                    }
+                }}
+                onClose={() => {
+                    setShowUlyssesModal(false);
+                    setPendingTradeData(null);
+                }}
+                onTakeBreak={(minutes) => {
+                    setShowUlyssesModal(false);
+                    setPendingTradeData(null);
+                    setFeedbackMessage(`Pausa strategica di ${minutes} minuti attivata. Capitale emotivo e finanziario protetto.`);
+                    setTimeout(() => setFeedbackMessage(null), 4500);
+                }}
+            />
 
         </div>
     );

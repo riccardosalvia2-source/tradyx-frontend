@@ -22,8 +22,16 @@ import {
     ArrowUpRight,
     Flame,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    HeartPulse,
+    Scale,
+    History
 } from 'lucide-react';
+import { 
+    getCortisolClearingStatus, 
+    analyzeDispositionEffect, 
+    analyzeDelayDiscounting 
+} from '../../services/neuroPsychService';
 
 export const TabAICoach: React.FC = () => {
     const { trades } = useTradeStore();
@@ -39,6 +47,11 @@ export const TabAICoach: React.FC = () => {
     const doomPatterns = useMemo(() => analyzeCorrelationOfDoom(safeTrades), [safeTrades]);
     const topDoom = doomPatterns[0];
     const currentDoomRisk = useMemo(() => checkCurrentSessionDoomRisk(safeTrades), [safeTrades]);
+
+    // Neuro-Psych Analytics (Cortisol Clearing Window & Biases)
+    const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
+    const dispositionEffect = useMemo(() => analyzeDispositionEffect(safeTrades), [safeTrades]);
+    const delayDiscounting = useMemo(() => analyzeDelayDiscounting(safeTrades), [safeTrades]);
 
     // Auto-scroll when messages update
     useEffect(() => {
@@ -57,7 +70,13 @@ export const TabAICoach: React.FC = () => {
             recentPnL: recent?.pnl || 0,
             totalWinRate: winRate,
             lastTradeNotes: recent?.notes || undefined,
-            tradeCount: safeTrades.length
+            tradeCount: safeTrades.length,
+            cortisolClearingActive: cortisolStatus.isClearingActive,
+            cortisolRemainingMinutes: cortisolStatus.remainingMinutes,
+            dispositionEffectDetected: dispositionEffect.detected,
+            dispositionDetails: dispositionEffect.clinicalAssessment,
+            delayDiscountingDetected: delayDiscounting.detected,
+            delayDiscountingDetails: delayDiscounting.clinicalAssessment
         };
     };
 
@@ -104,8 +123,10 @@ export const TabAICoach: React.FC = () => {
 
     const promptSuggestions = [
         'Come eliminare la mia Correlation of Doom?',
-        'Valuta il mio rischio per trade (Tough Love)',
-        'Analizza la disciplina sui trade in perdita'
+        'Analizza il mio Disposition Effect (Taglio dei profitti)',
+        'Verifica se soffro di Delay Discounting (Revenge Sizing)',
+        'Come gestire la Cortisol Clearing Window di 25 min?',
+        'Valuta il mio rischio per trade (Tough Love)'
     ];
 
     return (
@@ -132,6 +153,28 @@ export const TabAICoach: React.FC = () => {
                     GEMINI
                 </span>
             </header>
+
+            {/* CORTISOL CLEARING WINDOW KINETIC ADVISORY */}
+            {cortisolStatus.isClearingActive && (
+                <div className="w-full p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/40 space-y-1.5 text-left font-mono animate-in fade-in">
+                    <div className="flex items-center justify-between text-xs font-black text-rose-300">
+                        <div className="flex items-center gap-1.5">
+                            <HeartPulse className="w-4 h-4 text-rose-400 animate-pulse" />
+                            <span>CORTISOL CLEARING WINDOW: ~25 MIN</span>
+                        </div>
+                        <span className="text-[10px] text-rose-400 font-extrabold">{cortisolStatus.percentCleared}% CLEAR</span>
+                    </div>
+                    <p className="text-[11px] text-rose-200 leading-relaxed font-sans">
+                        Picco ormonale acuto rilevato dal drawdown. L'amigdala è iperattiva e la corteccia prefrontale (PFC) richiede circa 25 minuti per il decadimento metabolico prima di ripristinare decisioni oggettive.
+                    </p>
+                    <div className="w-full h-1.5 rounded-full bg-black/40 overflow-hidden">
+                        <div 
+                            className="h-full bg-rose-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${cortisolStatus.percentCleared}%` }}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Persona Switcher: Tough Love vs Empathic */}
             <div className="w-full flex items-center justify-between p-1.5 rounded-2xl glass-panel text-xs font-mono font-bold">

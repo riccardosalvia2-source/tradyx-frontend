@@ -4,7 +4,7 @@
 // Calibrated Palette: #10B981 Emerald, #DC2626 Crimson, #2563EB Navy
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { 
@@ -22,8 +22,17 @@ import {
     Sliders,
     ArrowUpRight,
     ArrowDownRight,
-    Target
+    Target,
+    HeartPulse,
+    BrainCircuit,
+    Scale,
+    History
 } from 'lucide-react';
+import { 
+    getCortisolClearingStatus, 
+    analyzeDispositionEffect, 
+    analyzeDelayDiscounting 
+} from '../../services/neuroPsychService';
 
 export const TabStats: React.FC = () => {
     const { trades } = useTradeStore();
@@ -31,6 +40,11 @@ export const TabStats: React.FC = () => {
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
     const [chartMode, setChartMode] = useState<'LINE' | 'CANDLE'>('LINE');
+
+    // Neuro-Behavioral Analytics & Kinetic Status
+    const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
+    const dispositionEffect = useMemo(() => analyzeDispositionEffect(safeTrades), [safeTrades]);
+    const delayDiscounting = useMemo(() => analyzeDelayDiscounting(safeTrades), [safeTrades]);
 
     // Financial aggregation
     const totalPnl = safeTrades.reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
@@ -185,6 +199,32 @@ export const TabStats: React.FC = () => {
                     </button>
                 </div>
             </header>
+
+            {/* CORTISOL CLEARING WINDOW KINETIC ADVISORY */}
+            {cortisolStatus.isClearingActive && (
+                <div className="w-full p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 space-y-2 text-left font-mono animate-in fade-in">
+                    <div className="flex items-center justify-between text-xs font-black text-rose-300">
+                        <div className="flex items-center gap-2">
+                            <HeartPulse className="w-4 h-4 text-rose-400 animate-pulse" />
+                            <span>CORTISOL CLEARING WINDOW: ~25 MIN</span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold">
+                            {cortisolStatus.percentCleared}% CLEARED
+                        </span>
+                    </div>
+
+                    <p className="text-[11px] text-rose-200 leading-relaxed font-sans">
+                        {cortisolStatus.clinicalNote}
+                    </p>
+
+                    <div className="w-full h-1.5 rounded-full bg-black/40 overflow-hidden">
+                        <div 
+                            className="h-full bg-rose-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${cortisolStatus.percentCleared}%` }}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* 1. CARD "NET PROFIT" CON METRICHE ISTITUZIONALI */}
             <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
@@ -573,7 +613,87 @@ export const TabStats: React.FC = () => {
                 </div>
             </section>
 
-            {/* 8. CARD BLU RISALTO "CONSISTENCY FACTOR" (#2563EB) */}
+            {/* 8. DIAGNOSTICA BIAS & NEURO-FINANZA CLINICA (DISPOSITION EFFECT & DELAY DISCOUNTING) */}
+            <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-xl space-y-3.5">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+                    <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-2">
+                        <BrainCircuit className="w-4 h-4 text-cyan-400" />
+                        DIAGNOSTICA BIAS & NEURO-FINANZA CLINICA
+                    </span>
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">
+                        SISTEMA 2 AUDIT
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 font-mono">
+                    {/* BIAS 1: LOSS AVERSION / DISPOSITION EFFECT */}
+                    <div className={`p-4 rounded-xl border space-y-2 text-left ${
+                        dispositionEffect.detected 
+                            ? 'bg-rose-950/20 border-rose-500/30' 
+                            : 'glass-subcard border-white/5'
+                    }`}>
+                        <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 font-black text-white">
+                                <Scale className={`w-4 h-4 ${dispositionEffect.detected ? 'text-rose-400' : 'text-emerald-400'}`} />
+                                <span>{dispositionEffect.headline}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                dispositionEffect.detected ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                            }`}>
+                                {dispositionEffect.detected ? 'ATTENZIONE BIAS' : 'EQUILIBRATO'}
+                            </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-300 py-1 border-y border-white/[0.04]">
+                            <div>Win Medio: <strong className="text-emerald-400">${dispositionEffect.avgWin.toLocaleString()}</strong></div>
+                            <div>Loss Media: <strong className="text-rose-400">${dispositionEffect.avgLoss.toLocaleString()}</strong></div>
+                            <div>Early Exits: <strong className="text-amber-400">{dispositionEffect.earlyExitCount}</strong></div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {dispositionEffect.clinicalAssessment}
+                        </p>
+
+                        <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 text-[10px] text-cyan-300">
+                            <strong>Protocollo di Rimedio: </strong>{dispositionEffect.remediationProtocol}
+                        </div>
+                    </div>
+
+                    {/* BIAS 2: DELAY DISCOUNTING (REVENGE SIZING) */}
+                    <div className={`p-4 rounded-xl border space-y-2 text-left ${
+                        delayDiscounting.detected 
+                            ? 'bg-amber-950/20 border-amber-500/30' 
+                            : 'glass-subcard border-white/5'
+                    }`}>
+                        <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 font-black text-white">
+                                <History className={`w-4 h-4 ${delayDiscounting.detected ? 'text-amber-400' : 'text-emerald-400'}`} />
+                                <span>{delayDiscounting.headline}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                delayDiscounting.detected ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+                            }`}>
+                                {delayDiscounting.detected ? 'LEVA COMPULSIVA' : 'SIZE COSTANTE'}
+                            </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-300 py-1 border-y border-white/[0.04]">
+                            <div>Post-Loss Multiplier: <strong className={delayDiscounting.detected ? 'text-rose-400' : 'text-emerald-400'}>{delayDiscounting.maxPostLossMultiplier}x</strong></div>
+                            <div>Revenge Entries: <strong className="text-amber-400">{delayDiscounting.doubledSizeCount}</strong></div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {delayDiscounting.clinicalAssessment}
+                        </p>
+
+                        <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 text-[10px] text-cyan-300">
+                            <strong>Protocollo di Rimedio: </strong>{delayDiscounting.remediationProtocol}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 9. CARD BLU RISALTO "CONSISTENCY FACTOR" (#2563EB) */}
             <section className="w-full rounded-2xl bg-gradient-to-r from-blue-600/70 to-blue-700/70 backdrop-blur-xl border border-blue-400/25 p-4 sm:p-5 shadow-2xl text-white space-y-2.5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full pointer-events-none" />
 

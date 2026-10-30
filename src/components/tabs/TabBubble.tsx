@@ -2,9 +2,10 @@
 // TRADYX MOBILE TAB 7: BOLLA (Quasar Bubble - Sentiment Galaxy Explorer)
 // Ultra-Clean Dark Fintech / Institutional Terminal Design
 // Background: #08090C solid, zero magenta canvas, pure jade organic bubble
+// Integrates: 4-4-4-4 Box Breathing, Cortisol Clearing Window, News Impact Cards
 // ============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
     fetchMultiSourceRealTimeNews, 
     RealNewsItem, 
@@ -24,10 +25,19 @@ import {
     ArrowLeft,
     Compass,
     TrendingDown,
-    ShieldAlert
+    ShieldAlert,
+    HeartPulse,
+    Wind,
+    Play,
+    Square,
+    CheckCircle2
 } from 'lucide-react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
-import { isTiltDetected } from '../../services/circuitBreakerService';
+import { isTiltDetected, triggerHaptic } from '../../services/circuitBreakerService';
+import { getCortisolClearingStatus } from '../../services/neuroPsychService';
+import { NewsMarketImpactCard } from '../NewsMarketImpactCard';
+
+type BreathPhase = 'INHALE' | 'HOLD_FULL' | 'EXHALE' | 'HOLD_EMPTY';
 
 export const TabBubble: React.FC = () => {
     const { trades } = useTradeStore();
@@ -35,8 +45,17 @@ export const TabBubble: React.FC = () => {
     const tiltCheck = isTiltDetected(safeTrades);
     const isTilt = tiltCheck.isTilt;
 
+    // Cortisol Clearing Window
+    const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
+
     // 2-View State Flow: 'BUBBLE' (Initial Zen View) or 'EXPLORER' (Sentiment & News Feed)
     const [viewMode, setViewMode] = useState<'BUBBLE' | 'EXPLORER'>('BUBBLE');
+
+    // Box Breathing 4-4-4-4 state
+    const [isBreathingMode, setIsBreathingMode] = useState<boolean>(false);
+    const [breathPhase, setBreathPhase] = useState<BreathPhase>('INHALE');
+    const [breathSeconds, setBreathSeconds] = useState<number>(4);
+    const [breathCycles, setBreathCycles] = useState<number>(0);
 
     // News aggregator state
     const [liveNews, setLiveNews] = useState<RealNewsItem[]>([]);
@@ -98,6 +117,44 @@ export const TabBubble: React.FC = () => {
         return () => clearInterval(timer);
     }, []);
 
+    // ============================================================================
+    // 2. BOX BREATHING 4-4-4-4 (RESET DEL SISTEMA AUTONOMO)
+    // Precise 4s Inhale, 4s Hold Full, 4s Exhale, 4s Hold Empty
+    // With dynamic 4s countdown and light haptic feedback at every phase transition
+    // ============================================================================
+    useEffect(() => {
+        if (!isBreathingMode) return;
+
+        const interval = setInterval(() => {
+            setBreathSeconds(prev => {
+                if (prev <= 1) {
+                    // Haptic feedback at every phase transition
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                        try {
+                            navigator.vibrate([30]);
+                        } catch {
+                            // ignore if unsupported
+                        }
+                    }
+
+                    // Advance to next 4s phase
+                    setBreathPhase(curr => {
+                        if (curr === 'INHALE') return 'HOLD_FULL';
+                        if (curr === 'HOLD_FULL') return 'EXHALE';
+                        if (curr === 'EXHALE') return 'HOLD_EMPTY';
+                        // Completed full 4-4-4-4 cycle
+                        setBreathCycles(c => c + 1);
+                        return 'INHALE';
+                    });
+                    return 4;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isBreathingMode]);
+
     const formatCountdown = (totalSec: number) => {
         const mins = Math.floor(totalSec / 60);
         const secs = totalSec % 60;
@@ -105,6 +162,7 @@ export const TabBubble: React.FC = () => {
     };
 
     const handleBubbleClick = () => {
+        if (isBreathingMode) return; // In breathing mode, tap interacts with breathing
         setViewMode('EXPLORER');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -112,6 +170,22 @@ export const TabBubble: React.FC = () => {
     const handleBackToBubble = () => {
         setViewMode('BUBBLE');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const toggleBreathingMode = () => {
+        triggerHaptic('click');
+        if (isBreathingMode) {
+            setIsBreathingMode(false);
+            setBreathPhase('INHALE');
+            setBreathSeconds(4);
+        } else {
+            setIsBreathingMode(true);
+            setBreathPhase('INHALE');
+            setBreathSeconds(4);
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate([30]); } catch (e) { /* ignore */ }
+            }
+        }
     };
 
     const filteredNews = liveNews.filter(n => {
@@ -123,6 +197,54 @@ export const TabBubble: React.FC = () => {
         return matchesCat && matchesQuery;
     });
 
+    // Bubble dynamic styles based on Box Breathing phase
+    const getBreathingBubbleStyle = () => {
+        if (!isBreathingMode) {
+            return {
+                width: '250px',
+                height: '250px',
+                transform: 'scale(1)',
+                transition: 'all 0.5s ease-out'
+            };
+        }
+
+        if (breathPhase === 'INHALE') {
+            return {
+                width: '285px',
+                height: '285px',
+                transform: 'scale(1.14)',
+                boxShadow: '0 0 70px rgba(16, 185, 129, 0.75)',
+                transition: 'all 3.8s ease-in-out'
+            };
+        }
+        if (breathPhase === 'HOLD_FULL') {
+            return {
+                width: '285px',
+                height: '285px',
+                transform: 'scale(1.14)',
+                boxShadow: '0 0 80px rgba(16, 185, 129, 0.90)',
+                transition: 'all 0.4s ease-out'
+            };
+        }
+        if (breathPhase === 'EXHALE') {
+            return {
+                width: '225px',
+                height: '225px',
+                transform: 'scale(0.92)',
+                boxShadow: '0 0 35px rgba(16, 185, 129, 0.40)',
+                transition: 'all 3.8s ease-in-out'
+            };
+        }
+        // HOLD_EMPTY
+        return {
+            width: '225px',
+            height: '225px',
+            transform: 'scale(0.92)',
+            boxShadow: '0 0 25px rgba(16, 185, 129, 0.25)',
+            transition: 'all 0.4s ease-out'
+        };
+    };
+
     return (
         <div className="w-full flex-1 min-h-[calc(100dvh-5.5rem)] bg-[#08090C] text-slate-100 flex flex-col justify-center items-center select-none overflow-x-hidden relative">
             
@@ -130,65 +252,165 @@ export const TabBubble: React.FC = () => {
             {/* VISTA 1: INITIAL CLEAN VIEW (ESCLUSIVAMENTE LA BOLLA AL CENTRO)               */}
             {/* ============================================================================ */}
             {viewMode === 'BUBBLE' && (
-                <div className="w-full flex-1 flex flex-col items-center justify-center px-4 py-8 relative min-h-[450px]">
+                <div className="w-full flex-1 flex flex-col items-center justify-between px-4 py-6 relative min-h-[500px]">
                     
-                    {/* Top Minimal Brand Indicator */}
-                    <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[#111318] border border-white/5 flex items-center justify-center">
-                            <span className="font-sans font-black text-xs text-[#2ECC71]">T</span>
+                    {/* Top Status Bar: Brand Indicator & Cortisol Window if Active */}
+                    <div className="w-full flex items-center justify-between z-20">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-[#111318] border border-white/5 flex items-center justify-center">
+                                <span className="font-sans font-black text-xs text-[#2ECC71]">T</span>
+                            </div>
+                            <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
+                                QUASAR BUBBLE
+                            </span>
                         </div>
-                        <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
-                            QUASAR BUBBLE
-                        </span>
+
+                        {/* Cortisol Clearing Window Pill if Active */}
+                        {cortisolStatus.isClearingActive ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-[10px] font-mono font-bold text-rose-300 animate-pulse">
+                                <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
+                                <span>Cortisol Window: ~{cortisolStatus.remainingMinutes} min</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-subcard text-[10px] font-mono text-emerald-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                <span>PFC EQUILIBRIUM</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Central Organic Jade Fluid Bubble Orb */}
-                    <div 
-                        onClick={handleBubbleClick}
-                        className="relative flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 active:scale-95 group"
-                        title="Tocca per accedere al Sentiment Galaxy Explorer"
-                    >
-                        {/* Soft Ambient Glow (Jade vs Pulsing Red Alarm) */}
+                    {/* CORTISOL CLEARING WINDOW ADVISORY BANNER (SE IN DRAWDOWN) */}
+                    {cortisolStatus.isClearingActive && !isBreathingMode && (
+                        <div className="w-full max-w-sm mt-3 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 space-y-1.5 text-left font-mono animate-in fade-in">
+                            <div className="flex items-center justify-between text-[11px] font-black text-rose-300">
+                                <div className="flex items-center gap-1.5">
+                                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                                    <span>CORTISOL CLEARING WINDOW: ~25 MIN</span>
+                                </div>
+                                <span className="text-[10px] text-rose-400 font-bold">{cortisolStatus.percentCleared}% CLEAR</span>
+                            </div>
+                            <p className="text-[10px] text-rose-200 leading-relaxed font-sans">
+                                Il picco ormonale acuto altera temporaneamente la corteccia prefrontale. Decisioni oggettive compromesse prima del decadimento plasmatico di 25 min.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={toggleBreathingMode}
+                                className="w-full py-1.5 px-3 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-[10px] font-black text-white uppercase flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                                <Wind className="w-3 h-3 text-white" />
+                                <span>Avvia Box Breathing 4-4-4-4 per de-escalation</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Central Organic Fluid Bubble Orb (3D & Interactive Box Breathing) */}
+                    <div className="relative flex flex-col items-center justify-center my-auto py-4">
+                        
+                        {/* Soft Ambient Glow (Jade Emerald #10B981 vs Pulsing Red Alarm) */}
                         <div 
-                            className="absolute w-72 h-72 rounded-full pointer-events-none transition-opacity duration-700 opacity-70 group-hover:opacity-95"
+                            className="absolute rounded-full pointer-events-none transition-all duration-700"
                             style={{
-                                background: isTilt
+                                width: isBreathingMode ? '340px' : '280px',
+                                height: isBreathingMode ? '340px' : '280px',
+                                background: isTilt && !isBreathingMode
                                     ? 'radial-gradient(circle at center, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.20) 55%, transparent 75%)'
-                                    : 'radial-gradient(circle at center, rgba(46, 204, 113, 0.35) 0%, rgba(39, 174, 96, 0.15) 55%, transparent 75%)',
-                                filter: 'blur(35px)'
+                                    : 'radial-gradient(circle at center, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.20) 55%, transparent 75%)',
+                                filter: 'blur(45px)',
+                                opacity: isBreathingMode ? 0.95 : 0.75
                             }}
                         />
 
-                        {/* 3D Organic Fluid Sphere: JADE vs PULSATING RED ALARM (#EF4444) */}
+                        {/* 3D Organic Fluid Sphere: JADE vs RED ALARM with Box Breathing kinetics */}
                         <div 
-                            className={`flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:scale-105 border border-white/25 ${
-                                isTilt
-                                    ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50'
-                                    : 'quasar-3d-bubble'
+                            onClick={handleBubbleClick}
+                            className={`flex flex-col items-center justify-center relative overflow-hidden cursor-pointer select-none border ${
+                                isBreathingMode
+                                    ? 'bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] border-emerald-300/60 shadow-2xl rounded-full'
+                                    : isTilt
+                                    ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50 rounded-full'
+                                    : 'quasar-3d-bubble border-white/25 rounded-full hover:scale-105 active:scale-95'
                             }`}
-                            style={{
-                                width: '250px',
-                                height: '250px',
-                                minWidth: '250px',
-                                minHeight: '250px'
-                            }}
+                            style={getBreathingBubbleStyle()}
+                            title={isBreathingMode ? "Respirazione Box Breathing in corso" : "Tocca per accedere al Sentiment Galaxy Explorer"}
                         >
                             {/* Organic Soft Specular Highlight */}
                             <div className="absolute top-5 left-9 w-24 h-12 rounded-full bg-white/25 blur-md pointer-events-none transform -rotate-12" />
 
-                            {/* Center Futuristic Quasar AI Icon */}
-                            <div className={`p-4 rounded-2xl mb-3 shadow-2xl group-hover:rotate-6 transition-transform duration-300 border ${
-                                isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-black/30 backdrop-blur-md border-white/20'
-                            }`}>
-                                <BrainCircuit className="w-9 h-9 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-                            </div>
+                            {/* Center Visuals: Breathing HUD vs Quasar Icon */}
+                            {isBreathingMode ? (
+                                <div className="flex flex-col items-center justify-center text-center space-y-1 animate-in zoom-in-95 duration-200">
+                                    <span className="text-3xl sm:text-4xl font-mono font-black text-white tabular-nums drop-shadow-md">
+                                        0{breathSeconds}s
+                                    </span>
+                                    <div className="px-3 py-1 rounded-full bg-black/40 border border-white/30 text-[9px] font-mono font-black uppercase tracking-widest text-white shadow-lg">
+                                        {breathPhase === 'INHALE' && '4s INHALE'}
+                                        {breathPhase === 'HOLD_FULL' && '4s TRATTIENI (PIENO)'}
+                                        {breathPhase === 'EXHALE' && '4s EXHALE'}
+                                        {breathPhase === 'HOLD_EMPTY' && '4s TRATTIENI (VUOTO)'}
+                                    </div>
+                                    <span className="text-[9px] font-mono text-emerald-200 font-bold opacity-80">
+                                        CICLO {breathCycles + 1}
+                                    </span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className={`p-4 rounded-2xl mb-3 shadow-2xl group-hover:rotate-6 transition-transform duration-300 border ${
+                                        isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-black/30 backdrop-blur-md border-white/20'
+                                    }`}>
+                                        <BrainCircuit className="w-9 h-9 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
+                                    </div>
 
-                            {/* Futuristic Centered White/Cyan Badge */}
-                            <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-lg border border-white/40 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2">
-                                <Sparkles className="w-3.5 h-3.5 text-[#2ECC71] animate-pulse" />
-                                <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
-                            </div>
+                                    <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-lg border border-white/40 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                                        <Sparkles className="w-3.5 h-3.5 text-[#2ECC71] animate-pulse" />
+                                        <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
+
+                        {/* Phase Description Caption under bubble */}
+                        {isBreathingMode && (
+                            <div className="mt-4 px-4 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-center font-mono text-xs text-slate-200 shadow-md">
+                                {breathPhase === 'INHALE' && 'Inhala con luce smeraldo (#10B981) • Espansione graduale'}
+                                {breathPhase === 'HOLD_FULL' && 'Trattieni a polmoni pieni • Glow stabile'}
+                                {breathPhase === 'EXHALE' && 'Esala dolcemente tornando al raggio base'}
+                                {breathPhase === 'HOLD_EMPTY' && 'Trattieni a polmoni vuoti • Reset del sistema autonomo'}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Actions Bar: Box Breathing Mode & Sentiment Explorer */}
+                    <div className="w-full max-w-sm space-y-2 z-20">
+                        {isBreathingMode ? (
+                            <button
+                                type="button"
+                                onClick={toggleBreathingMode}
+                                className="w-full min-h-[46px] rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs font-bold uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-white/10 shadow-lg"
+                            >
+                                <Square className="w-4 h-4 text-rose-400 fill-rose-400" />
+                                <span>Ferma Box Breathing ({breathCycles} cicli eseguiti)</span>
+                            </button>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={toggleBreathingMode}
+                                    className="min-h-[46px] rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/40 shadow-lg shadow-emerald-950/40"
+                                >
+                                    <Wind className="w-4 h-4 text-emerald-400" />
+                                    <span>Box 4-4-4-4</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleBubbleClick}
+                                    className="min-h-[46px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#10B981]/25"
+                                >
+                                    <Globe className="w-4 h-4 text-slate-950" />
+                                    <span>News Market</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -281,7 +503,7 @@ export const TabBubble: React.FC = () => {
                     </section>
 
                     {/* ============================================================================ */}
-                    {/* AGGREGATORE NEWS (MINIMO 50 NOTIZIE & AUTO-REFRESH OGNI 5 MINUTI)              */}
+                    {/* AGGREGATORE NEWS (MINIMO 50 NOTIZIE & DIDASCALIE OPERATIVE MARKET INTELLIGENCE)*/}
                     {/* ============================================================================ */}
                     <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3.5">
                         
@@ -342,8 +564,8 @@ export const TabBubble: React.FC = () => {
                             />
                         </div>
 
-                        {/* 50+ News Items List: EACH ITEM IS A DIRECT LINK TO THE ARTICLE */}
-                        <div className="space-y-3">
+                        {/* 50+ News Items List with Market Impact Container */}
+                        <div className="space-y-3.5">
                             {isLoadingNews && liveNews.length === 0 ? (
                                 <div className="p-10 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2 glass-subcard rounded-xl">
                                     <RefreshCw className="w-4 h-4 text-[#10B981] animate-spin" />
@@ -356,13 +578,9 @@ export const TabBubble: React.FC = () => {
                             ) : (
                                 filteredNews.map((news) => {
                                     return (
-                                        <a
+                                        <div
                                             key={news.id}
-                                            href={news.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block p-4 rounded-2xl glass-panel hover:border-white/20 transition-all cursor-pointer space-y-2.5 group text-left"
-                                            title="Tocca per aprire l'articolo reale sul sito della fonte"
+                                            className="p-4 rounded-2xl glass-panel hover:border-white/20 transition-all space-y-2.5 group text-left"
                                         >
                                             {/* Card Top: Thematic Badge, Source, Relative Time, External Icon */}
                                             <div className="flex items-center justify-between text-[10px] font-mono">
@@ -386,26 +604,41 @@ export const TabBubble: React.FC = () => {
                                                         <Clock className="w-3 h-3 text-slate-500" />
                                                         {news.timeAgo}
                                                     </span>
-                                                    <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#10B981] transition shrink-0 ml-1" />
+                                                    <a 
+                                                        href={news.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="hover:text-[#10B981] transition ml-1"
+                                                        title="Apri articolo originale"
+                                                    >
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                    </a>
                                                 </div>
                                             </div>
 
-                                            {/* Prominent Title */}
-                                            <h4 className="text-xs sm:text-sm font-bold text-slate-100 group-hover:text-[#10B981] transition leading-snug">
+                                            {/* Prominent Title: Click opens actual article link */}
+                                            <a 
+                                                href={news.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block text-xs sm:text-sm font-bold text-slate-100 hover:text-[#10B981] transition leading-snug"
+                                            >
                                                 {news.title}
-                                            </h4>
+                                            </a>
 
                                             {/* Article Summary */}
                                             <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
                                                 {news.summary}
                                             </p>
 
-                                            {/* AI Predictive Insight */}
-                                            <div className="p-2.5 rounded-lg glass-subcard text-[10px] font-mono text-cyan-300 flex items-start gap-1.5 border border-white/5">
-                                                <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                                                <span>{news.aiPrediction}</span>
-                                            </div>
-                                        </a>
+                                            {/* 4. NEWS MARKET IMPACT & ASSET INTELLIGENCE (DIDASCALIE OPERATIVE) */}
+                                            <NewsMarketImpactCard 
+                                                title={news.title}
+                                                summary={news.summary}
+                                                sourceType={news.sourceType}
+                                                sentimentHint={news.sentiment}
+                                            />
+                                        </div>
                                     );
                                 })
                             )}

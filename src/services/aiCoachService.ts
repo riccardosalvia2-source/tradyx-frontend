@@ -97,6 +97,9 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
 - Win Rate Storico: ${context.totalWinRate ?? 0}%
 - Numero totale operazioni registrate: ${context.tradeCount ?? 0}
 - Note dall'ultima operazione: "${context.lastTradeNotes || 'Nessuna nota aggiuntiva'}"
+- Finestra Cortisolo: ${context.cortisolClearingActive ? `ATTIVA (~${context.cortisolRemainingMinutes || 25} min rimanenti per il decadimento plasmatico)` : 'Normale (PFC in equilibrio)'}
+- Disposition Effect (Loss Aversion): ${context.dispositionEffectDetected ? `RILEVATO (${context.dispositionDetails || 'Taglio precoce dei profitti e attesa irrazionale sulle perdite'})` : 'Equilibrato (Take Profit e Stop Loss rispettati)'}
+- Delay Discounting (Revenge Sizing): ${context.delayDiscountingDetected ? `RILEVATO (${context.delayDiscountingDetails || 'Raddoppio della size su operazioni successive a una perdita'})` : 'Assente (Size costante e disciplinata)'}
 `;
     }
 
@@ -207,6 +210,36 @@ function generateDynamicContextualAnalysis(
   3. Attendi che il prezzo formi una struttura tecnica valida.`;
         }
 
+        if (lowerPrompt.includes('disposition') || lowerPrompt.includes('taglio') || lowerPrompt.includes('loss aversion') || lowerPrompt.includes('profitti')) {
+            return toughHeader + `⚖️ **VERIFICA CLINICA: DISPOSITION EFFECT (LOSS AVERSION).**
+- **Diagnosi Comportamentale:** Tagli i trade in profitto troppo presto per paura viscerale di veder svanire il guadagno, mentre lasci correre le perdite sperando irrazionalmente che il mercato torni a pareggio.
+- **La Dura Verità del Desk:** Stai invertendo la matematica dell'edge: un trader professionista taglia le perdite senza esitazione e lascia correre i vincitori con trailing stop.
+- **Protocollo Obbligatorio:**
+  1. Take Profit rigido impostato ad almeno 1:2.5 prima di inserire l'ordine.
+  2. Divieto assoluto di uscita discrezionale anticipata se il setup non è invalidato.
+  3. Chiudi gli occhi sul P&L fluttuante: concentrati esclusivamente sulla struttura tecnica.`;
+        }
+
+        if (lowerPrompt.includes('delay discounting') || lowerPrompt.includes('size') || lowerPrompt.includes('raddoppio') || lowerPrompt.includes('sollievo')) {
+            return toughHeader + `⏳ **VERIFICA CLINICA: DELAY DISCOUNTING (REVENGE SIZING).**
+- **Diagnosi Comportamentale:** Rilevato aumento o raddoppio della size sulle operazioni aperte subito dopo una perdita.
+- **Principio Neurobiologico:** Svaluti il rischio a lungo termine pur di ottenere un sollievo emotivo dopaminergico immediato. Stai usando il trading come anestetico per l'ego ferito.
+- **Protocollo Obbligatorio:**
+  1. Blocco rigido della size: max 1% di rischio sul conto dopo ogni perdita.
+  2. Attivazione dell'Ulysses Protocol con Triade di Sblocco Razionale.
+  3. Se violi la size prefissata, il conto viene congelato per 24 ore.`;
+        }
+
+        if (lowerPrompt.includes('cortisolo') || lowerPrompt.includes('cortisol') || lowerPrompt.includes('25 min') || lowerPrompt.includes('window') || lowerPrompt.includes('clearing')) {
+            return toughHeader + `🧪 **ANALISI CINETICA: CORTISOL CLEARING WINDOW (~25 MIN).**
+- **Diagnosi Neurovegetativa:** Dopo un drawdown significativo o due perdite consecutive, l'asse ipotalamo-ipofisi-surrene inonda il flusso ematico di cortisolo e catecolamine.
+- **Impatto Cognitivo:** L'amigdala assume il controllo esecutivo, riducendo l'attività razionale della corteccia prefrontale (PFC) del 40-60%. Qualsiasi decisione presa in questa finestra è statisticamente viziata.
+- **Protocollo di De-Escalation:**
+  1. Rispettare rigorosamente la finestra di decadimento di ~25 minuti lontano dai grafici.
+  2. Eseguire 4 cicli completi di Box Breathing 4-4-4-4 (Inhale 4s, Hold 4s, Exhale 4s, Hold 4s) per riattivare il tono vagale.
+  3. Non toccare il mouse finché la finestra non è tornata al 100% CLEAR.`;
+        }
+
         return toughHeader + `💼 **VERDETTO SULLA TUA SESSIONE:**
 > "${prompt}"
 
@@ -226,6 +259,33 @@ function generateDynamicContextualAnalysis(
     }
 
     const lowerPrompt = prompt.toLowerCase();
+
+    if (lowerPrompt.includes('disposition') || lowerPrompt.includes('taglio') || lowerPrompt.includes('loss aversion') || lowerPrompt.includes('profitti')) {
+        return responseHeader + `⚖️ **Analisi Disposition Effect (Loss Aversion):**
+- **Principio Clinico:** Esiste una naturale asimmetria psicologica formulata da Kahneman & Tversky: il dolore di una perdita pesa emotivamente il doppio rispetto alla gioia di un pari guadagno. Questo spinge il trader a monetizzare piccoli profitti (+1R) e a tollerare perdite profonde (-3R).
+- **Strategia di Bonifica Comportamentale:**
+  1. 🎯 **Definisci il Take Profit in Anticipo:** Il target deve essere calcolato sui livelli strutturali del mercato e non sulla paura del conto economico.
+  2. 🔒 **Usa Trailing Stop Meccanici:** Lascia che sia la regola algoritmica a chiudere la posizione, sottraendo la decisione manuale all'amigdala.
+  3. ❓ **Quesito Guida:** *Stai chiudendo perché il mercato ha mostrato debolezza o per alleviare l'ansia di vedere il saldo oscillare?*`;
+    }
+
+    if (lowerPrompt.includes('delay discounting') || lowerPrompt.includes('size') || lowerPrompt.includes('raddoppio') || lowerPrompt.includes('sollievo')) {
+        return responseHeader + `⏳ **Analisi Delay Discounting (Ricerca Compulsiva di Sollievo):**
+- **Principio Clinico:** Il fenomeno del *Delay Discounting* consiste nel preferire un sollievo psicologico immediato rispetto a un beneficio razionale differito nel tempo. Raddoppiare la size dopo una perdita serve a compensare la ferita narcisistica istantaneamente.
+- **Strategia di Bonifica Comportamentale:**
+  1. 🛡️ **Size Locking Inviolabile:** Non aumentare mai l'esposizione dopo una perdita: riducila semmai del 50%.
+  2. ⚓ **Ulysses Contract:** Vincola la tua operatività al superamento della Triade Razionale di sblocco prima di ogni re-entry.
+  3. ❓ **Quesito Guida:** *Questo trade è pianificato con criteri oggettivi o serve ad anestetizzare il disagio dell'operazione precedente?*`;
+    }
+
+    if (lowerPrompt.includes('cortisolo') || lowerPrompt.includes('cortisol') || lowerPrompt.includes('25 min') || lowerPrompt.includes('window') || lowerPrompt.includes('clearing')) {
+        return responseHeader + `🧪 **Finestra del Cortisolo (Cortisol Clearing Window: ~25 min):**
+- **Principio Endocrino:** In seguito a perdite subite o eventi imprevisti di mercato, il rilascio di cortisolo altera l'attività sinaptica della corteccia prefrontale dorsolaterale. Il tempo fisiologico di emivita e smaltimento plasmatico è di circa 25 minuti.
+- **Strategia di Bonifica Comportamentale:**
+  1. ⏸️ **Allontanamento Obbligatorio:** Concediti 25 minuti di de-escalation senza fissare i grafici o le quotazioni in tempo reale.
+  2. 🌬️ **Respiro Quadrato Box 4-4-4-4:** 4s Inhale, 4s Hold, 4s Exhale, 4s Hold per stimolare il nervo vago e abbassare la frequenza cardiaca.
+  3. 🧘 **Rientro Consapevole:** Riprendi l'attività solo quando la finestra di clearing è completata al 100%.`;
+    }
 
     if (lowerPrompt.includes('revenge') || lowerPrompt.includes('recuperare') || lowerPrompt.includes('rabbia') || lowerPrompt.includes('perdita')) {
         return responseHeader + `⚠️ **Rilevato Rischio di Revenge Trading:**
@@ -252,5 +312,5 @@ function generateDynamicContextualAnalysis(
 - **Raccomandazioni Operative:**
   - Rispetta sempre il tuo limite di rischio per singolo trade.
   - Annota le emozioni vissute durante l'apertura ed il mantenimento della posizione.
-  - Maintieni la concentrazione sul processo e non sull'esito monetario della singola operazione.`;
+  - Mantieni la concentrazione sul processo e non sull'esito monetario della singola operazione.`;
 }
