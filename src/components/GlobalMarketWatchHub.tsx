@@ -1,8 +1,9 @@
 // ============================================================================
 // TRADYX GLOBAL MARKET WATCH HUB (src/components/GlobalMarketWatchHub.tsx)
-// Live Market Monitoring (CoinMarketCap / Bloomberg Terminal Mobile style)
-// Zero-Cost Free Public APIs Aggregation (CoinGecko v3 + Binance 24hr Fallback + Macro)
-// Dark Fintech Glassmorphism Aesthetic (#08090C deep black, #10B981 Emerald, #DC2626 Carmine)
+// Live Market Monitoring & Institutional Real-Time Terminal
+// Continuous WebSocket Tick-by-Tick Stream (Binance + Macro Streamer)
+// 300ms Tick Flash Animation, Interactive TradingView Chart Modal,
+// In-Chart Trade Execution & Real-Time Price Alerts
 // ============================================================================
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -24,7 +25,9 @@ import {
     ExternalLink,
     Zap,
     Clock,
-    PlusCircle
+    PlusCircle,
+    Bell,
+    CheckCircle2
 } from 'lucide-react';
 import { 
     WatchlistAsset, 
@@ -37,6 +40,10 @@ import {
     formatCompactNumber, 
     generateSvgSparkline 
 } from '../services/marketWatchService';
+import { marketWebSocketService, MarketTick } from '../services/marketWebSocketService';
+import { evaluatePriceAlerts, PriceAlert } from '../services/priceAlertService';
+import { TradingViewChartModal } from './TradingViewChartModal';
+import { PriceAlertModal } from './PriceAlertModal';
 import { useTradeStore } from '../store/useTradeStore';
 import { triggerHaptic } from '../services/circuitBreakerService';
 
@@ -56,19 +63,29 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('Caricamento...');
-    const [activeSource, setActiveSource] = useState<string>('CoinGecko Live API');
+    const [activeSource, setActiveSource] = useState<string>('Binance WebSocket Stream');
 
     // Filter & Search state
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedCategory, setSelectedCategory] = useState<MarketCategoryFilter>('ALL');
 
-    // Selected Asset Drawer State (iOS Bottom Sheet)
-    const [selectedAsset, setSelectedAsset] = useState<WatchlistAsset | null>(null);
+    // Selected Asset for TradingView Chart Modal
+    const [chartAsset, setChartAsset] = useState<WatchlistAsset | null>(null);
 
-    // Silent background polling: 3 minutes (180 seconds)
-    const AUTO_POLL_INTERVAL_MS = 180 * 1000;
-    const pollingTimerRef = useRef<any>(null);
+    // Selected Asset for Quick Price Alert Modal
+    const [alertAsset, setAlertAsset] = useState<WatchlistAsset | null>(null);
 
+    // Real-time Tick Flashes state: Record<symbol, 'UP' | 'DOWN'>
+    const [tickFlashes, setTickFlashes] = useState<Record<string, 'UP' | 'DOWN'>>({});
+
+    // Triggered Price Alert Toast
+    const [triggeredToast, setTriggeredToast] = useState<{
+        symbol: string;
+        targetPrice: number;
+        condition: string;
+    } | null>(null);
+
+    // Initial Load & Fallback Cache
     const loadMarketData = async (forceRefresh = false) => {
         if (forceRefresh) {
             setIsRefreshing(true);
@@ -79,36 +96,91 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
             setAssets(result.assets);
 
             const sourceLabels: Record<string, string> = {
-                coingecko: 'CoinGecko Live Feed',
-                binance_fallback: 'Binance 24hr Fallback',
-                resilient_feed: 'Resilient Market Feed'
+                coingecko: 'CoinGecko + Binance WebSocket',
+                binance_fallback: 'Binance Live Feed',
+                resilient_feed: 'Resilient Terminal Feed'
             };
-            setActiveSource(sourceLabels[result.source] || 'Free Public Feed');
+            setActiveSource(sourceLabels[result.source] || 'WebSocket Live Stream');
 
             const date = new Date(result.lastUpdated);
-            const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
             setLastUpdatedTime(timeStr);
         } catch (err) {
             console.warn('[MarketWatchHub] Load error:', err);
         } finally {
             setIsLoading(false);
             if (forceRefresh) {
-                setTimeout(() => setIsRefreshing(false), 600);
+                setTimeout(() => setIsRefreshing(false), 500);
             }
         }
     };
 
-    // Initial mount load
+    // Initial Mount
     useEffect(() => {
         loadMarketData(false);
+    }, []);
 
-        // Silent 3-minute background polling
-        pollingTimerRef.current = setInterval(() => {
-            loadMarketData(false);
-        }, AUTO_POLL_INTERVAL_MS);
+    /**
+     * Continuous WebSocket Tick-by-Tick Stream Subscription
+     */
+    useEffect(() => {
+        const unsubscribe = marketWebSocketService.subscribe((tick: MarketTick) => {
+            setAssets(prevAssets => {
+                let hasChanged = false;
+                const updated = prevAssets.map(asset => {
+                    const clean = asset.symbol.replace('/USD', '').replace('USDT', '').toUpperCase();
+                    if (clean === tick.symbol) {
+                        hasChanged = true;
+
+                        // Calculate flash direction if price differed
+                        if (asset.current_price !== tick.price) {
+                            const dir = tick.price > asset.current_price ? 'UP' : 'DOWN';
+                            setTickFlashes(f => ({ ...f, [asset.symbol]: dir }));
+                            setTimeout(() => {
+                                setTickFlashes(f => {
+                                    const next = { ...f };
+                                    delete next[asset.symbol];
+                                    return next;
+                                });
+                            }, 300);
+                        }
+
+                        // Also update sparkline tail
+                        let newSparkline = asset.sparkline_7d;
+                        if (newSparkline && newSparkline.length > 0) {
+                            newSparkline = [...newSparkline.slice(1), tick.price];
+                        }
+
+                        return {
+                            ...asset,
+                            current_price: tick.price,
+                            price_change_percentage_24h: tick.change24h,
+                            high_24h: Math.max(asset.high_24h, tick.high24h || tick.price),
+                            low_24h: Math.min(asset.low_24h, tick.low24h || tick.price),
+                            sparkline_7d: newSparkline
+                        };
+                    }
+                    return asset;
+                });
+
+                return hasChanged ? updated : prevAssets;
+            });
+
+            // Evaluate background price alerts
+            const triggered = evaluatePriceAlerts(tick.symbol, tick.price);
+            if (triggered && triggered.length > 0) {
+                const first = triggered[0];
+                setTriggeredToast({
+                    symbol: first.symbol,
+                    targetPrice: first.targetPrice,
+                    condition: first.condition
+                });
+                setTimeout(() => setTriggeredToast(null), 4500);
+            }
+        });
 
         return () => {
-            if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
+            unsubscribe();
         };
     }, []);
 
@@ -138,25 +210,40 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
         });
     }, [assets, selectedCategory, searchQuery]);
 
-    // Handle Quick Action: Register Trade on this Asset
-    const handleRegisterTrade = (asset: WatchlistAsset) => {
-        triggerHaptic('success');
-        // Format clean asset pair: e.g. "BTC/USD", "SOL/USD", or "SPX/USD"
-        const formattedSymbol = asset.symbol.includes('/') 
-            ? asset.symbol 
-            : `${asset.symbol}/USD`;
-
-        setDraftTradeAsset(formattedSymbol);
-        setSelectedAsset(null);
-
-        if (onNavigateToTrade) {
-            onNavigateToTrade(formattedSymbol);
-        }
-    };
-
     return (
         <div className={`w-full flex flex-col space-y-3 font-sans select-none ${className}`}>
             
+            {/* REAL-TIME TRIGGERED PRICE ALERT TOAST */}
+            {triggeredToast && (
+                <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-amber-500/20 border border-amber-500/40 backdrop-blur-xl flex items-center justify-between shadow-[0_0_25px_rgba(245,158,11,0.3)] animate-in slide-in-from-top duration-300">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/25 border border-amber-400/40 flex items-center justify-center shrink-0">
+                            <Bell className="w-4 h-4 text-amber-300 animate-bounce" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-mono font-black text-amber-300 uppercase">
+                                    ALLARME PREZZO ATTIVATO!
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-400/20 text-white font-bold">
+                                    {triggeredToast.symbol}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-slate-200 font-mono">
+                                La soglia di <strong>${triggeredToast.targetPrice.toLocaleString()}</strong> ({triggeredToast.condition === 'ABOVE' ? '>=' : '<='}) è stata raggiunta.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setTriggeredToast(null)}
+                        className="text-slate-400 hover:text-white p-1"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             {/* 1. TOP HEADER WITH STATS & ROTATING REFRESH BUTTON */}
             <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-2xl bg-[#0D111A]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-2.5">
@@ -168,12 +255,13 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                             <h2 className="text-xs sm:text-sm font-black text-white font-mono tracking-tight uppercase">
                                 GLOBAL MARKET WATCH
                             </h2>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 uppercase">
-                                LIVE 100% FREE
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 uppercase flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
+                                <span>WEBSOCKET REAL-TIME</span>
                             </span>
                         </div>
                         <p className="text-[10px] font-mono text-[#9CA3AF]">
-                            Feed: <span className="text-slate-300 font-semibold">{activeSource}</span> • Cache: 90s
+                            Stream: <span className="text-slate-300 font-semibold">{activeSource}</span> • Tick-by-Tick
                         </p>
                     </div>
                 </div>
@@ -181,7 +269,7 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                 <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-mono">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#9CA3AF]">
                         <Clock className="w-3 h-3 text-[#10B981]" />
-                        <span>Aggiornato: <strong className="text-white font-bold">{lastUpdatedTime}</strong></span>
+                        <span>Tick: <strong className="text-white font-bold">{lastUpdatedTime}</strong></span>
                     </div>
 
                     <button
@@ -189,10 +277,10 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                         onClick={() => loadMarketData(true)}
                         disabled={isRefreshing}
                         className="px-3 py-1 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 border border-white/10 text-white font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm group"
-                        title="Aggiorna Quotazioni in Tempo Reale"
+                        title="Riconnetti e Sincronizza Ticker"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 text-[#10B981] transition-transform duration-700 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                        <span className="text-[11px]">Aggiorna</span>
+                        <span className="text-[11px]">Sync</span>
                     </button>
                 </div>
             </div>
@@ -254,7 +342,7 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                 </div>
             </div>
 
-            {/* 3. ASSET CARDS LIST (MOBILE TOUCH-FIRST ROWS) */}
+            {/* 3. ASSET CARDS LIST (MOBILE TOUCH-FIRST ROWS WITH 300MS TICK FLASH) */}
             <div className="space-y-2">
                 {isLoading ? (
                     // Skeleton Loaders
@@ -289,26 +377,27 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                     filteredAssets.map((asset) => {
                         const isUp = asset.price_change_percentage_24h >= 0;
                         const sparklineData = generateSvgSparkline(asset.sparkline_7d, 90, 32);
+                        const flash = tickFlashes[asset.symbol];
 
                         return (
                             <div
                                 key={asset.id}
                                 onClick={() => {
                                     triggerHaptic('click');
-                                    setSelectedAsset(asset);
+                                    // Open TradingView Chart Modal directly
+                                    setChartAsset(asset);
                                 }}
-                                className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#121620]/70 hover:bg-[#161B28]/90 active:scale-[0.99] backdrop-blur-xl border border-white/[0.08] border-t-white/[0.14] transition-all duration-200 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.25)] flex items-center justify-between gap-2 group"
+                                className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#121620]/70 hover:bg-[#161B28]/95 active:scale-[0.99] backdrop-blur-xl border border-white/[0.08] border-t-white/[0.14] transition-all duration-200 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.25)] flex items-center justify-between gap-2 group hover:border-[#10B981]/40"
                             >
                                 {/* BLOCCO 1: SINISTRA (IDENTITÀ ASSET) */}
                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#181D2A] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden shadow-inner group-hover:border-white/20 transition">
+                                    <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#181D2A] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden shadow-inner group-hover:border-[#10B981]/50 transition">
                                         {asset.image ? (
                                             <img 
                                                 src={asset.image} 
                                                 alt={asset.symbol} 
                                                 className="w-full h-full object-cover" 
                                                 onError={(e) => {
-                                                    // Fallback to text initials on image error
                                                     (e.currentTarget as HTMLElement).style.display = 'none';
                                                 }}
                                             />
@@ -380,24 +469,48 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
                                     </svg>
                                 </div>
 
-                                {/* BLOCCO 3: DESTRA (QUOTAZIONE & PILLOLA VARIAZIONE 24H) */}
-                                <div className="flex flex-col items-end shrink-0 pl-1">
-                                    <span className="text-xs sm:text-sm font-mono font-bold text-white tracking-tight">
-                                        {formatPrice(asset.current_price)}
-                                    </span>
+                                {/* BLOCCO 3: DESTRA (QUOTAZIONE CON FLASH 300MS + ALLARME + 24H PILL) */}
+                                <div className="flex items-center gap-2 shrink-0 pl-1">
+                                    <div className="flex flex-col items-end">
+                                        <span 
+                                            className={`text-xs sm:text-sm font-mono font-bold tracking-tight transition-colors duration-300 px-1 py-0.5 rounded ${
+                                                flash === 'UP' 
+                                                    ? 'text-emerald-400 bg-emerald-500/15' 
+                                                    : flash === 'DOWN' 
+                                                        ? 'text-rose-400 bg-rose-500/15' 
+                                                        : 'text-white'
+                                            }`}
+                                        >
+                                            {formatPrice(asset.current_price)}
+                                        </span>
 
-                                    <div className={`mt-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold flex items-center gap-0.5 border ${
-                                        isUp 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                            : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                    }`}>
-                                        {isUp ? (
-                                            <ArrowUpRight className="w-2.5 h-2.5 stroke-[2.5]" />
-                                        ) : (
-                                            <ArrowDownRight className="w-2.5 h-2.5 stroke-[2.5]" />
-                                        )}
-                                        <span>{formatChangePercent(asset.price_change_percentage_24h)}</span>
+                                        <div className={`mt-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold flex items-center gap-0.5 border ${
+                                            isUp 
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                        }`}>
+                                            {isUp ? (
+                                                <ArrowUpRight className="w-2.5 h-2.5 stroke-[2.5]" />
+                                            ) : (
+                                                <ArrowDownRight className="w-2.5 h-2.5 stroke-[2.5]" />
+                                            )}
+                                            <span>{formatChangePercent(asset.price_change_percentage_24h)}</span>
+                                        </div>
                                     </div>
+
+                                    {/* Quick Price Alert Button */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            triggerHaptic('click');
+                                            setAlertAsset(asset);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-amber-500/20 text-[#9CA3AF] hover:text-amber-400 border border-white/[0.06] transition shrink-0"
+                                        title="Imposta allarme prezzo"
+                                    >
+                                        <Bell className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                             </div>
                         );
@@ -406,183 +519,27 @@ export const GlobalMarketWatchHub: React.FC<GlobalMarketWatchHubProps> = ({
             </div>
 
             {/* ============================================================================ */}
-            {/* 4. ASSET DETAIL DRAWER / BOTTOM SHEET (iOS STYLE)                             */}
-            {/* Zero Broker, Consultative Only, Link to Trade Logging                           */}
+            {/* 4. TRADINGVIEW MULTI-TIMEFRAME INTERACTIVE CHART MODAL                         */}
             {/* ============================================================================ */}
-            {selectedAsset && (
-                <div 
-                    className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center animate-in fade-in duration-200"
-                    onClick={() => setSelectedAsset(null)}
-                >
-                    <div 
-                        className="w-full max-w-lg bg-[#0E121B] rounded-t-3xl sm:rounded-3xl border border-white/[0.12] p-5 shadow-[0_-12px_40px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom duration-300 font-sans"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* iOS Drawer Grabber Handle */}
-                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1 mb-2 sm:hidden" />
+            {chartAsset && (
+                <TradingViewChartModal
+                    asset={chartAsset}
+                    isOpen={Boolean(chartAsset)}
+                    onClose={() => setChartAsset(null)}
+                    onNavigateToTrade={onNavigateToTrade}
+                />
+            )}
 
-                        {/* Drawer Header */}
-                        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-[#161B28] border border-white/15 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
-                                    {selectedAsset.image ? (
-                                        <img src={selectedAsset.image} alt={selectedAsset.symbol} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="font-mono font-black text-sm text-[#10B981]">{selectedAsset.symbol.slice(0, 3)}</span>
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-base font-extrabold text-white font-mono tracking-tight">
-                                            {selectedAsset.symbol}
-                                        </h3>
-                                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-slate-300">
-                                            {selectedAsset.type.toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-[#9CA3AF]">
-                                        {selectedAsset.name}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setSelectedAsset(null)}
-                                className="p-2 text-slate-400 hover:text-white rounded-xl bg-white/[0.05] hover:bg-white/10 transition cursor-pointer"
-                                title="Chiudi Scheda"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Current Price Banner */}
-                        <div className="p-3.5 rounded-2xl bg-[#121622]/90 border border-white/[0.08] flex items-center justify-between shadow-inner">
-                            <div>
-                                <span className="text-[10px] font-mono uppercase text-[#9CA3AF] tracking-wider block">
-                                    Prezzo Attuale (USD)
-                                </span>
-                                <div className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight mt-0.5">
-                                    {formatPrice(selectedAsset.current_price)}
-                                </div>
-                            </div>
-
-                            <div className={`px-3 py-1.5 rounded-xl font-mono text-xs font-black flex items-center gap-1 border ${
-                                selectedAsset.price_change_percentage_24h >= 0
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/25'
-                            }`}>
-                                {selectedAsset.price_change_percentage_24h >= 0 ? (
-                                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                                ) : (
-                                    <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                                )}
-                                <span>24h: {formatChangePercent(selectedAsset.price_change_percentage_24h)}</span>
-                            </div>
-                        </div>
-
-                        {/* ENLARGED 7-DAY MINI-CHART WITH AREA FILL & STATS */}
-                        <div className="p-4 rounded-2xl bg-[#121622]/70 border border-white/[0.08] space-y-2">
-                            <div className="flex items-center justify-between text-xs font-mono">
-                                <span className="text-[#9CA3AF] flex items-center gap-1.5 font-bold">
-                                    <TrendingUp className="w-3.5 h-3.5 text-[#10B981]" />
-                                    TREND 7 GIORNI
-                                </span>
-                                <span className="text-[10px] text-slate-400">
-                                    {selectedAsset.sparkline_7d.length} PUNTI DI CAMPIONAMENTO
-                                </span>
-                            </div>
-
-                            {/* SVG Chart Container */}
-                            <div className="w-full h-28 relative">
-                                {(() => {
-                                    const enlarged = generateSvgSparkline(selectedAsset.sparkline_7d, 320, 100);
-                                    return (
-                                        <svg 
-                                            viewBox="0 0 320 100" 
-                                            className="w-full h-full overflow-visible"
-                                            preserveAspectRatio="none"
-                                        >
-                                            <defs>
-                                                <linearGradient id="drawer-chart-grad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop 
-                                                        offset="0%" 
-                                                        stopColor={enlarged.isPositive ? '#10B981' : '#DC2626'} 
-                                                        stopOpacity="0.35" 
-                                                    />
-                                                    <stop 
-                                                        offset="100%" 
-                                                        stopColor={enlarged.isPositive ? '#10B981' : '#DC2626'} 
-                                                        stopOpacity="0.0" 
-                                                    />
-                                                </linearGradient>
-                                            </defs>
-
-                                            {/* Area */}
-                                            <path d={enlarged.areaD} fill="url(#drawer-chart-grad)" />
-
-                                            {/* Curve */}
-                                            <path 
-                                                d={enlarged.pathD} 
-                                                fill="none" 
-                                                stroke={enlarged.isPositive ? '#10B981' : '#DC2626'} 
-                                                strokeWidth="2.4" 
-                                                strokeLinecap="round" 
-                                                strokeLinejoin="round" 
-                                            />
-                                        </svg>
-                                    );
-                                })()}
-                            </div>
-
-                            <div className="flex items-center justify-between text-[10px] font-mono text-[#9CA3AF] pt-1 border-t border-white/[0.06]">
-                                <span>Min: <strong className="text-white">{formatPrice(selectedAsset.low_24h)}</strong></span>
-                                <span>Max: <strong className="text-white">{formatPrice(selectedAsset.high_24h)}</strong></span>
-                            </div>
-                        </div>
-
-                        {/* KEY METRICS GRID (4 BLOCKS) */}
-                        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                            <div className="p-3 rounded-xl bg-[#121622]/60 border border-white/[0.06] space-y-0.5">
-                                <span className="text-[10px] text-[#9CA3AF] uppercase block">Massimo 24h</span>
-                                <span className="text-sm font-bold text-white block">{formatPrice(selectedAsset.high_24h)}</span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#121622]/60 border border-white/[0.06] space-y-0.5">
-                                <span className="text-[10px] text-[#9CA3AF] uppercase block">Minimo 24h</span>
-                                <span className="text-sm font-bold text-white block">{formatPrice(selectedAsset.low_24h)}</span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#121622]/60 border border-white/[0.06] space-y-0.5">
-                                <span className="text-[10px] text-[#9CA3AF] uppercase block">Volume 24h</span>
-                                <span className="text-sm font-bold text-white block">{formatCompactNumber(selectedAsset.total_volume)}</span>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-[#121622]/60 border border-white/[0.06] space-y-0.5">
-                                <span className="text-[10px] text-[#9CA3AF] uppercase block">Market Cap</span>
-                                <span className="text-sm font-bold text-white block">
-                                    {selectedAsset.market_cap > 0 ? formatCompactNumber(selectedAsset.market_cap) : 'Benchmark'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* QUICK ACTION BUTTON: REGISTRA TRADE SU QUESTO ASSET */}
-                        <div className="pt-2">
-                            <button
-                                type="button"
-                                onClick={() => handleRegisterTrade(selectedAsset)}
-                                className="w-full min-h-[48px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#10B981]/25 border border-[#10B981]"
-                            >
-                                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-                                <span>Registra Trade su questo Asset ({selectedAsset.symbol})</span>
-                            </button>
-                            <p className="text-[10px] text-center text-[#9CA3AF] font-mono mt-1.5">
-                                Precompila all'istante il form di Trade Logging senza frizione
-                            </p>
-                        </div>
-
-                    </div>
-                </div>
+            {/* ============================================================================ */}
+            {/* 5. PRICE ALERT MODAL (TRIGGERED FROM ROW BELL)                                */}
+            {/* ============================================================================ */}
+            {alertAsset && (
+                <PriceAlertModal
+                    symbol={alertAsset.symbol}
+                    currentPrice={alertAsset.current_price}
+                    isOpen={Boolean(alertAsset)}
+                    onClose={() => setAlertAsset(null)}
+                />
             )}
 
         </div>

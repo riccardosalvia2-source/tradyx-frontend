@@ -27,19 +27,14 @@ import {
     TrendingDown,
     ShieldAlert,
     HeartPulse,
-    Wind,
-    Play,
-    Square,
-    CheckCircle2
+    CheckCircle2,
+    BarChart2
 } from 'lucide-react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
 import { isTiltDetected, triggerHaptic } from '../../services/circuitBreakerService';
 import { getCortisolClearingStatus } from '../../services/neuroPsychService';
 import { NewsMarketImpactCard } from '../NewsMarketImpactCard';
 import { GlobalMarketWatchHub } from '../GlobalMarketWatchHub';
-import { BarChart2 } from 'lucide-react';
-
-type BreathPhase = 'INHALE' | 'HOLD_FULL' | 'EXHALE' | 'HOLD_EMPTY';
 
 interface TabBubbleProps {
     initialSubView?: 'NEWS' | 'MARKETS';
@@ -60,7 +55,7 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
     // Cortisol Clearing Window
     const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
 
-    // 2-View State Flow: 'BUBBLE' (Initial Zen View) or 'EXPLORER' (Sentiment & News Feed)
+    // 2-View State Flow: 'BUBBLE' (Pure Visual Zen View) or 'EXPLORER' (Sentiment & News Feed)
     const [viewMode, setViewMode] = useState<'BUBBLE' | 'EXPLORER'>(initialViewMode);
     const [activeSubTab, setActiveSubTab] = useState<'NEWS' | 'MARKETS'>(initialSubView);
 
@@ -71,12 +66,6 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
     useEffect(() => {
         if (initialViewMode) setViewMode(initialViewMode);
     }, [initialViewMode]);
-
-    // Box Breathing 4-4-4-4 state
-    const [isBreathingMode, setIsBreathingMode] = useState<boolean>(false);
-    const [breathPhase, setBreathPhase] = useState<BreathPhase>('INHALE');
-    const [breathSeconds, setBreathSeconds] = useState<number>(4);
-    const [breathCycles, setBreathCycles] = useState<number>(0);
 
     // News aggregator state
     const [liveNews, setLiveNews] = useState<RealNewsItem[]>([]);
@@ -138,44 +127,6 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
         return () => clearInterval(timer);
     }, []);
 
-    // ============================================================================
-    // 2. BOX BREATHING 4-4-4-4 (RESET DEL SISTEMA AUTONOMO)
-    // Precise 4s Inhale, 4s Hold Full, 4s Exhale, 4s Hold Empty
-    // With dynamic 4s countdown and light haptic feedback at every phase transition
-    // ============================================================================
-    useEffect(() => {
-        if (!isBreathingMode) return;
-
-        const interval = setInterval(() => {
-            setBreathSeconds(prev => {
-                if (prev <= 1) {
-                    // Haptic feedback at every phase transition
-                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                        try {
-                            navigator.vibrate([30]);
-                        } catch {
-                            // ignore if unsupported
-                        }
-                    }
-
-                    // Advance to next 4s phase
-                    setBreathPhase(curr => {
-                        if (curr === 'INHALE') return 'HOLD_FULL';
-                        if (curr === 'HOLD_FULL') return 'EXHALE';
-                        if (curr === 'EXHALE') return 'HOLD_EMPTY';
-                        // Completed full 4-4-4-4 cycle
-                        setBreathCycles(c => c + 1);
-                        return 'INHALE';
-                    });
-                    return 4;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [isBreathingMode]);
-
     const formatCountdown = (totalSec: number) => {
         const mins = Math.floor(totalSec / 60);
         const secs = totalSec % 60;
@@ -183,30 +134,15 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
     };
 
     const handleBubbleClick = () => {
-        if (isBreathingMode) return; // In breathing mode, tap interacts with breathing
+        triggerHaptic('click');
         setViewMode('EXPLORER');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleBackToBubble = () => {
+        triggerHaptic('click');
         setViewMode('BUBBLE');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const toggleBreathingMode = () => {
-        triggerHaptic('click');
-        if (isBreathingMode) {
-            setIsBreathingMode(false);
-            setBreathPhase('INHALE');
-            setBreathSeconds(4);
-        } else {
-            setIsBreathingMode(true);
-            setBreathPhase('INHALE');
-            setBreathSeconds(4);
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                try { navigator.vibrate([30]); } catch (e) { /* ignore */ }
-            }
-        }
     };
 
     const filteredNews = liveNews.filter(n => {
@@ -217,54 +153,6 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
             n.source.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCat && matchesQuery;
     });
-
-    // Bubble dynamic styles based on Box Breathing phase
-    const getBreathingBubbleStyle = () => {
-        if (!isBreathingMode) {
-            return {
-                width: '250px',
-                height: '250px',
-                transform: 'scale(1)',
-                transition: 'all 0.5s ease-out'
-            };
-        }
-
-        if (breathPhase === 'INHALE') {
-            return {
-                width: '285px',
-                height: '285px',
-                transform: 'scale(1.14)',
-                boxShadow: '0 0 70px rgba(16, 185, 129, 0.75)',
-                transition: 'all 3.8s ease-in-out'
-            };
-        }
-        if (breathPhase === 'HOLD_FULL') {
-            return {
-                width: '285px',
-                height: '285px',
-                transform: 'scale(1.14)',
-                boxShadow: '0 0 80px rgba(16, 185, 129, 0.90)',
-                transition: 'all 0.4s ease-out'
-            };
-        }
-        if (breathPhase === 'EXHALE') {
-            return {
-                width: '225px',
-                height: '225px',
-                transform: 'scale(0.92)',
-                boxShadow: '0 0 35px rgba(16, 185, 129, 0.40)',
-                transition: 'all 3.8s ease-in-out'
-            };
-        }
-        // HOLD_EMPTY
-        return {
-            width: '225px',
-            height: '225px',
-            transform: 'scale(0.92)',
-            boxShadow: '0 0 25px rgba(16, 185, 129, 0.25)',
-            transition: 'all 0.4s ease-out'
-        };
-    };
 
     return (
         <div className="w-full flex-1 min-h-[calc(100dvh-5.5rem)] bg-[#08090C] text-slate-100 flex flex-col justify-center items-center select-none overflow-x-hidden relative">
@@ -301,7 +189,7 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
                     </div>
 
                     {/* CORTISOL CLEARING WINDOW ADVISORY BANNER (SE IN DRAWDOWN) */}
-                    {cortisolStatus.isClearingActive && !isBreathingMode && (
+                    {cortisolStatus.isClearingActive && (
                         <div className="w-full max-w-sm mt-3 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 space-y-1.5 text-left font-mono animate-in fade-in">
                             <div className="flex items-center justify-between text-[11px] font-black text-rose-300">
                                 <div className="flex items-center gap-1.5">
@@ -313,144 +201,84 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
                             <p className="text-[10px] text-rose-200 leading-relaxed font-sans">
                                 Il picco ormonale acuto altera temporaneamente la corteccia prefrontale. Decisioni oggettive compromesse prima del decadimento plasmatico di 25 min.
                             </p>
-                            <button
-                                type="button"
-                                onClick={toggleBreathingMode}
-                                className="w-full py-1.5 px-3 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-[10px] font-black text-white uppercase flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
-                            >
-                                <Wind className="w-3 h-3 text-white" />
-                                <span>Avvia Box Breathing 4-4-4-4 per de-escalation</span>
-                            </button>
                         </div>
                     )}
 
-                    {/* Central Organic Fluid Bubble Orb (3D & Interactive Box Breathing) */}
-                    <div className="relative flex flex-col items-center justify-center my-auto py-4">
+                    {/* Central Organic Fluid Bubble Orb (3D Pure Jade / Red Alarm Terminal Core) */}
+                    <div className="relative flex flex-col items-center justify-center my-auto py-6">
                         
-                        {/* Soft Ambient Glow (Jade Emerald #10B981 vs Pulsing Red Alarm) */}
+                        {/* Soft Ambient Glow (Jade Emerald #10B981 vs Pulsing Red Alarm #EF4444) */}
                         <div 
-                            className="absolute rounded-full pointer-events-none transition-all duration-700"
+                            className="absolute rounded-full pointer-events-none transition-all duration-700 animate-pulse"
                             style={{
-                                width: isBreathingMode ? '340px' : '280px',
-                                height: isBreathingMode ? '340px' : '280px',
-                                background: isTilt && !isBreathingMode
+                                width: '280px',
+                                height: '280px',
+                                background: isTilt
                                     ? 'radial-gradient(circle at center, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.20) 55%, transparent 75%)'
                                     : 'radial-gradient(circle at center, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.20) 55%, transparent 75%)',
                                 filter: 'blur(45px)',
-                                opacity: isBreathingMode ? 0.95 : 0.75
+                                opacity: 0.85
                             }}
                         />
 
-                        {/* 3D Organic Fluid Sphere: JADE vs RED ALARM with Box Breathing kinetics */}
+                        {/* 3D Organic Fluid Sphere: JADE vs RED ALARM */}
                         <div 
                             onClick={handleBubbleClick}
-                            className={`flex flex-col items-center justify-center relative overflow-hidden cursor-pointer select-none border ${
-                                isBreathingMode
-                                    ? 'bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] border-emerald-300/60 shadow-2xl rounded-full'
-                                    : isTilt
-                                    ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50 rounded-full'
-                                    : 'quasar-3d-bubble border-white/25 rounded-full hover:scale-105 active:scale-95'
+                            className={`w-[240px] h-[240px] sm:w-[260px] sm:h-[260px] flex flex-col items-center justify-center relative overflow-hidden cursor-pointer select-none border transition-transform duration-300 rounded-full hover:scale-105 active:scale-95 shadow-2xl ${
+                                isTilt
+                                    ? 'bg-gradient-to-br from-[#EF4444] via-[#DC2626] to-[#991B1B] animate-pulse border-rose-300/40 shadow-rose-600/50'
+                                    : 'quasar-3d-bubble border-white/25'
                             }`}
-                            style={getBreathingBubbleStyle()}
-                            title={isBreathingMode ? "Respirazione Box Breathing in corso" : "Tocca per accedere al Sentiment Galaxy Explorer"}
+                            title="Tocca per accedere al Sentiment Galaxy Explorer & Live Markets"
                         >
                             {/* Organic Soft Specular Highlight */}
                             <div className="absolute top-5 left-9 w-24 h-12 rounded-full bg-white/25 blur-md pointer-events-none transform -rotate-12" />
 
-                            {/* Center Visuals: Breathing HUD vs Quasar Icon */}
-                            {isBreathingMode ? (
-                                <div className="flex flex-col items-center justify-center text-center space-y-1 animate-in zoom-in-95 duration-200">
-                                    <span className="text-3xl sm:text-4xl font-mono font-black text-white tabular-nums drop-shadow-md">
-                                        0{breathSeconds}s
-                                    </span>
-                                    <div className="px-3 py-1 rounded-full bg-black/40 border border-white/30 text-[9px] font-mono font-black uppercase tracking-widest text-white shadow-lg">
-                                        {breathPhase === 'INHALE' && '4s INHALE'}
-                                        {breathPhase === 'HOLD_FULL' && '4s TRATTIENI (PIENO)'}
-                                        {breathPhase === 'EXHALE' && '4s EXHALE'}
-                                        {breathPhase === 'HOLD_EMPTY' && '4s TRATTIENI (VUOTO)'}
-                                    </div>
-                                    <span className="text-[9px] font-mono text-emerald-200 font-bold opacity-80">
-                                        CICLO {breathCycles + 1}
-                                    </span>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className={`p-4 rounded-2xl mb-3 shadow-2xl group-hover:rotate-6 transition-transform duration-300 border ${
-                                        isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-black/30 backdrop-blur-md border-white/20'
-                                    }`}>
-                                        <BrainCircuit className="w-9 h-9 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-                                    </div>
-
-                                    <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-lg border border-white/40 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2">
-                                        <Sparkles className="w-3.5 h-3.5 text-[#2ECC71] animate-pulse" />
-                                        <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Phase Description Caption under bubble */}
-                        {isBreathingMode && (
-                            <div className="mt-4 px-4 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-center font-mono text-xs text-slate-200 shadow-md">
-                                {breathPhase === 'INHALE' && 'Inhala con luce smeraldo (#10B981) • Espansione graduale'}
-                                {breathPhase === 'HOLD_FULL' && 'Trattieni a polmoni pieni • Glow stabile'}
-                                {breathPhase === 'EXHALE' && 'Esala dolcemente tornando al raggio base'}
-                                {breathPhase === 'HOLD_EMPTY' && 'Trattieni a polmoni vuoti • Reset del sistema autonomo'}
+                            {/* Center Visuals: Brain Icon & Tap to Sync Pill */}
+                            <div className={`p-4 rounded-2xl mb-3 shadow-2xl group-hover:rotate-6 transition-transform duration-300 border ${
+                                isTilt ? 'bg-rose-950/40 border-rose-400/30' : 'bg-black/30 backdrop-blur-md border-white/20'
+                            }`}>
+                                <BrainCircuit className="w-9 h-9 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
                             </div>
-                        )}
+
+                            <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-lg border border-white/40 text-[10px] sm:text-[11px] font-mono font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                                <Sparkles className="w-3.5 h-3.5 text-[#2ECC71] animate-pulse" />
+                                <span>{isTilt ? 'CIRCUIT BREAKER' : 'TAP TO SYNC'}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Bottom Actions Bar: Box Breathing Mode & Sentiment Explorer */}
+                    {/* Bottom Actions Bar: Live Markets & Market News */}
                     <div className="w-full max-w-sm space-y-2 z-20">
-                        {isBreathingMode ? (
+                        <div className="grid grid-cols-2 gap-2">
                             <button
                                 type="button"
-                                onClick={toggleBreathingMode}
-                                className="w-full min-h-[46px] rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs font-bold uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-white/10 shadow-lg"
+                                onClick={() => {
+                                    triggerHaptic('click');
+                                    setActiveSubTab('MARKETS');
+                                    setViewMode('EXPLORER');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="min-h-[46px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#10B981]/25"
                             >
-                                <Square className="w-4 h-4 text-rose-400 fill-rose-400" />
-                                <span>Ferma Box Breathing ({breathCycles} cicli eseguiti)</span>
+                                <BarChart2 className="w-4 h-4 text-slate-950" />
+                                <span>Live Markets</span>
                             </button>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={toggleBreathingMode}
-                                        className="min-h-[46px] rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/40 shadow-lg shadow-emerald-950/40"
-                                    >
-                                        <Wind className="w-4 h-4 text-emerald-400" />
-                                        <span>Box 4-4-4-4</span>
-                                    </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveSubTab('MARKETS');
-                                            setViewMode('EXPLORER');
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                        }}
-                                        className="min-h-[46px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#10B981]/25"
-                                    >
-                                        <BarChart2 className="w-4 h-4 text-slate-950" />
-                                        <span>Live Markets</span>
-                                    </button>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setActiveSubTab('NEWS');
-                                        setViewMode('EXPLORER');
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    className="w-full min-h-[38px] rounded-xl bg-[#121620]/80 hover:bg-[#161B28] text-slate-300 hover:text-white font-mono text-[11px] font-bold uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-white/[0.08]"
-                                >
-                                    <Globe className="w-3.5 h-3.5 text-[#10B981]" />
-                                    <span>Market News & Sentiment Feed</span>
-                                </button>
-                            </div>
-                        )}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    triggerHaptic('click');
+                                    setActiveSubTab('NEWS');
+                                    setViewMode('EXPLORER');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="min-h-[46px] rounded-xl bg-[#121620]/90 hover:bg-[#161B28] text-white border border-white/[0.1] font-mono text-xs font-bold uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                            >
+                                <Globe className="w-4 h-4 text-[#10B981]" />
+                                <span>Market News</span>
+                            </button>
+                        </div>
                     </div>
 
                 </div>
@@ -726,6 +554,7 @@ export const TabBubble: React.FC<TabBubbleProps> = ({
                                                 summary={news.summary}
                                                 sourceType={news.sourceType}
                                                 sentimentHint={news.sentiment}
+                                                url={news.url}
                                             />
                                         </div>
                                     );

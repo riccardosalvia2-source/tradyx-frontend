@@ -553,6 +553,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                                                         summary={news.summary}
                                                         sourceType={news.sourceType}
                                                         sentimentHint={news.sentiment}
+                                                        url={news.url}
                                                     />
 
                                                     {/* Box del Commento Predittivo Quasar */}
