@@ -18,10 +18,18 @@ import { parseTradingScreenshot } from '../services/screenshotOcrService';
 import { PlusCircle, Flame, ShieldCheck, Zap, Mic, MicOff, CheckCircle2, Camera, Sparkles, X } from 'lucide-react';
 
 export const TradeForm: React.FC = () => {
-    const { addTrade } = useTradeStore();
+    const { addTrade, draftTradeAsset, setDraftTradeAsset } = useTradeStore();
 
     // Mandatory Minimal viable trade parameters
     const [assetPair, setAssetPair] = useState('BTC/USD');
+
+    React.useEffect(() => {
+        if (draftTradeAsset) {
+            setAssetPair(draftTradeAsset);
+            setDraftTradeAsset(null);
+        }
+    }, [draftTradeAsset, setDraftTradeAsset]);
+
     const [direction, setDirection] = useState<TradeDirection>('LONG');
     const [entryPrice, setEntryPrice] = useState<string>('62000');
     const [pnl, setPnl] = useState<string>('-1500');

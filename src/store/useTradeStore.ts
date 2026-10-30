@@ -21,8 +21,10 @@ interface TradeState {
     isLoading: boolean;
     error: string | null;
     bubbleConfig: BubbleConfig;
+    draftTradeAsset: string | null;
     
     // Actions
+    setDraftTradeAsset: (asset: string | null) => void;
     fetchTrades: (userId: string) => Promise<void>;
     addTrade: (tradeData: NewTradeInput) => Promise<void>;
     deleteTrade: (tradeId: string) => Promise<void>;
@@ -269,6 +271,9 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     isLoading: false,
     error: null,
     bubbleConfig: computeBubbleConfig(DEFAULT_MOCK_TRADES),
+    draftTradeAsset: null,
+
+    setDraftTradeAsset: (asset: string | null) => set({ draftTradeAsset: asset }),
 
     fetchTrades: async (userId: string) => {
         set({ isLoading: true, error: null });

@@ -38,6 +38,7 @@ import { fetchMultiSourceRealTimeNews, RealNewsItem } from '../services/multiSou
 import { isTiltDetected } from '../services/circuitBreakerService';
 import { getCortisolClearingStatus } from '../services/neuroPsychService';
 import { NewsMarketImpactCard } from './NewsMarketImpactCard';
+import { GlobalMarketWatchHub } from './GlobalMarketWatchHub';
 import { HeartPulse } from 'lucide-react';
 
 interface QuasarBubbleProps {
@@ -52,6 +53,7 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
         : (Array.isArray(storeTrades) && storeTrades.length > 0 ? storeTrades : DEFAULT_MOCK_TRADES);
 
     const [isExplorerOpen, setIsExplorerOpen] = useState<boolean>(false);
+    const [activeModalTab, setActiveModalTab] = useState<'NEWS' | 'MARKETS'>('NEWS');
     const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
     const [newsCategory, setNewsCategory] = useState<'ALL' | 'MACRO' | 'CRYPTO' | 'FED' | 'SENTIMENT' | 'ETF'>('ALL');
     const [searchQuery, setSearchQuery] = useState<string>('');
@@ -355,6 +357,47 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                         {/* Corpo del Modale (Scrollabile in verticale) */}
                         <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-4 py-4 scrollbar-thin">
                             
+                            {/* IOS SEGMENTED CONTROL: [ 📰 MARKET NEWS ] | [ 📊 LIVE MARKETS ] */}
+                            <div className="w-full flex justify-center pb-1">
+                                <div className="flex items-center p-1 bg-[#121620]/90 backdrop-blur-xl rounded-2xl border border-white/[0.08] shadow-inner w-full max-w-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveModalTab('NEWS')}
+                                        className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                            activeModalTab === 'NEWS'
+                                                ? 'bg-[#10B981] text-slate-950 shadow-lg shadow-[#10B981]/25 font-black'
+                                                : 'text-[#9CA3AF] hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="text-xs">📰</span>
+                                        <span className="tracking-tight uppercase">MARKET NEWS</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveModalTab('MARKETS')}
+                                        className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                            activeModalTab === 'MARKETS'
+                                                ? 'bg-[#10B981] text-slate-950 shadow-lg shadow-[#10B981]/25 font-black'
+                                                : 'text-[#9CA3AF] hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="text-xs">📊</span>
+                                        <span className="tracking-tight uppercase">LIVE MARKETS</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* SUB-VIEW 1: LIVE MARKETS WATCHLIST HUB */}
+                            {activeModalTab === 'MARKETS' && (
+                                <GlobalMarketWatchHub onNavigateToTrade={() => {
+                                    setIsExplorerOpen(false);
+                                }} />
+                            )}
+
+                            {/* SUB-VIEW 2: MARKET NEWS & SENTIMENT FEED */}
+                            {activeModalTab === 'NEWS' && (
+                                <>
                             {/* 1. Card Global Sentiment (dati dal Serverless API /api/quasar-sentiment) */}
                             <div className="p-5 glass-panel rounded-2xl space-y-3 relative overflow-hidden shadow-xl">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -530,6 +573,8 @@ export const QuasarBubble: React.FC<QuasarBubbleProps> = ({ config, trades: prop
                                     )}
                                 </div>
                             </div>
+                            </>
+                            )}
 
                         </div>
 

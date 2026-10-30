@@ -32,9 +32,10 @@ import {
 interface TabHomeProps {
     authUser: UserAccount | null;
     setActiveTab: (tab: AppTab) => void;
+    onOpenMarketPulse?: () => void;
 }
 
-export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
+export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab, onOpenMarketPulse }) => {
     const { trades } = useTradeStore();
     const { 
         baseCurrency, 
@@ -146,15 +147,38 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Right Header Status / Profile trigger pill */}
-                <button
-                    type="button"
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-subcard hover:border-[#10B981]/40 text-[10px] font-mono transition-all cursor-pointer group"
-                >
-                    <Settings className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#10B981] transition-transform group-hover:rotate-45" />
-                    <span className="text-[#10B981] font-bold">{selectedPlan.toUpperCase()}</span>
-                </button>
+                {/* Right Header Status / Market Pulse & Profile trigger pill */}
+                <div className="flex items-center gap-1.5">
+                    {/* Market Pulse Quick Trigger */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (onOpenMarketPulse) {
+                                onOpenMarketPulse();
+                            } else {
+                                setActiveTab('bubble');
+                            }
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#121620]/90 hover:bg-[#161B28] border border-[#10B981]/40 hover:border-[#10B981]/80 text-[10px] font-mono transition-all cursor-pointer group shadow-sm active:scale-95"
+                        title="Market Pulse - Live Market Watch Hub"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <Activity className="w-3.5 h-3.5 text-[#10B981]" />
+                            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
+                        </div>
+                        <span className="text-slate-200 group-hover:text-white font-bold hidden xs:inline sm:inline">Pulse</span>
+                    </button>
+
+                    {/* Profile & Protocol Settings */}
+                    <button
+                        type="button"
+                        onClick={() => setIsProfileModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-subcard hover:border-[#10B981]/40 text-[10px] font-mono transition-all cursor-pointer group"
+                    >
+                        <Settings className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#10B981] transition-transform group-hover:rotate-45" />
+                        <span className="text-[#10B981] font-bold">{selectedPlan.toUpperCase()}</span>
+                    </button>
+                </div>
             </header>
 
             {/* 2. CARD PRINCIPALE SALDO: AVAILABLE BALANCE */}

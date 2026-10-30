@@ -25,6 +25,20 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     onLogout
 }) => {
     const [activeTab, setActiveTab] = useState<AppTab>('home');
+    const [bubbleSubTab, setBubbleSubTab] = useState<'NEWS' | 'MARKETS'>('NEWS');
+    const [bubbleViewMode, setBubbleViewMode] = useState<'BUBBLE' | 'EXPLORER'>('BUBBLE');
+
+    const handleOpenMarketPulse = () => {
+        setBubbleViewMode('EXPLORER');
+        setBubbleSubTab('MARKETS');
+        setActiveTab('bubble');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleNavigateToTrade = () => {
+        setActiveTab('trade');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#10B981] selection:text-white relative">
@@ -41,7 +55,11 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                 {/* Active Tab Content Screen */}
                 <main className="w-full flex-1 flex flex-col min-h-0">
                     {activeTab === 'home' && (
-                        <TabHome authUser={authUser} setActiveTab={setActiveTab} />
+                        <TabHome 
+                            authUser={authUser} 
+                            setActiveTab={setActiveTab} 
+                            onOpenMarketPulse={handleOpenMarketPulse}
+                        />
                     )}
                     {activeTab === 'trade' && (
                         <TabTrade />
@@ -59,7 +77,11 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         <TabAICoach />
                     )}
                     {activeTab === 'bubble' && (
-                        <TabBubble />
+                        <TabBubble 
+                            initialSubView={bubbleSubTab}
+                            initialViewMode={bubbleViewMode}
+                            onNavigateToTrade={handleNavigateToTrade}
+                        />
                     )}
                 </main>
 

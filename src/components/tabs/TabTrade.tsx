@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 
 export const TabTrade: React.FC = () => {
-    const { trades, addTrade } = useTradeStore();
+    const { trades, addTrade, draftTradeAsset, setDraftTradeAsset } = useTradeStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
     const { baseCurrency, formatMoney } = useSettingsStore();
 
@@ -51,6 +51,15 @@ export const TabTrade: React.FC = () => {
 
     // 1. Mandatory Minimal Parameters
     const [assetPair, setAssetPair] = useState<string>('BTC/USD');
+
+    // Prepopulate symbol from Market Watch Hub if user clicked "Registra Trade su questo Asset"
+    useEffect(() => {
+        if (draftTradeAsset) {
+            setAssetPair(draftTradeAsset);
+            setDraftTradeAsset(null);
+        }
+    }, [draftTradeAsset, setDraftTradeAsset]);
+
     const [direction, setDirection] = useState<TradeDirection>('LONG');
     const [entryPrice, setEntryPrice] = useState<string>('64250.00');
     const [netPnlInput, setNetPnlInput] = useState<string>('');

@@ -34,3 +34,39 @@ export interface CryptoFetchResult {
     isFallback: boolean;
     lastUpdated: number; // Timestamp in ms
 }
+
+// ============================================================================
+// GLOBAL MARKET WATCH HUB TYPES
+// ============================================================================
+
+export type MarketCategoryFilter = 'ALL' | 'TOP_10' | 'LAYER_1' | 'MACRO';
+
+export type MarketAssetType = 'crypto' | 'macro_index' | 'commodity';
+
+export interface WatchlistAsset {
+    id: string;
+    symbol: string;         // e.g. "BTC", "SOL", "SPX"
+    name: string;           // e.g. "Bitcoin", "Solana", "S&P 500"
+    type: MarketAssetType;  // 'crypto' | 'macro_index' | 'commodity'
+    category: 'crypto_top' | 'crypto_l1' | 'macro_index' | 'commodity';
+    current_price: number;
+    price_change_percentage_24h: number;
+    high_24h: number;
+    low_24h: number;
+    total_volume: number;
+    market_cap: number;
+    sparkline_7d: number[];
+    image?: string;
+    rank?: number;
+    last_updated: string;
+    description?: string;
+}
+
+export interface MarketWatchFetchResult {
+    assets: WatchlistAsset[];
+    isCached: boolean;
+    isFallback: boolean;
+    source: 'coingecko' | 'binance_fallback' | 'resilient_feed';
+    lastUpdated: number;
+}
+

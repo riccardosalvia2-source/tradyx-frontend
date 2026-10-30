@@ -36,10 +36,22 @@ import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
 import { isTiltDetected, triggerHaptic } from '../../services/circuitBreakerService';
 import { getCortisolClearingStatus } from '../../services/neuroPsychService';
 import { NewsMarketImpactCard } from '../NewsMarketImpactCard';
+import { GlobalMarketWatchHub } from '../GlobalMarketWatchHub';
+import { BarChart2 } from 'lucide-react';
 
 type BreathPhase = 'INHALE' | 'HOLD_FULL' | 'EXHALE' | 'HOLD_EMPTY';
 
-export const TabBubble: React.FC = () => {
+interface TabBubbleProps {
+    initialSubView?: 'NEWS' | 'MARKETS';
+    initialViewMode?: 'BUBBLE' | 'EXPLORER';
+    onNavigateToTrade?: (symbol: string) => void;
+}
+
+export const TabBubble: React.FC<TabBubbleProps> = ({
+    initialSubView = 'NEWS',
+    initialViewMode = 'BUBBLE',
+    onNavigateToTrade
+}) => {
     const { trades } = useTradeStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
     const tiltCheck = isTiltDetected(safeTrades);
@@ -49,7 +61,16 @@ export const TabBubble: React.FC = () => {
     const cortisolStatus = useMemo(() => getCortisolClearingStatus(safeTrades), [safeTrades]);
 
     // 2-View State Flow: 'BUBBLE' (Initial Zen View) or 'EXPLORER' (Sentiment & News Feed)
-    const [viewMode, setViewMode] = useState<'BUBBLE' | 'EXPLORER'>('BUBBLE');
+    const [viewMode, setViewMode] = useState<'BUBBLE' | 'EXPLORER'>(initialViewMode);
+    const [activeSubTab, setActiveSubTab] = useState<'NEWS' | 'MARKETS'>(initialSubView);
+
+    useEffect(() => {
+        if (initialSubView) setActiveSubTab(initialSubView);
+    }, [initialSubView]);
+
+    useEffect(() => {
+        if (initialViewMode) setViewMode(initialViewMode);
+    }, [initialViewMode]);
 
     // Box Breathing 4-4-4-4 state
     const [isBreathingMode, setIsBreathingMode] = useState<boolean>(false);
@@ -391,23 +412,42 @@ export const TabBubble: React.FC = () => {
                                 <span>Ferma Box Breathing ({breathCycles} cicli eseguiti)</span>
                             </button>
                         ) : (
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={toggleBreathingMode}
-                                    className="min-h-[46px] rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/40 shadow-lg shadow-emerald-950/40"
-                                >
-                                    <Wind className="w-4 h-4 text-emerald-400" />
-                                    <span>Box 4-4-4-4</span>
-                                </button>
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={toggleBreathingMode}
+                                        className="min-h-[46px] rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/40 shadow-lg shadow-emerald-950/40"
+                                    >
+                                        <Wind className="w-4 h-4 text-emerald-400" />
+                                        <span>Box 4-4-4-4</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setActiveSubTab('MARKETS');
+                                            setViewMode('EXPLORER');
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }}
+                                        className="min-h-[46px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#10B981]/25"
+                                    >
+                                        <BarChart2 className="w-4 h-4 text-slate-950" />
+                                        <span>Live Markets</span>
+                                    </button>
+                                </div>
 
                                 <button
                                     type="button"
-                                    onClick={handleBubbleClick}
-                                    className="min-h-[46px] rounded-xl bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#10B981]/25"
+                                    onClick={() => {
+                                        setActiveSubTab('NEWS');
+                                        setViewMode('EXPLORER');
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    className="w-full min-h-[38px] rounded-xl bg-[#121620]/80 hover:bg-[#161B28] text-slate-300 hover:text-white font-mono text-[11px] font-bold uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-white/[0.08]"
                                 >
-                                    <Globe className="w-4 h-4 text-slate-950" />
-                                    <span>News Market</span>
+                                    <Globe className="w-3.5 h-3.5 text-[#10B981]" />
+                                    <span>Market News & Sentiment Feed</span>
                                 </button>
                             </div>
                         )}
@@ -417,7 +457,7 @@ export const TabBubble: React.FC = () => {
             )}
 
             {/* ============================================================================ */}
-            {/* VISTA 2: SENTIMENT GALAXY EXPLORER & 50+ NOTIZIE (DOPO IL TAP)               */}
+            {/* VISTA 2: SENTIMENT GALAXY EXPLORER & LIVE MARKETS MONITOR                   */}
             {/* ============================================================================ */}
             {viewMode === 'EXPLORER' && (
                 <div className="w-full flex flex-col space-y-4 px-3 sm:px-4 pt-3 pb-28 animate-in slide-in-from-bottom-3 duration-300">
@@ -435,7 +475,7 @@ export const TabBubble: React.FC = () => {
 
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-slate-400">
-                                {liveNews.length} NOTIZIE DISPONIBILI
+                                {activeSubTab === 'NEWS' ? `${liveNews.length} NOTIZIE LIVE` : 'LIVE MARKET WATCH'}
                             </span>
                             <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
                         </div>
@@ -444,18 +484,67 @@ export const TabBubble: React.FC = () => {
                     {/* Section Header */}
                     <div className="flex items-center gap-2.5 px-1">
                         <div className="w-9 h-9 rounded-xl glass-panel flex items-center justify-center shadow-lg shrink-0">
-                            <Globe className="w-5 h-5 text-[#2ECC71]" />
+                            {activeSubTab === 'NEWS' ? (
+                                <Globe className="w-5 h-5 text-[#2ECC71]" />
+                            ) : (
+                                <BarChart2 className="w-5 h-5 text-[#10B981]" />
+                            )}
                         </div>
                         <div>
                             <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase font-semibold block">
-                                MARKET INTELLIGENCE FEED
+                                {activeSubTab === 'NEWS' ? 'MARKET INTELLIGENCE FEED' : 'REAL-TIME ASSET TERMINAL'}
                             </span>
                             <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight font-mono">
-                                QUASAR BUBBLE - SENTIMENT GALAXY EXPLORER
+                                QUASAR BUBBLE - {activeSubTab === 'NEWS' ? 'SENTIMENT GALAXY EXPLORER' : 'GLOBAL MARKET WATCH'}
                             </h1>
                         </div>
                     </div>
 
+                    {/* IOS SEGMENTED CONTROL: [ 📰 MARKET NEWS ] | [ 📊 LIVE MARKETS ] */}
+                    <div className="w-full flex justify-center py-0.5">
+                        <div className="flex items-center p-1 bg-[#121620]/90 backdrop-blur-xl rounded-2xl border border-white/[0.08] shadow-inner w-full max-w-sm">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    triggerHaptic('click');
+                                    setActiveSubTab('NEWS');
+                                }}
+                                className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    activeSubTab === 'NEWS'
+                                        ? 'bg-[#10B981] text-slate-950 shadow-lg shadow-[#10B981]/25 font-black'
+                                        : 'text-[#9CA3AF] hover:text-white'
+                                }`}
+                            >
+                                <span className="text-xs">📰</span>
+                                <span className="tracking-tight uppercase">MARKET NEWS</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    triggerHaptic('click');
+                                    setActiveSubTab('MARKETS');
+                                }}
+                                className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    activeSubTab === 'MARKETS'
+                                        ? 'bg-[#10B981] text-slate-950 shadow-lg shadow-[#10B981]/25 font-black'
+                                        : 'text-[#9CA3AF] hover:text-white'
+                                }`}
+                            >
+                                <span className="text-xs">📊</span>
+                                <span className="tracking-tight uppercase">LIVE MARKETS</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* SUB-VIEW 1: LIVE MARKETS MONITORING HUB */}
+                    {activeSubTab === 'MARKETS' && (
+                        <GlobalMarketWatchHub onNavigateToTrade={onNavigateToTrade} />
+                    )}
+
+                    {/* SUB-VIEW 2: MARKET NEWS & SENTIMENT FEED */}
+                    {activeSubTab === 'NEWS' && (
+                        <>
                     {/* RIQUADRO DI SINTESI: GLOBAL SENTIMENT • 70% LOSS / FEAR */}
                     <section className="w-full rounded-2xl glass-panel p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-3.5">
                         <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
@@ -651,6 +740,8 @@ export const TabBubble: React.FC = () => {
                         </div>
 
                     </section>
+                    </>
+                    )}
 
                 </div>
             )}
