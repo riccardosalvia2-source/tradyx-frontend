@@ -1,25 +1,25 @@
 // ============================================================================
 // TRADYX STANDALONE APPLICATION ENTRYPOINT (src/App.tsx)
-// Mobile-First PWA Web App for iOS / Safari on iPhone
+// Mobile-First PWA Web App with Pre-Login Neuro-Behavioral Diagnostic Funnel
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { MobileAuthScreen } from './components/mobile/MobileAuthScreen';
+import { OnboardingFunnel } from './components/OnboardingFunnel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { UserAccount } from './types/auth';
+import { DiagnosticAnswers, DiagnosticResult } from './types/onboarding';
 import { supabase } from './services/authService';
+import {
+    loadDiagnosticProfile,
+    saveDiagnosticProfile
+} from './services/onboardingDiagnosticService';
 import { useTradeStore } from './store/useTradeStore';
+import { useSettingsStore } from './store/useSettingsStore';
 import { SandboxTestPage } from './pages/SandboxTestPage';
 
-const DEFAULT_INSTITUTIONAL_USER: UserAccount = {
-    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    email: 'suca.quant@tradyx.ai',
-    full_name: 'Suca',
-    email_confirmed: true,
-    role: 'admin',
-    created_at: new Date().toISOString()
-};
+type PreAuthView = 'WELCOME' | 'RESULT' | 'LOGIN' | 'SIGNUP';
 
 export const App: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState<boolean>(true);
@@ -39,20 +39,48 @@ export const App: React.FC = () => {
         };
     }, []);
 
-    const isSandboxRoute = currentPath.startsWith('/sandbox-test') || 
+    const isSandboxRoute =
+        currentPath.startsWith('/sandbox-test') ||
         (typeof window !== 'undefined' && window.location.hash.includes('sandbox-test'));
 
+    // Authenticated user state: null for unauthenticated visitors so Pre-Login Funnel launches
     const [authUser, setAuthUser] = useState<UserAccount | null>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('tradyx_user');
             if (saved) {
-                try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    /* ignore */
+                }
             }
         }
-        return DEFAULT_INSTITUTIONAL_USER;
+        return null;
     });
 
+    // Pre-Auth navigation state (Welcome -> Quiz -> Result -> Sign Up / Login)
+    const [preAuthView, setPreAuthView] = useState<PreAuthView>('WELCOME');
+    const [pendingDiagnosticResult, setPendingDiagnosticResult] =
+        useState<DiagnosticResult | null>(() => loadDiagnosticProfile()?.result || null);
+
     const { fetchTrades, recalculateBubbleConfig } = useTradeStore();
+
+    // Sync user identity & any completed diagnostic profile into Zustand settings store
+    const applyOnboardingPreferencesForUser = useCallback((user: UserAccount) => {
+        const settings = useSettingsStore.getState();
+        if (user.email) {
+            settings.setEmail(user.email);
+        }
+        if (user.full_name) {
+            settings.setProtocolName(user.full_name);
+        }
+
+        const storedDiagnostic = loadDiagnosticProfile();
+        if (storedDiagnostic && storedDiagnostic.appliedToUserId !== user.id) {
+            settings.applyDiagnosticProfile(storedDiagnostic);
+            saveDiagnosticProfile(storedDiagnostic.answers, storedDiagnostic.result, user.id);
+        }
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -66,7 +94,7 @@ export const App: React.FC = () => {
             }
         }, 1000);
 
-        // 1. Check active Supabase session immediately at startup
+        // 1. Check active Supabase session or persisted local session at startup
         const initializeSession = async () => {
             try {
                 const getSessionPromise = supabase.auth.getSession();
@@ -76,39 +104,61 @@ export const App: React.FC = () => {
 
                 const result = await Promise.race([getSessionPromise, timeoutPromise]);
                 const session = result?.data?.session;
-                
+
                 if (session?.user && isMounted) {
                     const activeUser: UserAccount = {
                         id: session.user.id,
                         email: session.user.email || '',
-                        full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+                        full_name:
+                            session.user.user_metadata?.full_name ||
+                            session.user.email?.split('@')[0],
                         email_confirmed: !!session.user.email_confirmed_at,
-                        role: session.user.user_metadata?.role || (session.user.email?.toLowerCase().includes('admin') ? 'admin' : 'user'),
+                        role:
+                            session.user.user_metadata?.role ||
+                            (session.user.email?.toLowerCase().includes('admin')
+                                ? 'admin'
+                                : 'user'),
                         created_at: session.user.created_at
                     };
                     setAuthUser(activeUser);
                     localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
+                    applyOnboardingPreferencesForUser(activeUser);
                     fetchTrades(activeUser.id);
                 } else if (!session && isMounted) {
                     const saved = localStorage.getItem('tradyx_user');
                     if (saved) {
                         try {
-                            const savedUser = JSON.parse(saved);
+                            const savedUser = JSON.parse(saved) as UserAccount;
                             if (savedUser && isMounted) {
                                 setAuthUser(savedUser);
+                                applyOnboardingPreferencesForUser(savedUser);
                                 fetchTrades(savedUser.id);
                             }
-                        } catch (e) { /* ignore */ }
+                        } catch (e) {
+                            localStorage.removeItem('tradyx_user');
+                            setAuthUser(null);
+                        }
                     } else {
-                        setAuthUser(DEFAULT_INSTITUTIONAL_USER);
-                        fetchTrades(DEFAULT_INSTITUTIONAL_USER.id);
+                        // Unauthenticated visitor -> start Pre-Login & Diagnostic Onboarding
+                        setAuthUser(null);
                     }
                 }
             } catch (err) {
                 console.warn('[Tradyx Auth] Supabase Session check notice:', err);
                 if (isMounted) {
-                    setAuthUser(DEFAULT_INSTITUTIONAL_USER);
-                    fetchTrades(DEFAULT_INSTITUTIONAL_USER.id);
+                    const saved = localStorage.getItem('tradyx_user');
+                    if (saved) {
+                        try {
+                            const savedUser = JSON.parse(saved) as UserAccount;
+                            setAuthUser(savedUser);
+                            applyOnboardingPreferencesForUser(savedUser);
+                            fetchTrades(savedUser.id);
+                        } catch {
+                            setAuthUser(null);
+                        }
+                    } else {
+                        setAuthUser(null);
+                    }
                 }
             } finally {
                 if (!isSettled && isMounted) {
@@ -121,19 +171,26 @@ export const App: React.FC = () => {
 
         initializeSession();
 
-        // 2. Set up listener for real-time authentication state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        // 2. Listen for real-time authentication state changes (including Google OAuth)
+        const {
+            data: { subscription }
+        } = supabase.auth.onAuthStateChange((event, session) => {
             if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
                 const activeUser: UserAccount = {
                     id: session.user.id,
                     email: session.user.email || '',
-                    full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+                    full_name:
+                        session.user.user_metadata?.full_name ||
+                        session.user.email?.split('@')[0],
                     email_confirmed: !!session.user.email_confirmed_at,
-                    role: session.user.user_metadata?.role || (session.user.email?.toLowerCase().includes('admin') ? 'admin' : 'user'),
+                    role:
+                        session.user.user_metadata?.role ||
+                        (session.user.email?.toLowerCase().includes('admin') ? 'admin' : 'user'),
                     created_at: session.user.created_at
                 };
                 setAuthUser(activeUser);
                 localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
+                applyOnboardingPreferencesForUser(activeUser);
                 fetchTrades(activeUser.id);
                 if (!isSettled && isMounted) {
                     isSettled = true;
@@ -143,6 +200,7 @@ export const App: React.FC = () => {
             } else if (event === 'SIGNED_OUT') {
                 setAuthUser(null);
                 localStorage.removeItem('tradyx_user');
+                setPreAuthView('WELCOME');
                 recalculateBubbleConfig();
                 if (!isSettled && isMounted) {
                     isSettled = true;
@@ -157,13 +215,14 @@ export const App: React.FC = () => {
             clearTimeout(safetyTimer);
             subscription.unsubscribe();
         };
-    }, []);
+    }, [applyOnboardingPreferencesForUser, fetchTrades, recalculateBubbleConfig]);
 
     const handleAuthenticated = (user: UserAccount) => {
         setAuthUser(user);
         if (typeof window !== 'undefined') {
             localStorage.setItem('tradyx_user', JSON.stringify(user));
         }
+        applyOnboardingPreferencesForUser(user);
         fetchTrades(user.id);
     };
 
@@ -180,11 +239,13 @@ export const App: React.FC = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('tradyx_user', JSON.stringify(demoUser));
         }
+        applyOnboardingPreferencesForUser(demoUser);
         fetchTrades(demoUser.id);
     };
 
     const handleLogout = async () => {
         setAuthUser(null);
+        setPreAuthView('WELCOME');
         if (typeof window !== 'undefined') {
             localStorage.removeItem('tradyx_user');
         }
@@ -194,6 +255,15 @@ export const App: React.FC = () => {
             console.warn('Signout notice:', e);
         }
         recalculateBubbleConfig();
+    };
+
+    const handleUnlockSignupFromFunnel = (
+        result: DiagnosticResult,
+        answers: Required<DiagnosticAnswers>
+    ) => {
+        saveDiagnosticProfile(answers, result);
+        setPendingDiagnosticResult(result);
+        setPreAuthView('SIGNUP');
     };
 
     // Dedicated Hidden Sandbox Route for Developer Load & Performance Testing
@@ -216,10 +286,10 @@ export const App: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                         <span className="text-xs font-black tracking-widest text-[#10B981] uppercase block font-mono">
-                            TRADYX TERMINAL
+                            TRADYX OS
                         </span>
                         <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase animate-pulse block font-mono">
-                            Avvio PWA Mobile...
+                            Inizializzazione...
                         </span>
                     </div>
                 </div>
@@ -231,14 +301,27 @@ export const App: React.FC = () => {
         <ErrorBoundary>
             <div className="min-h-[100dvh] w-full bg-[#08090C] text-slate-100 relative">
                 {authUser ? (
-                    <MobileAppLayout 
-                        authUser={authUser} 
-                        onLogout={handleLogout} 
+                    <MobileAppLayout authUser={authUser} onLogout={handleLogout} />
+                ) : preAuthView === 'WELCOME' || preAuthView === 'RESULT' ? (
+                    <OnboardingFunnel
+                        key={preAuthView}
+                        initialStage={preAuthView}
+                        onGoToLogin={() => setPreAuthView('LOGIN')}
+                        onUnlockSignup={handleUnlockSignupFromFunnel}
                     />
                 ) : (
-                    <MobileAuthScreen 
-                        onAuthenticated={handleAuthenticated} 
-                        onContinueAsDemo={handleContinueAsDemo} 
+                    <MobileAuthScreen
+                        initialMode={preAuthView === 'SIGNUP' ? 'SIGNUP' : 'LOGIN'}
+                        diagnosticResult={pendingDiagnosticResult}
+                        onAuthenticated={handleAuthenticated}
+                        onContinueAsDemo={handleContinueAsDemo}
+                        onBackToWelcome={() => setPreAuthView('WELCOME')}
+                        onBackToDiagnosis={
+                            pendingDiagnosticResult
+                                ? () => setPreAuthView('RESULT')
+                                : undefined
+                        }
+                        onStartDiagnostic={() => setPreAuthView('WELCOME')}
                     />
                 )}
             </div>

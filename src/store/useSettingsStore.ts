@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { create } from 'zustand';
+import { StoredDiagnosticProfile } from '../types/onboarding';
 
 export interface Currency {
     code: string;
@@ -98,6 +99,12 @@ interface SettingsState {
     propFirmMaxDailyLossPercent: number; // e.g. 4.0% alert (before 5% hard breach)
     propFirmAccountSize: number; // e.g. 100,000 $ challenge
 
+    // Neuro-Behavioral Diagnostic Onboarding Preferences
+    ulyssesStrictMode: boolean;
+    ulyssesLossThreshold: number;
+    preferredMarket: string;
+    diagnosticProfile: StoredDiagnosticProfile | null;
+
     // Actions
     setProtocolName: (name: string) => void;
     setEmail: (email: string) => void;
@@ -110,6 +117,7 @@ interface SettingsState {
     terminateOtherSessions: () => void;
     updatePaymentMethod: (pm: { type: 'STRIPE' | 'CARD' | 'WEB3_CRYPTO'; label: string; expires?: string }) => void;
     setPropFirmShield: (enabled: boolean, maxLossPercent?: number, accountSize?: number) => void;
+    applyDiagnosticProfile: (profile: StoredDiagnosticProfile) => void;
     
     // Helper
     formatMoney: (amount: number, includeSign?: boolean) => string;
@@ -145,9 +153,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     encryptionBadge: 'AES-256 Protocol Active',
     
     // Prop Firm Shield Defaults
-    propFirmShieldEnabled: cached?.propFirmShieldEnabled !== undefined ? cached.propFirmShieldEnabled : true,
+    propFirmShieldEnabled: cached?.propFirmShieldEnabled !== undefined ? cached.propFirmShieldEnabled : false,
     propFirmMaxDailyLossPercent: cached?.propFirmMaxDailyLossPercent || 4.0,
     propFirmAccountSize: cached?.propFirmAccountSize || 100000,
+
+    // Neuro-Behavioral Diagnostic Onboarding Defaults
+    ulyssesStrictMode: cached?.ulyssesStrictMode !== undefined ? cached.ulyssesStrictMode : false,
+    ulyssesLossThreshold: cached?.ulyssesLossThreshold || 2,
+    preferredMarket: cached?.preferredMarket || 'Crypto & Altcoins',
+    diagnosticProfile: cached?.diagnosticProfile || null,
 
     activeSessions: [
         {
@@ -265,6 +279,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             return updated;
         });
     },
+
+    applyDiagnosticProfile: (profile: StoredDiagnosticProfile) => {
+        const prefs = profile.result.derivedPreferences;
+        set(() => {
+            const updated = {
+                propFirmShieldEnabled: prefs.propFirmShieldEnabled,
+                propFirmMaxDailyLossPercent: prefs.propFirmMaxDailyLossPercent,
+                propFirmAccountSize: prefs.propFirmAccountSize,
+                ulyssesStrictMode: prefs.ulyssesStrictMode,
+                ulyssesLossThreshold: prefs.ulyssesLossThreshold,
+                preferredMarket: prefs.preferredMarketLabel,
+                diagnosticProfile: profile
+            };
+            saveToCache({ ...get(), ...updated });
+            return updated;
+        });
+    },
     
     formatMoney: (amount: number, includeSign = true) => {
         const { baseCurrency } = get();
@@ -299,7 +330,11 @@ function saveToCache(state: any) {
                 paymentMethod: state.paymentMethod,
                 propFirmShieldEnabled: state.propFirmShieldEnabled,
                 propFirmMaxDailyLossPercent: state.propFirmMaxDailyLossPercent,
-                propFirmAccountSize: state.propFirmAccountSize
+                propFirmAccountSize: state.propFirmAccountSize,
+                ulyssesStrictMode: state.ulyssesStrictMode,
+                ulyssesLossThreshold: state.ulyssesLossThreshold,
+                preferredMarket: state.preferredMarket,
+                diagnosticProfile: state.diagnosticProfile
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
         } catch (e) {
