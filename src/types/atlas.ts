@@ -21,15 +21,19 @@ export interface HubBlueChip {
 
 export interface HubMacroData {
     centralBank: string;
-    policyRate: number;        // %
-    inflationCpi: number;      // YoY %
-    gdpGrowth: number;         // YoY %
-    gdpNominalBn: number;      // USD Billions
-    unemployment: number;      // %
-    debtToGdp: number;         // %
-    tradeBalanceBn: number;    // USD Billions
-    fxReservesBn: number;      // USD Billions
-    sovereignRating: string;   // e.g. AAA, AA+, BBB
+    policyRate: number;            // %
+    inflationCpi: number;          // YoY %
+    gdpGrowth: number;             // YoY %
+    gdpNominalBn: number;          // USD Billions
+    gdpPerCapitaUsd: number;       // USD
+    unemployment: number;          // %
+    debtToGdp: number;             // %
+    tradeBalanceBn: number;        // USD Billions
+    currentAccountToGdp: number;   // % of GDP
+    grossFixedCapexPct: number;    // % of GDP (CAPEX)
+    fdiToGdpPct: number;           // % of GDP
+    fxReservesBn: number;          // USD Billions
+    sovereignRating: string;       // e.g. AAA, AA+, BBB
     source?: 'worldbank_live' | 'institutional_baseline';
 }
 
@@ -57,6 +61,7 @@ export interface GlobalHub {
     flag: string;
     city: string;
     exchangeName: string;
+    exchangeCode: string;      // e.g. NYSE, MTA, LSE, XETRA, TSE
     region: WorldRegion;
     lat: number;
     lng: number;
@@ -108,7 +113,12 @@ export interface AtlasLiveAsset {
     isLocalToCountry?: boolean;
     price: number;
     prevPrice: number;
+    bid: number;
+    ask: number;
+    dayLow: number;
+    dayHigh: number;
     changePct: number;
+    changePts: number;
     flash: 'up' | 'down' | null;
     unit?: string;       // e.g. '%', '$', 'pts'
     decimals?: number;
@@ -116,7 +126,7 @@ export interface AtlasLiveAsset {
     source: 'binance_ws' | 'coingecko' | 'fx_api' | 'live_engine';
 }
 
-export type NewsSentiment = 'BULLISH' | 'BEARISH' | 'VOLATILITÀ';
+export type NewsSentiment = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 
 export interface AtlasNewsItem {
     id: string;

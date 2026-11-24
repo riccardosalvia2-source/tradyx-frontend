@@ -349,3 +349,19 @@ canvas {
   font-variant-numeric: tabular-nums;
 }
 
+/* ATLAS Live 1s Scrolling Ticker Tape */
+@keyframes atlas-ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-atlas-ticker {
+  display: flex;
+  width: max-content;
+  animation: atlas-ticker-scroll 34s linear infinite;
+}
+
+.animate-atlas-ticker:hover {
+  animation-play-state: paused;
+}
+

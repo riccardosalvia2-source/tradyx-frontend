@@ -38,7 +38,7 @@ function analyzeHeadlineImpact(
             operationalImpact: hawkish
                 ? `Pressione rialzista sui rendimenti ${bnd} e supporto valutario su ${fx}; i multipli azionari growth su ${mainIdx} possono subire compressione intraday.`
                 : `Raffreddamento delle aspettative sui tassi della ${hub.macro.centralBank}: scenario favorevole per duration lunga su ${bnd} e rotazione risk-on su ${mainIdx}.`,
-            sentiment: hawkish ? 'VOLATILITÀ' : 'BULLISH',
+            sentiment: hawkish ? 'NEUTRAL' : 'BULLISH',
             impactedTickers: [bnd, fx, mainIdx]
         };
     }
@@ -54,7 +54,7 @@ function analyzeHeadlineImpact(
     if (/(oil|gas|energy|gold|copper|opec|commodity|petrolio|oro|energia)/.test(lower)) {
         return {
             operationalImpact: `Impatto diretto sui costi energetici e sulla bilancia commerciale (${hub.countryName}); correlazione elevata tra ${secondStock}, WTI/Brent e differenziale inflattivo su ${fx}.`,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             impactedTickers: ['WTI', 'XAU/USD', secondStock]
         };
     }
@@ -83,7 +83,7 @@ function analyzeHeadlineImpact(
     }> = [
         {
             operationalImpact: `Riposizionamento tattico dei desk istituzionali su ${hub.exchangeName}: attesa espansione della volatilità implicita all'apertura di ${hub.city}.`,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             impactedTickers: [mainIdx, fx, topStock]
         },
         {
@@ -133,7 +133,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'Reuters Macro',
             category: 'BANCHE CENTRALI',
             minsAgo: 8,
-            sentiment: hub.macro.inflationCpi > 3.5 ? 'VOLATILITÀ' : 'BULLISH',
+            sentiment: hub.macro.inflationCpi > 3.5 ? 'NEUTRAL' : 'BULLISH',
             operationalImpact: `I tassi a breve su ${bnd2} prezzano la prossima mossa della ${cb}; eventuali sorprese hawkish rafforzano ${fx} ma frenano il multiplo di ${idxName}.`,
             tickers: [bnd2, fx, idx]
         },
@@ -160,7 +160,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'FXStreet Institutional',
             category: 'FOREX',
             minsAgo: 47,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Il differenziale di rendimento tra ${bnd10} e US10Y guida il carry trade su ${fx}; attesi movimenti rapidi in prossimità della sessione di New York.`,
             tickers: [fx, 'DXY', 'US10Y']
         },
@@ -169,7 +169,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'World Economic Desk',
             category: 'MACRO',
             minsAgo: 63,
-            sentiment: hub.macro.gdpGrowth >= 2 ? 'BULLISH' : 'VOLATILITÀ',
+            sentiment: hub.macro.gdpGrowth >= 2 ? 'BULLISH' : 'NEUTRAL',
             operationalImpact: `La tenuta della crescita reale sostiene la redditività domestica e migliora la sostenibilità del rapporto Debito/PIL (${hub.macro.debtToGdp}%).`,
             tickers: [idx, bnd10, 'EEM']
         },
@@ -187,7 +187,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'Platts Commodities',
             category: 'COMMODITIES',
             minsAgo: 104,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Oscillazioni di energia e metalli alterano i margini di import/export (${hub.macro.tradeBalanceBn >= 0 ? 'surplus' : 'deficit'} ${Math.abs(hub.macro.tradeBalanceBn)}B$) e la curva inflattiva attesa.`,
             tickers: ['WTI', 'XAU/USD', fx]
         },
@@ -223,7 +223,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'Barron\'s Global',
             category: 'FLUSSI EQUITY',
             minsAgo: 215,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Divergenza marcata tra titoli value e growth all'interno di ${idx}: preferire ingressi su supporti dinamici evitando inseguimenti FOMO.`,
             tickers: [idx, s1.symbol, 'VWCE']
         },
@@ -232,7 +232,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'OECD Economic Brief',
             category: 'LAVORO & MACRO',
             minsAgo: 248,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Un mercato del lavoro teso rallenta il ritmo dei tagli dei tassi, sostenendo il margine d'interesse delle banche ma pesando sul real estate.`,
             tickers: [bnd2, s1.symbol, fx]
         },
@@ -241,7 +241,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'MarketWatch Desk',
             category: 'CROSS-ASSET',
             minsAgo: 290,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Ogni variazione di 10 bps su US10Y si trasmette entro pochi minuti ai futures su ${idx} e al cambio ${fx}.`,
             tickers: ['SPX', 'US10Y', idx]
         },
@@ -259,7 +259,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'LME Metals Desk',
             category: 'COMMODITIES',
             minsAgo: 375,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Il prezzo del Rame anticipa il ciclo industriale globale; una rottura rialzista favorisce i titoli esportatori quotati a ${hub.city}.`,
             tickers: ['COPPER', idx, s2.symbol]
         },
@@ -322,7 +322,7 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             source: 'Global Trade Intelligence',
             category: 'SUPPLY CHAIN',
             minsAgo: 715,
-            sentiment: 'VOLATILITÀ',
+            sentiment: 'NEUTRAL',
             operationalImpact: `Colli di bottiglia logistici o revisioni della domanda tech impattano i multipli industriali globali da ${hub.city} a New York e Taipei.`,
             tickers: ['TSM', 'ASML', idx]
         }

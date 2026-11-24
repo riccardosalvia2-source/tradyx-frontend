@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { UserAccount } from '../../types/auth';
 import { AppTab } from '../BottomNavBar';
 import { ProfileProtocolModal } from '../ProfileProtocolModal';
+import { GLOBAL_HUBS, UNIQUE_COUNTRIES_COUNT } from '../../data/globalHubs';
 import { 
     TrendingUp, 
     TrendingDown, 
@@ -407,11 +408,11 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab, onOpen
                                 ATLAS • GLOBAL MARKET INTELLIGENCE
                             </span>
                             <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/35">
-                                110+ PAESI • LIVE 1s
+                                {UNIQUE_COUNTRIES_COUNT} PAESI · {GLOBAL_HUBS.length} HUB
                             </span>
                         </div>
                         <span className="text-[10px] text-[#9CA3AF] font-mono block mt-0.5">
-                            Mappa orbitale notturna, mercati live al secondo, news AI e macroeconomia
+                            Globo 3D fotorealistico notturno, mercati live 1s, news AI e macro FDI
                         </span>
                     </div>
                 </div>

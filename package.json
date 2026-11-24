@@ -27,6 +27,7 @@
     "pg-mem": "^3.0.14",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-globe.gl": "^2.38.0",
     "recharts": "^3.11.1",
     "three": "^0.185.1",
     "topojson-client": "^3.1.0",

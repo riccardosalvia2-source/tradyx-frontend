@@ -28,11 +28,44 @@ function generateSparkline(basePrice: number, volatilityPct = 0.008, points = 20
     return arr;
 }
 
+function enrichBrokerFields(
+    item: Omit<AtlasLiveAsset, 'prevPrice' | 'bid' | 'ask' | 'dayLow' | 'dayHigh' | 'changePts' | 'flash' | 'sparkline'>
+): AtlasLiveAsset {
+    const dec = item.decimals ?? (item.price < 5 ? 4 : 2);
+    const spreadRatio =
+        item.category === 'FOREX'
+            ? 0.00015
+            : item.category === 'BONDS'
+            ? 0.0025
+            : item.category === 'CRYPTO'
+            ? 0.0005
+            : 0.0003;
+    const halfSpread = item.price * spreadRatio;
+    const bid = Number((item.price - halfSpread).toFixed(dec));
+    const ask = Number((item.price + halfSpread).toFixed(dec));
+    const rangePct = item.category === 'CRYPTO' ? 0.024 : item.category === 'FOREX' ? 0.006 : 0.012;
+    const dayLow = Number((item.price * (1 - rangePct)).toFixed(dec));
+    const dayHigh = Number((item.price * (1 + rangePct * 0.9)).toFixed(dec));
+    const changePts = Number(((item.price * item.changePct) / 100).toFixed(dec));
+
+    return {
+        ...item,
+        prevPrice: item.price,
+        bid,
+        ask,
+        dayLow,
+        dayHigh,
+        changePts,
+        flash: null,
+        sparkline: generateSparkline(item.price, item.category === 'CRYPTO' ? 0.018 : 0.007)
+    };
+}
+
 /**
  * Curated institutional global baseline assets across all 7 categories.
  */
 export function buildGlobalBaselineAssets(): AtlasLiveAsset[] {
-    const raw: Array<Omit<AtlasLiveAsset, 'prevPrice' | 'flash' | 'sparkline'>> = [
+    const raw: Array<Omit<AtlasLiveAsset, 'prevPrice' | 'bid' | 'ask' | 'dayLow' | 'dayHigh' | 'changePts' | 'flash' | 'sparkline'>> = [
         // INDICES
         { id: 'idx-spx', symbol: 'SPX', name: 'S&P 500 (USA)', category: 'INDICES', price: 5985.4, changePct: 0.64, decimals: 2, source: 'live_engine' },
         { id: 'idx-ndx', symbol: 'NDX', name: 'NASDAQ 100 (USA)', category: 'INDICES', price: 21080.5, changePct: 0.92, decimals: 2, source: 'live_engine' },
@@ -103,12 +136,7 @@ export function buildGlobalBaselineAssets(): AtlasLiveAsset[] {
         { id: 'etf-eem', symbol: 'EEM', name: 'iShares MSCI Emerging Mkts', category: 'ETF', price: 44.82, changePct: 0.37, decimals: 2, unit: '$', source: 'live_engine' }
     ];
 
-    return raw.map((item) => ({
-        ...item,
-        prevPrice: item.price,
-        flash: null,
-        sparkline: generateSparkline(item.price, item.category === 'CRYPTO' ? 0.018 : 0.007)
-    }));
+    return raw.map(enrichBrokerFields);
 }
 
 /**
@@ -119,40 +147,38 @@ export function buildCountryLocalAssets(hub: GlobalHub): AtlasLiveAsset[] {
     const localAssets: AtlasLiveAsset[] = [];
 
     // 1. Primary National Index
-    localAssets.push({
-        id: `loc-idx-${hub.id}`,
-        symbol: hub.primaryIndex.symbol,
-        name: `${hub.primaryIndex.name} (${hub.city})`,
-        category: 'INDICES',
-        countryId: hub.id,
-        isLocalToCountry: true,
-        price: hub.primaryIndex.basePrice,
-        prevPrice: hub.primaryIndex.basePrice,
-        changePct: hub.primaryIndex.changePct,
-        flash: null,
-        decimals: hub.primaryIndex.basePrice > 500 ? 1 : 2,
-        sparkline: generateSparkline(hub.primaryIndex.basePrice, 0.008),
-        source: 'live_engine'
-    });
+    localAssets.push(
+        enrichBrokerFields({
+            id: `loc-idx-${hub.id}`,
+            symbol: hub.primaryIndex.symbol,
+            name: `${hub.primaryIndex.name} (${hub.city})`,
+            category: 'INDICES',
+            countryId: hub.id,
+            isLocalToCountry: true,
+            price: hub.primaryIndex.basePrice,
+            changePct: hub.primaryIndex.changePct,
+            decimals: hub.primaryIndex.basePrice > 500 ? 1 : 2,
+            source: 'live_engine'
+        })
+    );
 
     // 2. Top National Blue Chips
     hub.topStocks.forEach((stk, idx) => {
         const pct = Number((((idx % 2 === 0 ? 1 : -0.6) * (0.45 + idx * 0.31))).toFixed(2));
-        localAssets.push({
-            id: `loc-stk-${hub.id}-${stk.symbol}`,
-            symbol: stk.symbol,
-            name: `${stk.name} • ${stk.sector}`,
-            category: 'STOCKS',
-            countryId: hub.id,
-            isLocalToCountry: true,
-            price: stk.basePrice,
-            prevPrice: stk.basePrice,
-            changePct: pct,
-            flash: null,
-            decimals: stk.basePrice < 10 ? 3 : 2,
-            sparkline: generateSparkline(stk.basePrice, 0.011),
-            source: 'live_engine'
-        });
+        localAssets.push(
+            enrichBrokerFields({
+                id: `loc-stk-${hub.id}-${stk.symbol}`,
+                symbol: stk.symbol,
+                name: `${stk.name} • ${stk.sector}`,
+                category: 'STOCKS',
+                countryId: hub.id,
+                isLocalToCountry: true,
+                price: stk.basePrice,
+                changePct: pct,
+                decimals: stk.basePrice < 10 ? 3 : 2,
+                source: 'live_engine'
+            })
+        );
     });
 
     // 3. Local Currency Pair
@@ -164,21 +190,20 @@ export function buildCountryLocalAssets(hub: GlobalHub): AtlasLiveAsset[] {
             ? Number((1 / liveRate).toFixed(4))
             : hub.fxBaseRate;
 
-    localAssets.push({
-        id: `loc-fx-${hub.id}`,
-        symbol: hub.fxPairLabel,
-        name: `Cambio Valuta Locale (${hub.currencyCode})`,
-        category: 'FOREX',
-        countryId: hub.id,
-        isLocalToCountry: true,
-        price: effectiveFx,
-        prevPrice: effectiveFx,
-        changePct: 0.12,
-        flash: null,
-        decimals: effectiveFx < 10 ? 4 : 2,
-        sparkline: generateSparkline(effectiveFx, 0.004),
-        source: liveRate ? 'fx_api' : 'live_engine'
-    });
+    localAssets.push(
+        enrichBrokerFields({
+            id: `loc-fx-${hub.id}`,
+            symbol: hub.fxPairLabel,
+            name: `Cambio Valuta Locale (${hub.currencyCode})`,
+            category: 'FOREX',
+            countryId: hub.id,
+            isLocalToCountry: true,
+            price: effectiveFx,
+            changePct: 0.12,
+            decimals: effectiveFx < 10 ? 4 : 2,
+            source: liveRate ? 'fx_api' : 'live_engine'
+        })
+    );
 
     // 4. Sovereign Yields 2Y, 5Y, 10Y
     const yieldEntries: Array<{ tenor: string; val: number }> = [
@@ -187,22 +212,21 @@ export function buildCountryLocalAssets(hub: GlobalHub): AtlasLiveAsset[] {
         { tenor: '10Y', val: hub.bondYields.y10 }
     ];
     yieldEntries.forEach(({ tenor, val }) => {
-        localAssets.push({
-            id: `loc-bnd-${hub.id}-${tenor}`,
-            symbol: `${hub.iso2}${tenor}`,
-            name: `Titolo di Stato ${hub.countryName} ${tenor}`,
-            category: 'BONDS',
-            countryId: hub.id,
-            isLocalToCountry: true,
-            price: val,
-            prevPrice: val,
-            changePct: Number(((Math.random() - 0.5) * 0.8).toFixed(2)),
-            flash: null,
-            unit: '%',
-            decimals: 2,
-            sparkline: generateSparkline(val, 0.006),
-            source: 'live_engine'
-        });
+        localAssets.push(
+            enrichBrokerFields({
+                id: `loc-bnd-${hub.id}-${tenor}`,
+                symbol: `${hub.iso2}${tenor}`,
+                name: `Titolo di Stato ${hub.countryName} ${tenor}`,
+                category: 'BONDS',
+                countryId: hub.id,
+                isLocalToCountry: true,
+                price: val,
+                changePct: Number(((Math.random() - 0.5) * 0.8).toFixed(2)),
+                unit: '%',
+                decimals: 2,
+                source: 'live_engine'
+            })
+        );
     });
 
     return localAssets;
@@ -297,15 +321,31 @@ export function applyOneSecondTick(
 ): AtlasLiveAsset[] {
     return assets.map((asset) => {
         const wsOverride = wsCryptoOverrides?.[asset.symbol];
+        const dec = asset.decimals ?? (asset.price < 5 ? 4 : 2);
+        const spreadRatio =
+            asset.category === 'FOREX'
+                ? 0.00015
+                : asset.category === 'BONDS'
+                ? 0.0025
+                : asset.category === 'CRYPTO'
+                ? 0.0005
+                : 0.0003;
+
         if (wsOverride && wsOverride.price > 0) {
             const diff = wsOverride.price - asset.price;
             const flash: 'up' | 'down' | null =
                 Math.abs(diff) > 0.000001 ? (diff > 0 ? 'up' : 'down') : null;
+            const halfSpread = wsOverride.price * spreadRatio;
             return {
                 ...asset,
                 prevPrice: asset.price,
                 price: wsOverride.price,
+                bid: Number((wsOverride.price - halfSpread).toFixed(dec)),
+                ask: Number((wsOverride.price + halfSpread).toFixed(dec)),
+                dayLow: Math.min(asset.dayLow, wsOverride.price),
+                dayHigh: Math.max(asset.dayHigh, wsOverride.price),
                 changePct: wsOverride.change24h,
+                changePts: Number(((wsOverride.price * wsOverride.change24h) / 100).toFixed(dec)),
                 flash,
                 source: 'binance_ws',
                 sparkline: [...asset.sparkline.slice(-19), wsOverride.price]
@@ -331,17 +371,22 @@ export function applyOneSecondTick(
 
         const deltaRatio = (Math.random() - 0.495) * 2 * vol;
         const rawNext = Math.max(0.0001, asset.price * (1 + deltaRatio));
-        const dec = asset.decimals ?? (asset.price < 5 ? 4 : 2);
         const nextPrice = Number(rawNext.toFixed(dec));
         const flash: 'up' | 'down' | null =
             nextPrice > asset.price ? 'up' : nextPrice < asset.price ? 'down' : null;
         const nextPct = Number((asset.changePct + deltaRatio * 100).toFixed(2));
+        const halfSpread = nextPrice * spreadRatio;
 
         return {
             ...asset,
             prevPrice: asset.price,
             price: nextPrice,
+            bid: Number((nextPrice - halfSpread).toFixed(dec)),
+            ask: Number((nextPrice + halfSpread).toFixed(dec)),
+            dayLow: Math.min(asset.dayLow, nextPrice),
+            dayHigh: Math.max(asset.dayHigh, nextPrice),
             changePct: nextPct,
+            changePts: Number(((nextPrice * nextPct) / 100).toFixed(dec)),
             flash,
             sparkline: [...asset.sparkline.slice(-19), nextPrice]
         };

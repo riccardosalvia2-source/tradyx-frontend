@@ -48,52 +48,58 @@ interface CompactHubSeed {
 
 const FDI_PROFILES: Record<CompactHubSeed['fdiProfile'], { sector: string; share: number }[]> = {
     tech: [
-        { sector: 'Tech & AI', share: 34 },
-        { sector: 'Finanza', share: 21 },
-        { sector: 'Sanità & Bio', share: 15 },
+        { sector: 'Tech & Digitale', share: 31 },
+        { sector: 'Finanza & Banche', share: 19 },
+        { sector: 'Sanità', share: 13 },
         { sector: 'Manifatturiero', share: 12 },
         { sector: 'Energia', share: 10 },
-        { sector: 'Immobiliare', share: 8 }
+        { sector: 'Immobiliare', share: 8 },
+        { sector: 'Trasporti', share: 7 }
     ],
     finance: [
-        { sector: 'Finanza', share: 36 },
-        { sector: 'Tech & AI', share: 22 },
-        { sector: 'Immobiliare', share: 15 },
-        { sector: 'Energia', share: 11 },
-        { sector: 'Sanità & Bio', share: 9 },
+        { sector: 'Finanza & Banche', share: 33 },
+        { sector: 'Tech & Digitale', share: 20 },
+        { sector: 'Immobiliare', share: 14 },
+        { sector: 'Energia', share: 10 },
+        { sector: 'Sanità', share: 9 },
+        { sector: 'Trasporti', share: 7 },
         { sector: 'Manifatturiero', share: 7 }
     ],
     energy: [
-        { sector: 'Energia', share: 38 },
-        { sector: 'Immobiliare', share: 18 },
-        { sector: 'Finanza', share: 16 },
-        { sector: 'Manifatturiero', share: 13 },
-        { sector: 'Tech & AI', share: 9 },
-        { sector: 'Sanità & Bio', share: 6 }
+        { sector: 'Energia', share: 34 },
+        { sector: 'Immobiliare', share: 16 },
+        { sector: 'Finanza & Banche', share: 15 },
+        { sector: 'Manifatturiero', share: 12 },
+        { sector: 'Trasporti', share: 9 },
+        { sector: 'Tech & Digitale', share: 8 },
+        { sector: 'Sanità', share: 6 }
     ],
     industrial: [
-        { sector: 'Manifatturiero', share: 33 },
-        { sector: 'Tech & AI', share: 21 },
-        { sector: 'Energia', share: 16 },
-        { sector: 'Finanza', share: 13 },
-        { sector: 'Sanità & Bio', share: 10 },
-        { sector: 'Immobiliare', share: 7 }
+        { sector: 'Manifatturiero', share: 30 },
+        { sector: 'Tech & Digitale', share: 19 },
+        { sector: 'Energia', share: 14 },
+        { sector: 'Finanza & Banche', share: 12 },
+        { sector: 'Trasporti', share: 10 },
+        { sector: 'Sanità', share: 9 },
+        { sector: 'Immobiliare', share: 6 }
     ],
     balanced: [
-        { sector: 'Finanza', share: 24 },
-        { sector: 'Manifatturiero', share: 22 },
-        { sector: 'Tech & AI', share: 19 },
-        { sector: 'Energia', share: 14 },
-        { sector: 'Immobiliare', share: 12 },
-        { sector: 'Sanità & Bio', share: 9 }
+        { sector: 'Finanza & Banche', share: 22 },
+        { sector: 'Manifatturiero', share: 20 },
+        { sector: 'Tech & Digitale', share: 17 },
+        { sector: 'Energia', share: 13 },
+        { sector: 'Immobiliare', share: 11 },
+        { sector: 'Trasporti', share: 9 },
+        { sector: 'Sanità', share: 8 }
     ],
     emerging: [
-        { sector: 'Energia', share: 27 },
-        { sector: 'Manifatturiero', share: 24 },
-        { sector: 'Finanza', share: 19 },
-        { sector: 'Immobiliare', share: 14 },
-        { sector: 'Tech & AI', share: 10 },
-        { sector: 'Sanità & Bio', share: 6 }
+        { sector: 'Energia', share: 25 },
+        { sector: 'Manifatturiero', share: 22 },
+        { sector: 'Finanza & Banche', share: 17 },
+        { sector: 'Immobiliare', share: 13 },
+        { sector: 'Trasporti', share: 10 },
+        { sector: 'Tech & Digitale', share: 8 },
+        { sector: 'Sanità', share: 5 }
     ]
 };
 
@@ -199,6 +205,26 @@ function buildHub(s: CompactHubSeed): GlobalHub {
         Math.min(340, Math.max(8, (s.mktCapBn / Math.max(1, s.gdpBn)) * 100)).toFixed(1)
     );
 
+    const fdiToGdpPct = Number(
+        Math.min(18, Math.max(0.6, (fdiHistory5Y[fdiHistory5Y.length - 1].inflowBn / Math.max(1, s.gdpBn)) * 100)).toFixed(2)
+    );
+    const currentAccountToGdp = Number(
+        Math.max(-14, Math.min(18, (s.tradeBn / Math.max(1, s.gdpBn)) * 100)).toFixed(2)
+    );
+    const grossFixedCapexPct = Number(
+        (s.fdiProfile === 'industrial' || s.fdiProfile === 'tech' ? 23.5 : s.fdiProfile === 'energy' ? 25.2 : 20.4 + ((h % 7) - 3) * 0.7).toFixed(1)
+    );
+    const gdpPerCapitaUsd = Math.round(
+        s.rating.startsWith('AAA') ? 68000 + (h % 28000)
+        : s.rating.startsWith('AA') ? 48000 + (h % 22000)
+        : s.rating.startsWith('A') ? 32000 + (h % 18000)
+        : s.rating.startsWith('BBB') ? 16500 + (h % 14000)
+        : s.rating.startsWith('BB') ? 7800 + (h % 6800)
+        : 2400 + (h % 4100)
+    );
+    const parenMatch = s.exchangeName.match(/\(([^)]+)\)/);
+    const exchangeCode = parenMatch ? parenMatch[1].toUpperCase() : s.idxSym.slice(0, 6).toUpperCase();
+
     return {
         id: s.id,
         iso2: s.iso2,
@@ -208,6 +234,7 @@ function buildHub(s: CompactHubSeed): GlobalHub {
         flag: s.flag,
         city: s.city,
         exchangeName: s.exchangeName,
+        exchangeCode,
         region: s.region,
         lat: s.lat,
         lng: s.lng,
@@ -231,9 +258,13 @@ function buildHub(s: CompactHubSeed): GlobalHub {
             inflationCpi: s.cpi,
             gdpGrowth: s.gdpGrowth,
             gdpNominalBn: s.gdpBn,
+            gdpPerCapitaUsd,
             unemployment: s.unemp,
             debtToGdp: s.debtGdp,
             tradeBalanceBn: s.tradeBn,
+            currentAccountToGdp,
+            grossFixedCapexPct,
+            fdiToGdpPct,
             fxReservesBn: s.reservesBn,
             sovereignRating: s.rating,
             source: 'institutional_baseline'
@@ -1197,13 +1228,6 @@ const HUB_SEEDS: CompactHubSeed[] = [
         idxSym: 'AMX', idxName: 'AMX Composite', idxPrice: 540.0, centralBank: 'CBA Armenia', policyRate: 7.25, cpi: 1.2,
         gdpGrowth: 5.8, gdpBn: 26, unemp: 12.6, debtGdp: 49.2, tradeBn: -2.9, reservesBn: 3.6, rating: 'BB-', y10: 9.8, mktCapBn: 1.8, fdiProfile: 'tech'
     },
-    {
-        id: 'la-vte', iso2: 'LA', iso3: 'LAO', countryName: 'Laos', countryNameEn: 'Laos',
-        flag: '🇱🇦', city: 'Vientiane', exchangeName: 'Lao Securities Exchange', region: 'Asia',
-        lat: 17.97, lng: 102.63, utcOffset: 7, currency: 'LAK', fxPair: 'USD/LAK', fxRate: 21950.0,
-        idxSym: 'LSXC', idxName: 'LSX Composite', idxPrice: 1042.0, centralBank: 'Bank of Lao PDR', policyRate: 8.5, cpi: 21.4,
-        gdpGrowth: 4.1, gdpBn: 16, unemp: 1.4, debtGdp: 108.4, tradeBn: 0.9, reservesBn: 1.8, rating: 'CCC', y10: 11.2, mktCapBn: 1.4, fdiProfile: 'energy'
-    },
 
     // ======================= OCEANIA (4) =======================
     {
@@ -1353,6 +1377,203 @@ const HUB_SEEDS: CompactHubSeed[] = [
         lat: 4.90, lng: 114.94, utcOffset: 8, currency: 'BND', fxPair: 'USD/BND', fxRate: 1.334,
         idxSym: 'BSH', idxName: 'Brunei Energy Index', idxPrice: 1264.0, centralBank: 'BDCB', policyRate: 3.5, cpi: 0.6,
         gdpGrowth: 2.4, gdpBn: 16, unemp: 5.1, debtGdp: 2.4, tradeBn: 4.2, reservesBn: 4.6, rating: 'AA', y10: 3.1, mktCapBn: 3.8, fdiProfile: 'energy'
+    },
+
+    // ======================= 23 HUB FINANZIARI STRATEGICI SECONDARI (TOTALE: 110 PAESI / 137 HUB) =======================
+    {
+        id: 'us-lax', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Los Angeles)', countryNameEn: 'United States Los Angeles',
+        flag: '🇺🇸', city: 'Los Angeles', exchangeName: 'Pacific Capital Desk (NYSE)', region: 'Nord America',
+        lat: 34.05, lng: -118.24, utcOffset: -8, openHour: 6, closeHour: 13, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'SPX', idxName: 'S&P 500', idxPrice: 5985.4, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'tech', isFlagship: true,
+        stocks: [
+            { symbol: 'DIS', name: 'Walt Disney Co.', sector: 'Media & Streaming', basePrice: 112.4, marketCapBn: 204.0 },
+            { symbol: 'NFLX', name: 'Netflix Inc.', sector: 'Streaming & AI', basePrice: 874.2, marketCapBn: 374.0 },
+            { symbol: 'AMGN', name: 'Amgen Inc.', sector: 'Biotecnologia', basePrice: 296.8, marketCapBn: 159.0 }
+        ]
+    },
+    {
+        id: 'us-hou', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Houston Energy)', countryNameEn: 'United States Houston',
+        flag: '🇺🇸', city: 'Houston', exchangeName: 'NYMEX Energy Desk (ICE)', region: 'Nord America',
+        lat: 29.76, lng: -95.37, utcOffset: -6, openHour: 8, closeHour: 16, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'XLE', idxName: 'US Energy Sector', idxPrice: 95.8, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'energy', isFlagship: true,
+        stocks: [
+            { symbol: 'XOM', name: 'Exxon Mobil Corp.', sector: 'Energia', basePrice: 119.4, marketCapBn: 526.0 },
+            { symbol: 'CVX', name: 'Chevron Corp.', sector: 'Energia', basePrice: 161.2, marketCapBn: 292.0 },
+            { symbol: 'COP', name: 'ConocoPhillips', sector: 'Oil & Gas', basePrice: 108.6, marketCapBn: 126.0 }
+        ]
+    },
+    {
+        id: 'us-sea', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Seattle Cloud)', countryNameEn: 'United States Seattle',
+        flag: '🇺🇸', city: 'Seattle', exchangeName: 'NASDAQ Pacific Tech (NDAQ)', region: 'Nord America',
+        lat: 47.61, lng: -122.33, utcOffset: -8, openHour: 6, closeHour: 13, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'NDX', idxName: 'NASDAQ 100', idxPrice: 21080.5, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'tech', isFlagship: true,
+        stocks: [
+            { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Cloud AWS & Retail', basePrice: 208.4, marketCapBn: 2190 },
+            { symbol: 'MSFT', name: 'Microsoft Corp.', sector: 'AI & Cloud', basePrice: 438.2, marketCapBn: 3250 },
+            { symbol: 'COST', name: 'Costco Wholesale', sector: 'Retail', basePrice: 928.5, marketCapBn: 412.0 }
+        ]
+    },
+    {
+        id: 'us-bos', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Boston Quant)', countryNameEn: 'United States Boston',
+        flag: '🇺🇸', city: 'Boston', exchangeName: 'Boston Asset Mgmt (BOX)', region: 'Nord America',
+        lat: 42.36, lng: -71.06, utcOffset: -5, openHour: 9, closeHour: 16, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'RUT', idxName: 'Russell 2000', idxPrice: 2385.4, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'finance',
+        stocks: [
+            { symbol: 'STT', name: 'State Street Corp.', sector: 'Asset Management', basePrice: 96.4, marketCapBn: 28.6 },
+            { symbol: 'VRTX', name: 'Vertex Pharma', sector: 'Biotecnologia', basePrice: 468.2, marketCapBn: 121.0 },
+            { symbol: 'GE', name: 'GE Aerospace', sector: 'Aerospazio', basePrice: 182.6, marketCapBn: 198.0 }
+        ]
+    },
+    {
+        id: 'us-dal', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Dallas TXSE)', countryNameEn: 'United States Dallas',
+        flag: '🇺🇸', city: 'Dallas', exchangeName: 'Texas Stock Exchange (TXSE)', region: 'Nord America',
+        lat: 32.78, lng: -96.80, utcOffset: -6, openHour: 8, closeHour: 15, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'DJI', idxName: 'Dow Jones 30', idxPrice: 44120.0, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'finance'
+    },
+    {
+        id: 'ca-van', iso2: 'CA', iso3: 'CAN', countryName: 'Canada (Vancouver Mining)', countryNameEn: 'Canada Vancouver',
+        flag: '🇨🇦', city: 'Vancouver', exchangeName: 'TSX Venture Exchange (TSXV)', region: 'Nord America',
+        lat: 49.28, lng: -123.12, utcOffset: -8, openHour: 6, closeHour: 13, currency: 'CAD', fxPair: 'USD/CAD', fxRate: 1.394,
+        idxSym: 'TSXV', idxName: 'S&P/TSX Venture', idxPrice: 612.4, centralBank: 'Bank of Canada', policyRate: 3.75, cpi: 2.0,
+        gdpGrowth: 1.4, gdpBn: 2240, unemp: 6.5, debtGdp: 107.1, tradeBn: 12.4, reservesBn: 124, rating: 'AAA', y10: 3.31, mktCapBn: 3310, fdiProfile: 'energy'
+    },
+    {
+        id: 'ca-mtl', iso2: 'CA', iso3: 'CAN', countryName: 'Canada (Montréal Derivati)', countryNameEn: 'Canada Montreal',
+        flag: '🇨🇦', city: 'Montréal', exchangeName: 'Montréal Exchange (MX)', region: 'Nord America',
+        lat: 45.50, lng: -73.57, utcOffset: -5, openHour: 9, closeHour: 16, currency: 'CAD', fxPair: 'USD/CAD', fxRate: 1.394,
+        idxSym: 'TSX60', idxName: 'S&P/TSX 60', idxPrice: 1514.2, centralBank: 'Bank of Canada', policyRate: 3.75, cpi: 2.0,
+        gdpGrowth: 1.4, gdpBn: 2240, unemp: 6.5, debtGdp: 107.1, tradeBn: 12.4, reservesBn: 124, rating: 'AAA', y10: 3.31, mktCapBn: 3310, fdiProfile: 'finance'
+    },
+    {
+        id: 'mx-mty', iso2: 'MX', iso3: 'MEX', countryName: 'Messico (Monterrey Industria)', countryNameEn: 'Mexico Monterrey',
+        flag: '🇲🇽', city: 'Monterrey', exchangeName: 'BIVA / Nearshoring Hub (BIVA)', region: 'Nord America',
+        lat: 25.69, lng: -100.32, utcOffset: -6, openHour: 8, closeHour: 15, currency: 'MXN', fxPair: 'USD/MXN', fxRate: 20.18,
+        idxSym: 'FTSEBIVA', idxName: 'FTSE BIVA', idxPrice: 1052.8, centralBank: 'Banxico', policyRate: 10.25, cpi: 4.5,
+        gdpGrowth: 1.8, gdpBn: 1850, unemp: 2.9, debtGdp: 54.2, tradeBn: -8.5, reservesBn: 228, rating: 'BBB', y10: 9.85, mktCapBn: 540, fdiProfile: 'industrial'
+    },
+    {
+        id: 'br-rio', iso2: 'BR', iso3: 'BRA', countryName: 'Brasile (Rio Energy)', countryNameEn: 'Brazil Rio de Janeiro',
+        flag: '🇧🇷', city: 'Rio de Janeiro', exchangeName: 'B3 Energy & BNDES (B3)', region: 'Sud America',
+        lat: -22.91, lng: -43.17, utcOffset: -3, openHour: 10, closeHour: 17, currency: 'BRL', fxPair: 'USD/BRL', fxRate: 5.76,
+        idxSym: 'IBRX100', idxName: 'IBrX 100', idxPrice: 54820.0, centralBank: 'Banco Central do Brasil', policyRate: 11.25, cpi: 4.6,
+        gdpGrowth: 3.0, gdpBn: 2290, unemp: 6.6, debtGdp: 87.6, tradeBn: 82.4, reservesBn: 368, rating: 'BB', y10: 12.65, mktCapBn: 910, fdiProfile: 'energy'
+    },
+    {
+        id: 'it-rom', iso2: 'IT', iso3: 'ITA', countryName: 'Italia (Roma Tesoro)', countryNameEn: 'Italy Rome',
+        flag: '🇮🇹', city: 'Roma', exchangeName: 'MTS Bond & Tesoro (MTS)', region: 'Europa',
+        lat: 41.90, lng: 12.50, utcOffset: 1, openHour: 9, closeHour: 17, currency: 'EUR', fxPair: 'EUR/USD', fxRate: 1.0785,
+        idxSym: 'FTSEMIB', idxName: 'FTSE MIB / BTP Desk', idxPrice: 34280.5, centralBank: 'Banca d\'Italia / BCE', policyRate: 3.25, cpi: 1.3,
+        gdpGrowth: 0.8, gdpBn: 2370, unemp: 6.2, debtGdp: 136.8, tradeBn: 54.2, reservesBn: 268, rating: 'BBB', y10: 3.58, mktCapBn: 845,
+        fdiProfile: 'balanced',
+        stocks: [
+            { symbol: 'ENEL.MI', name: 'Enel S.p.A.', sector: 'Energia & Utility', basePrice: 6.94, marketCapBn: 70.5 },
+            { symbol: 'LDO.MI', name: 'Leonardo S.p.A.', sector: 'Aerospazio & Difesa', basePrice: 25.8, marketCapBn: 14.9 },
+            { symbol: 'PST.MI', name: 'Poste Italiane', sector: 'Finanza & Logistica', basePrice: 13.4, marketCapBn: 17.4 }
+        ]
+    },
+    {
+        id: 'gb-edi', iso2: 'GB', iso3: 'GBR', countryName: 'Regno Unito (Edimburgo)', countryNameEn: 'United Kingdom Edinburgh',
+        flag: '🇬🇧', city: 'Edimburgo', exchangeName: 'Scottish Asset Mgmt Hub (LSE)', region: 'Europa',
+        lat: 55.95, lng: -3.19, utcOffset: 0, openHour: 8, closeHour: 16, currency: 'GBP', fxPair: 'GBP/USD', fxRate: 1.289,
+        idxSym: 'FTMC', idxName: 'FTSE 250', idxPrice: 20840.0, centralBank: 'Bank of England', policyRate: 4.75, cpi: 2.3,
+        gdpGrowth: 1.1, gdpBn: 3590, unemp: 4.3, debtGdp: 101.8, tradeBn: -52.1, reservesBn: 184, rating: 'AA', y10: 4.38, mktCapBn: 3240, fdiProfile: 'finance'
+    },
+    {
+        id: 'de-muc', iso2: 'DE', iso3: 'DEU', countryName: 'Germania (Monaco)', countryNameEn: 'Germany Munich',
+        flag: '🇩🇪', city: 'Monaco di Baviera', exchangeName: 'Börse München (GETTEX)', region: 'Europa',
+        lat: 48.14, lng: 11.58, utcOffset: 1, openHour: 9, closeHour: 17, currency: 'EUR', fxPair: 'EUR/USD', fxRate: 1.0785,
+        idxSym: 'MDAX', idxName: 'MDAX Germany', idxPrice: 26840.0, centralBank: 'BCE / Bundesbank', policyRate: 3.25, cpi: 2.0,
+        gdpGrowth: 0.4, gdpBn: 4680, unemp: 6.0, debtGdp: 62.7, tradeBn: 242.0, reservesBn: 342, rating: 'AAA', y10: 2.34, mktCapBn: 2480, fdiProfile: 'industrial'
+    },
+    {
+        id: 'ch-gva', iso2: 'CH', iso3: 'CHE', countryName: 'Svizzera (Ginevra Wealth)', countryNameEn: 'Switzerland Geneva',
+        flag: '🇨🇭', city: 'Ginevra', exchangeName: 'Geneva Private Banking (SIX)', region: 'Europa',
+        lat: 46.20, lng: 6.14, utcOffset: 1, openHour: 9, closeHour: 17, currency: 'CHF', fxPair: 'USD/CHF', fxRate: 0.874,
+        idxSym: 'SPI', idxName: 'Swiss Performance Index', idxPrice: 15840.2, centralBank: 'SNB', policyRate: 1.0, cpi: 0.8,
+        gdpGrowth: 1.5, gdpBn: 942, unemp: 2.5, debtGdp: 38.2, tradeBn: 58.6, reservesBn: 912, rating: 'AAA', y10: 0.44, mktCapBn: 2180, fdiProfile: 'finance'
+    },
+    {
+        id: 'es-bcn', iso2: 'ES', iso3: 'ESP', countryName: 'Spagna (Barcellona)', countryNameEn: 'Spain Barcelona',
+        flag: '🇪🇸', city: 'Barcellona', exchangeName: 'Bolsa de Barcelona (BME)', region: 'Europa',
+        lat: 41.39, lng: 2.17, utcOffset: 1, openHour: 9, closeHour: 17, currency: 'EUR', fxPair: 'EUR/USD', fxRate: 1.0785,
+        idxSym: 'BCN100', idxName: 'BCN Global 100', idxPrice: 1248.4, centralBank: 'BCE / Banco de España', policyRate: 3.25, cpi: 1.9,
+        gdpGrowth: 2.8, gdpBn: 1730, unemp: 11.2, debtGdp: 105.1, tradeBn: -36.5, reservesBn: 104, rating: 'A', y10: 3.04, mktCapBn: 785, fdiProfile: 'tech'
+    },
+    {
+        id: 'ae-auh', iso2: 'AE', iso3: 'ARE', countryName: 'Emirati Arabi (Abu Dhabi)', countryNameEn: 'United Arab Emirates Abu Dhabi',
+        flag: '🇦🇪', city: 'Abu Dhabi', exchangeName: 'Abu Dhabi Securities Exchange (ADX)', region: 'Medio Oriente',
+        lat: 24.45, lng: 54.38, utcOffset: 4, openHour: 10, closeHour: 15, currency: 'AED', fxPair: 'USD/AED', fxRate: 3.6725,
+        idxSym: 'FADGI', idxName: 'FTSE ADX General', idxPrice: 9420.5, centralBank: 'CBUAE', policyRate: 4.65, cpi: 2.3,
+        gdpGrowth: 4.2, gdpBn: 545, unemp: 2.7, debtGdp: 30.8, tradeBn: 112.0, reservesBn: 218, rating: 'AA', y10: 4.62, mktCapBn: 985,
+        fdiProfile: 'energy', isFlagship: true
+    },
+    {
+        id: 'sa-jed', iso2: 'SA', iso3: 'SAU', countryName: 'Arabia Saudita (Gedda)', countryNameEn: 'Saudi Arabia Jeddah',
+        flag: '🇸🇦', city: 'Gedda', exchangeName: 'Red Sea Trade & Islamic Fin. (TADAWUL)', region: 'Medio Oriente',
+        lat: 21.49, lng: 39.19, utcOffset: 3, openHour: 10, closeHour: 15, currency: 'SAR', fxPair: 'USD/SAR', fxRate: 3.75,
+        idxSym: 'MT30', idxName: 'MSCI Tadawul 30', idxPrice: 1512.4, centralBank: 'SAMA', policyRate: 5.25, cpi: 1.7,
+        gdpGrowth: 2.6, gdpBn: 1110, unemp: 3.3, debtGdp: 27.4, tradeBn: 118.5, reservesBn: 456, rating: 'A+', y10: 4.92, mktCapBn: 2760, fdiProfile: 'finance'
+    },
+    {
+        id: 'jp-osa', iso2: 'JP', iso3: 'JPN', countryName: 'Giappone (Osaka Derivati)', countryNameEn: 'Japan Osaka',
+        flag: '🇯🇵', city: 'Osaka', exchangeName: 'Osaka Exchange Derivatives (OSE)', region: 'Asia',
+        lat: 34.69, lng: 135.50, utcOffset: 9, openHour: 9, closeHour: 15, currency: 'JPY', fxPair: 'USD/JPY', fxRate: 153.4,
+        idxSym: 'TOPIX', idxName: 'TOPIX Japan', idxPrice: 2742.5, centralBank: 'Bank of Japan (BoJ)', policyRate: 0.25, cpi: 2.5,
+        gdpGrowth: 0.9, gdpBn: 4070, unemp: 2.5, debtGdp: 251.2, tradeBn: -38.4, reservesBn: 1245, rating: 'A+', y10: 1.02, mktCapBn: 6420, fdiProfile: 'industrial'
+    },
+    {
+        id: 'cn-bjs', iso2: 'CN', iso3: 'CHN', countryName: 'Cina (Pechino BSE)', countryNameEn: 'China Beijing',
+        flag: '🇨🇳', city: 'Pechino', exchangeName: 'Beijing Stock Exchange (BSE)', region: 'Asia',
+        lat: 39.90, lng: 116.41, utcOffset: 8, openHour: 9, closeHour: 15, currency: 'CNY', fxPair: 'USD/CNY', fxRate: 7.21,
+        idxSym: 'BSE50', idxName: 'BSE 50 Index', idxPrice: 1285.6, centralBank: 'PBoC', policyRate: 3.1, cpi: 0.4,
+        gdpGrowth: 4.8, gdpBn: 18530, unemp: 5.1, debtGdp: 88.6, tradeBn: 845.0, reservesBn: 3260, rating: 'A+', y10: 2.11, mktCapBn: 10850,
+        fdiProfile: 'tech', isFlagship: true
+    },
+    {
+        id: 'in-del', iso2: 'IN', iso3: 'IND', countryName: 'India (Nuova Delhi)', countryNameEn: 'India New Delhi',
+        flag: '🇮🇳', city: 'Nuova Delhi', exchangeName: 'NSE North Capital Desk (NSE)', region: 'Asia',
+        lat: 28.61, lng: 77.21, utcOffset: 5.5, openHour: 9, closeHour: 15, currency: 'INR', fxPair: 'USD/INR', fxRate: 84.35,
+        idxSym: 'SENSEX', idxName: 'BSE SENSEX 30', idxPrice: 80120.4, centralBank: 'Reserve Bank of India (RBI)', policyRate: 6.5, cpi: 5.2,
+        gdpGrowth: 7.0, gdpBn: 3940, unemp: 7.4, debtGdp: 81.9, tradeBn: -242.0, reservesBn: 692, rating: 'BBB-', y10: 6.84, mktCapBn: 5120,
+        fdiProfile: 'balanced', isFlagship: true
+    },
+    {
+        id: 'in-blr', iso2: 'IN', iso3: 'IND', countryName: 'India (Bengaluru Tech)', countryNameEn: 'India Bengaluru',
+        flag: '🇮🇳', city: 'Bengaluru', exchangeName: 'India Tech & Venture Hub (NSEIT)', region: 'Asia',
+        lat: 12.97, lng: 77.59, utcOffset: 5.5, openHour: 9, closeHour: 15, currency: 'INR', fxPair: 'USD/INR', fxRate: 84.35,
+        idxSym: 'CNXIT', idxName: 'NIFTY IT Index', idxPrice: 42480.0, centralBank: 'Reserve Bank of India (RBI)', policyRate: 6.5, cpi: 5.2,
+        gdpGrowth: 7.0, gdpBn: 3940, unemp: 7.4, debtGdp: 81.9, tradeBn: -242.0, reservesBn: 692, rating: 'BBB-', y10: 6.84, mktCapBn: 5120, fdiProfile: 'tech'
+    },
+    {
+        id: 'kr-pus', iso2: 'KR', iso3: 'KOR', countryName: 'Corea del Sud (Busan)', countryNameEn: 'South Korea Busan',
+        flag: '🇰🇷', city: 'Busan', exchangeName: 'KRX Derivatives & Maritime (KRX)', region: 'Asia',
+        lat: 35.18, lng: 129.08, utcOffset: 9, openHour: 9, closeHour: 15, currency: 'KRW', fxPair: 'USD/KRW', fxRate: 1392.0,
+        idxSym: 'KOSDAQ', idxName: 'KOSDAQ Composite', idxPrice: 742.8, centralBank: 'Bank of Korea', policyRate: 3.25, cpi: 1.6,
+        gdpGrowth: 2.4, gdpBn: 1870, unemp: 2.6, debtGdp: 51.8, tradeBn: 46.5, reservesBn: 416, rating: 'AA', y10: 3.06, mktCapBn: 1840, fdiProfile: 'industrial'
+    },
+    {
+        id: 'au-mel', iso2: 'AU', iso3: 'AUS', countryName: 'Australia (Melbourne)', countryNameEn: 'Australia Melbourne',
+        flag: '🇦🇺', city: 'Melbourne', exchangeName: 'ASX Institutional & Super (ASX)', region: 'Oceania',
+        lat: -37.81, lng: 144.96, utcOffset: 10, openHour: 10, closeHour: 16, currency: 'AUD', fxPair: 'AUD/USD', fxRate: 0.654,
+        idxSym: 'XAO', idxName: 'All Ordinaries', idxPrice: 8565.2, centralBank: 'Reserve Bank of Australia (RBA)', policyRate: 4.35, cpi: 2.8,
+        gdpGrowth: 1.5, gdpBn: 1790, unemp: 4.1, debtGdp: 49.4, tradeBn: 58.2, reservesBn: 64, rating: 'AAA', y10: 4.48, mktCapBn: 1840, fdiProfile: 'finance'
+    },
+    {
+        id: 'za-cpt', iso2: 'ZA', iso3: 'ZAF', countryName: 'Sudafrica (Città del Capo)', countryNameEn: 'South Africa Cape Town',
+        flag: '🇿🇦', city: 'Città del Capo', exchangeName: 'Cape Town Asset Mgmt (CTSE)', region: 'Africa',
+        lat: -33.92, lng: 18.42, utcOffset: 2, openHour: 9, closeHour: 17, currency: 'ZAR', fxPair: 'USD/ZAR', fxRate: 17.88,
+        idxSym: 'JALSH', idxName: 'FTSE/JSE All Share', idxPrice: 85420.0, centralBank: 'SARB', policyRate: 7.75, cpi: 3.8,
+        gdpGrowth: 1.5, gdpBn: 403, unemp: 32.1, debtGdp: 74.1, tradeBn: 11.4, reservesBn: 63, rating: 'BB-', y10: 9.24, mktCapBn: 1040, fdiProfile: 'finance'
     }
 ];
 

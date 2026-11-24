@@ -17,8 +17,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/three')) {
-            return 'three-vendor';
+          if (id.includes('node_modules/three') || id.includes('node_modules/react-globe.gl') || id.includes('node_modules/globe.gl')) {
+            return 'three-globe-vendor';
           }
           if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
             return 'charts-geo-vendor';
