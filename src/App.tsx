@@ -1,16 +1,21 @@
 // ============================================================================
 // TRADYX STANDALONE APPLICATION ENTRYPOINT (src/App.tsx)
-// Mobile-First PWA Web App with Pre-Login Neuro-Behavioral Diagnostic Funnel
+// Mobile-First PWA Web App with Definitive Persistent Auth & ATLAS Terminal
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { MobileAuthScreen } from './components/mobile/MobileAuthScreen';
 import { OnboardingFunnel } from './components/OnboardingFunnel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { UserAccount } from './types/auth';
 import { DiagnosticAnswers, DiagnosticResult } from './types/onboarding';
-import { supabase } from './services/authService';
+import {
+    supabase,
+    persistAuthSession,
+    loadPersistedAuthSession,
+    clearPersistedAuthSession
+} from './services/authService';
 import {
     loadDiagnosticProfile,
     saveDiagnosticProfile
@@ -22,7 +27,14 @@ import { SandboxTestPage } from './pages/SandboxTestPage';
 type PreAuthView = 'WELCOME' | 'RESULT' | 'LOGIN' | 'SIGNUP';
 
 export const App: React.FC = () => {
-    const [isInitializing, setIsInitializing] = useState<boolean>(true);
+    // Synchronously restore persisted auth session so returning users go straight to HOME
+    // with zero flash of Onboarding or Login.
+    const initialPersistedUser = useRef<UserAccount | null>(loadPersistedAuthSession());
+
+    const [authUser, setAuthUser] = useState<UserAccount | null>(initialPersistedUser.current);
+    const [isInitializing, setIsInitializing] = useState<boolean>(!initialPersistedUser.current);
+    const explicitLogoutRef = useRef<boolean>(false);
+
     const [currentPath, setCurrentPath] = useState<string>(() => {
         return typeof window !== 'undefined' ? window.location.pathname : '/';
     });
@@ -43,22 +55,7 @@ export const App: React.FC = () => {
         currentPath.startsWith('/sandbox-test') ||
         (typeof window !== 'undefined' && window.location.hash.includes('sandbox-test'));
 
-    // Authenticated user state: null for unauthenticated visitors so Pre-Login Funnel launches
-    const [authUser, setAuthUser] = useState<UserAccount | null>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('tradyx_user');
-            if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    /* ignore */
-                }
-            }
-        }
-        return null;
-    });
-
-    // Pre-Auth navigation state (Welcome -> Quiz -> Result -> Sign Up / Login)
+    // Pre-Auth navigation state (only used when user is NOT authenticated)
     const [preAuthView, setPreAuthView] = useState<PreAuthView>('WELCOME');
     const [pendingDiagnosticResult, setPendingDiagnosticResult] =
         useState<DiagnosticResult | null>(() => loadDiagnosticProfile()?.result || null);
@@ -86,20 +83,30 @@ export const App: React.FC = () => {
         let isMounted = true;
         let isSettled = false;
 
-        // Safety fallback timer: guarantee initialization unblocks after max 1.0s
+        // If user already has a persisted local session, hydrate trades & preferences immediately
+        const persisted = loadPersistedAuthSession();
+        if (persisted) {
+            setAuthUser(persisted);
+            applyOnboardingPreferencesForUser(persisted);
+            fetchTrades(persisted.id);
+            setIsInitializing(false);
+            isSettled = true;
+        }
+
+        // Safety fallback timer: guarantee initialization unblocks after max 0.8s
         const safetyTimer = setTimeout(() => {
             if (!isSettled && isMounted) {
                 isSettled = true;
                 setIsInitializing(false);
             }
-        }, 1000);
+        }, 800);
 
-        // 1. Check active Supabase session or persisted local session at startup
+        // Check active Supabase session (e.g. OAuth return or persisted Supabase JWT)
         const initializeSession = async () => {
             try {
                 const getSessionPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-                    setTimeout(() => resolve({ data: { session: null } }), 800)
+                    setTimeout(() => resolve({ data: { session: null } }), 700)
                 );
 
                 const result = await Promise.race([getSessionPromise, timeoutPromise]);
@@ -120,45 +127,25 @@ export const App: React.FC = () => {
                                 : 'user'),
                         created_at: session.user.created_at
                     };
+                    explicitLogoutRef.current = false;
+                    persistAuthSession(activeUser, 'supabase');
                     setAuthUser(activeUser);
-                    localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
                     applyOnboardingPreferencesForUser(activeUser);
                     fetchTrades(activeUser.id);
                 } else if (!session && isMounted) {
-                    const saved = localStorage.getItem('tradyx_user');
-                    if (saved) {
-                        try {
-                            const savedUser = JSON.parse(saved) as UserAccount;
-                            if (savedUser && isMounted) {
-                                setAuthUser(savedUser);
-                                applyOnboardingPreferencesForUser(savedUser);
-                                fetchTrades(savedUser.id);
-                            }
-                        } catch (e) {
-                            localStorage.removeItem('tradyx_user');
-                            setAuthUser(null);
-                        }
+                    // Never drop an existing persisted local session unless Logout was explicitly clicked
+                    const localUser = loadPersistedAuthSession();
+                    if (localUser) {
+                        setAuthUser(localUser);
                     } else {
-                        // Unauthenticated visitor -> start Pre-Login & Diagnostic Onboarding
                         setAuthUser(null);
                     }
                 }
             } catch (err) {
                 console.warn('[Tradyx Auth] Supabase Session check notice:', err);
                 if (isMounted) {
-                    const saved = localStorage.getItem('tradyx_user');
-                    if (saved) {
-                        try {
-                            const savedUser = JSON.parse(saved) as UserAccount;
-                            setAuthUser(savedUser);
-                            applyOnboardingPreferencesForUser(savedUser);
-                            fetchTrades(savedUser.id);
-                        } catch {
-                            setAuthUser(null);
-                        }
-                    } else {
-                        setAuthUser(null);
-                    }
+                    const localUser = loadPersistedAuthSession();
+                    setAuthUser(localUser);
                 }
             } finally {
                 if (!isSettled && isMounted) {
@@ -171,7 +158,7 @@ export const App: React.FC = () => {
 
         initializeSession();
 
-        // 2. Listen for real-time authentication state changes (including Google OAuth)
+        // Listen for real-time authentication state changes (e.g. Google OAuth redirect)
         const {
             data: { subscription }
         } = supabase.auth.onAuthStateChange((event, session) => {
@@ -188,8 +175,9 @@ export const App: React.FC = () => {
                         (session.user.email?.toLowerCase().includes('admin') ? 'admin' : 'user'),
                     created_at: session.user.created_at
                 };
+                explicitLogoutRef.current = false;
+                persistAuthSession(activeUser, 'supabase');
                 setAuthUser(activeUser);
-                localStorage.setItem('tradyx_user', JSON.stringify(activeUser));
                 applyOnboardingPreferencesForUser(activeUser);
                 fetchTrades(activeUser.id);
                 if (!isSettled && isMounted) {
@@ -197,16 +185,11 @@ export const App: React.FC = () => {
                     clearTimeout(safetyTimer);
                     setIsInitializing(false);
                 }
-            } else if (event === 'SIGNED_OUT') {
+            } else if (event === 'SIGNED_OUT' && explicitLogoutRef.current) {
+                clearPersistedAuthSession();
                 setAuthUser(null);
-                localStorage.removeItem('tradyx_user');
                 setPreAuthView('WELCOME');
                 recalculateBubbleConfig();
-                if (!isSettled && isMounted) {
-                    isSettled = true;
-                    clearTimeout(safetyTimer);
-                    setIsInitializing(false);
-                }
             }
         });
 
@@ -218,10 +201,9 @@ export const App: React.FC = () => {
     }, [applyOnboardingPreferencesForUser, fetchTrades, recalculateBubbleConfig]);
 
     const handleAuthenticated = (user: UserAccount) => {
+        explicitLogoutRef.current = false;
+        persistAuthSession(user, 'email');
         setAuthUser(user);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('tradyx_user', JSON.stringify(user));
-        }
         applyOnboardingPreferencesForUser(user);
         fetchTrades(user.id);
     };
@@ -235,20 +217,18 @@ export const App: React.FC = () => {
             role: 'user',
             created_at: new Date().toISOString()
         };
+        explicitLogoutRef.current = false;
+        persistAuthSession(demoUser, 'demo');
         setAuthUser(demoUser);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('tradyx_user', JSON.stringify(demoUser));
-        }
         applyOnboardingPreferencesForUser(demoUser);
         fetchTrades(demoUser.id);
     };
 
     const handleLogout = async () => {
+        explicitLogoutRef.current = true;
+        clearPersistedAuthSession();
         setAuthUser(null);
         setPreAuthView('WELCOME');
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('tradyx_user');
-        }
         try {
             await supabase.auth.signOut();
         } catch (e) {
@@ -275,7 +255,7 @@ export const App: React.FC = () => {
         );
     }
 
-    // Failsafe loading screen: dark institutional terminal background
+    // Failsafe loading screen: only shown on cold unauthenticated startup
     if (isInitializing) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08090C] text-white min-h-[100dvh] w-full">

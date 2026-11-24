@@ -26,7 +26,8 @@ import {
     ChevronRight,
     Lock,
     Settings,
-    Coins
+    Coins,
+    Globe
 } from 'lucide-react';
 
 interface TabHomeProps {
@@ -149,24 +150,24 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab, onOpen
 
                 {/* Right Header Status / Market Pulse & Profile trigger pill */}
                 <div className="flex items-center gap-1.5">
-                    {/* Market Pulse Quick Trigger */}
+                    {/* ATLAS Global Market Intelligence Quick Trigger */}
                     <button
                         type="button"
                         onClick={() => {
                             if (onOpenMarketPulse) {
                                 onOpenMarketPulse();
                             } else {
-                                setActiveTab('bubble');
+                                setActiveTab('atlas');
                             }
                         }}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#121620]/90 hover:bg-[#161B28] border border-[#10B981]/40 hover:border-[#10B981]/80 text-[10px] font-mono transition-all cursor-pointer group shadow-sm active:scale-95"
-                        title="Market Pulse - Live Market Watch Hub"
+                        title="ATLAS - Global Macro & Market Intelligence"
                     >
                         <div className="relative flex items-center justify-center">
-                            <Activity className="w-3.5 h-3.5 text-[#10B981]" />
+                            <Globe className="w-3.5 h-3.5 text-[#10B981]" />
                             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
                         </div>
-                        <span className="text-slate-200 group-hover:text-white font-bold hidden xs:inline sm:inline">Pulse</span>
+                        <span className="text-slate-200 group-hover:text-white font-bold hidden xs:inline sm:inline">ATLAS</span>
                     </button>
 
                     {/* Profile & Protocol Settings */}
@@ -387,35 +388,36 @@ export const TabHome: React.FC<TabHomeProps> = ({ authUser, setActiveTab, onOpen
                 </div>
             </section>
 
-            {/* 5. FLOATING QUASAR BUBBLE QUICK LAUNCHER (JADE GREEN) */}
-            <section 
-                onClick={() => setActiveTab('bubble')}
-                className="w-full rounded-2xl glass-panel hover:border-[#10B981]/40 p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group relative overflow-hidden"
+            {/* 5. ATLAS GLOBAL MACRO & MARKET INTELLIGENCE QUICK LAUNCHER */}
+            <section
+                onClick={() => setActiveTab('atlas')}
+                className="w-full rounded-2xl glass-panel hover:border-[#10B981]/50 p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group relative overflow-hidden"
             >
                 <div className="flex items-center gap-3 relative z-10">
                     <div className="relative w-11 h-11 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center shadow-md animate-jade-bubble">
-                            <BrainCircuit className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#064E3B] via-[#0F172A] to-[#030612] border border-[#10B981]/40 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.25)]">
+                            <Globe className="w-5 h-5 text-[#10B981]" />
                         </div>
+                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#FACC15] shadow-[0_0_8px_#FACC15] animate-pulse" />
                     </div>
 
                     <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs font-mono font-black text-white uppercase tracking-tight">
-                                QUASAR BUBBLE • SENTIMENT GALAXY
+                                ATLAS • GLOBAL MARKET INTELLIGENCE
                             </span>
-                            <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-[#DC2626]/20 text-[#DC2626] border border-[#DC2626]/30">
-                                70% FEAR
+                            <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/35">
+                                110+ PAESI • LIVE 1s
                             </span>
                         </div>
-                        <span className="text-[10px] text-[#9CA3AF] font-mono block">
-                            Tocca per accedere alla bolla e alle 50+ news istituzionali
+                        <span className="text-[10px] text-[#9CA3AF] font-mono block mt-0.5">
+                            Mappa orbitale notturna, mercati live al secondo, news AI e macroeconomia
                         </span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-[#10B981] group-hover:translate-x-1 transition-transform relative z-10">
-                    <span className="hidden sm:inline">EXPLORE</span>
+                    <span className="hidden sm:inline">APRI</span>
                     <ChevronRight className="w-4 h-4 text-[#10B981]" />
                 </div>
             </section>

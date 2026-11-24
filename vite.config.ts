@@ -20,6 +20,12 @@ export default defineConfig({
           if (id.includes('node_modules/three')) {
             return 'three-vendor';
           }
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'charts-geo-vendor';
+          }
+          if (id.includes('node_modules/world-atlas') || id.includes('node_modules/topojson')) {
+            return 'atlas-map-data';
+          }
           if (id.includes('node_modules/lucide-react')) {
             return 'icons-vendor';
           }

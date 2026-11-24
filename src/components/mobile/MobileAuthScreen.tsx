@@ -5,7 +5,12 @@
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { signInUser, signUpUser, signInWithGoogle } from '../../services/authService';
+import {
+    signInUser,
+    signUpUser,
+    signInWithGoogle,
+    persistAuthSession
+} from '../../services/authService';
 import { UserAccount } from '../../types/auth';
 import { DiagnosticResult } from '../../types/onboarding';
 import {
@@ -79,10 +84,11 @@ export const MobileAuthScreen: React.FC<MobileAuthScreenProps> = ({
                     return;
                 }
 
-                if (res.needsEmailVerification) {
-                    setInfoMessage(res.message);
-                } else if (res.user) {
+                if (res.user) {
+                    persistAuthSession(res.user, 'email');
                     onAuthenticated(res.user);
+                } else {
+                    setInfoMessage('Controlla la tua email per confermare la registrazione.');
                 }
             } else {
                 const res = await signInUser(email, password);
@@ -94,6 +100,7 @@ export const MobileAuthScreen: React.FC<MobileAuthScreenProps> = ({
                 }
 
                 if (res.user) {
+                    persistAuthSession(res.user, 'email');
                     onAuthenticated(res.user);
                 }
             }
@@ -117,6 +124,7 @@ export const MobileAuthScreen: React.FC<MobileAuthScreenProps> = ({
             }
 
             if (res.user) {
+                persistAuthSession(res.user, 'google');
                 onAuthenticated(res.user);
             } else if (res.redirecting) {
                 setInfoMessage(res.message);

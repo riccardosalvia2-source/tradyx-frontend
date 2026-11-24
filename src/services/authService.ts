@@ -9,7 +9,112 @@ import { UserAccount, UserRole, SystemLogEntry, AnomalyReport, LogType, AnomalyS
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dummy-tradyx.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'dummy_anon_key';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+    }
+});
+
+// ============================================================================
+// PERSISTENT LOCAL AUTH SESSION STORAGE KEYS (ZERO RE-LOGIN ON REOPEN)
+// ============================================================================
+export const AUTH_SESSION_STORAGE_KEY = 'tradyx_auth_session';
+export const USER_PROFILE_STORAGE_KEY = 'tradyx_user_profile';
+export const ONBOARDING_COMPLETED_KEY = 'tradyx_onboarding_completed';
+export const LEGACY_USER_STORAGE_KEY = 'tradyx_user';
+
+export interface PersistedAuthSession {
+    user: UserAccount;
+    provider: 'email' | 'google' | 'demo' | 'supabase';
+    authenticatedAt: string;
+}
+
+/**
+ * Persists authenticated user & session flags permanently in localStorage
+ * so subsequent app launches bypass Onboarding and Login automatically.
+ */
+export function persistAuthSession(
+    user: UserAccount,
+    provider: 'email' | 'google' | 'demo' | 'supabase' = 'email'
+): void {
+    if (typeof window === 'undefined') return;
+    try {
+        const sessionPayload: PersistedAuthSession = {
+            user,
+            provider,
+            authenticatedAt: new Date().toISOString()
+        };
+        localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(sessionPayload));
+        localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(user));
+        localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+        localStorage.setItem(LEGACY_USER_STORAGE_KEY, JSON.stringify(user));
+    } catch (err) {
+        console.warn('[Tradyx Auth] Failed to persist local session:', err);
+    }
+}
+
+/**
+ * Loads any valid persisted auth session from localStorage synchronously.
+ */
+export function loadPersistedAuthSession(): UserAccount | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const rawSession = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+        if (rawSession) {
+            const parsed = JSON.parse(rawSession) as PersistedAuthSession;
+            if (parsed?.user?.id && parsed?.user?.email) {
+                return parsed.user;
+            }
+        }
+
+        const rawProfile = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+        if (rawProfile) {
+            const parsedUser = JSON.parse(rawProfile) as UserAccount;
+            if (parsedUser?.id && parsedUser?.email) {
+                persistAuthSession(parsedUser, 'email');
+                return parsedUser;
+            }
+        }
+
+        const rawLegacy = localStorage.getItem(LEGACY_USER_STORAGE_KEY);
+        if (rawLegacy) {
+            const legacyUser = JSON.parse(rawLegacy) as UserAccount;
+            if (legacyUser?.id && legacyUser?.email) {
+                persistAuthSession(legacyUser, 'email');
+                return legacyUser;
+            }
+        }
+    } catch (err) {
+        console.warn('[Tradyx Auth] Failed to read persisted session:', err);
+    }
+    return null;
+}
+
+/**
+ * Explicitly clears all persisted session keys ONLY when user presses Logout.
+ */
+export function clearPersistedAuthSession(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+        localStorage.removeItem(USER_PROFILE_STORAGE_KEY);
+        localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+        localStorage.removeItem(LEGACY_USER_STORAGE_KEY);
+    } catch (err) {
+        console.warn('[Tradyx Auth] Failed to clear persisted session:', err);
+    }
+}
+
+export function isOnboardingCompleted(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        return localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true';
+    } catch {
+        return false;
+    }
+}
 
 // In-Memory Storage for Admin System Logs & Anomalies
 const mockSystemLogs: SystemLogEntry[] = [
