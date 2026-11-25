@@ -4,16 +4,17 @@
 // ============================================================================
 
 import { create } from 'zustand';
-import { createClient } from '@supabase/supabase-js';
 import { Trade, NewTradeInput, EmotionalState } from '../types/trade';
 import { BubbleConfig } from '../types/bubble';
-import { addSystemLog } from '../services/authService';
+import {
+    supabase,
+    isSupabaseConfigured,
+    isValidUuid,
+    addSystemLog
+} from '../services/authService';
 import { isTiltDetected } from '../services/circuitBreakerService';
 
-// Initialize Supabase Client dynamically from environment variables
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://dummy.supabase.co';
-const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'dummy_key';
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { supabase };
 
 interface TradeState {
     trades: Trade[];
@@ -247,6 +248,30 @@ export const DEFAULT_MOCK_TRADES: Trade[] = [
     }
 ];
 
+const ACTIVE_TRADES_STORAGE_KEY = 'tradyx_trades_cache_v2';
+
+const loadInitialActiveTrades = (): Trade[] => {
+    try {
+        if (typeof window === 'undefined') return DEFAULT_MOCK_TRADES;
+        const stored = localStorage.getItem(ACTIVE_TRADES_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) return parsed;
+        }
+    } catch {
+        // Fallback to baseline mock trades
+    }
+    return DEFAULT_MOCK_TRADES;
+};
+
+const saveActiveTrades = (trades: Trade[]) => {
+    try {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(ACTIVE_TRADES_STORAGE_KEY, JSON.stringify(trades));
+        }
+    } catch {}
+};
+
 const loadInitialDeletedTrades = (): Trade[] => {
     try {
         if (typeof window === 'undefined') return [];
@@ -265,17 +290,24 @@ const saveDeletedTrades = (trades: Trade[]) => {
     } catch {}
 };
 
+const initialTrades = loadInitialActiveTrades();
+
 export const useTradeStore = create<TradeState>((set, get) => ({
-    trades: DEFAULT_MOCK_TRADES,
+    trades: initialTrades,
     deletedTrades: loadInitialDeletedTrades(),
     isLoading: false,
     error: null,
-    bubbleConfig: computeBubbleConfig(DEFAULT_MOCK_TRADES),
+    bubbleConfig: computeBubbleConfig(initialTrades),
     draftTradeAsset: null,
 
     setDraftTradeAsset: (asset: string | null) => set({ draftTradeAsset: asset }),
 
     fetchTrades: async (userId: string) => {
+        if (!isSupabaseConfigured() || !isValidUuid(userId)) {
+            get().recalculateBubbleConfig();
+            return;
+        }
+
         set({ isLoading: true, error: null });
         try {
             const { data, error } = await supabase
@@ -286,13 +318,25 @@ export const useTradeStore = create<TradeState>((set, get) => ({
 
             if (error) throw error;
 
-            const tradesData = (data || []) as Trade[];
-            const activeTrades = tradesData.length > 0 ? tradesData : DEFAULT_MOCK_TRADES;
-            set({ trades: activeTrades, isLoading: false });
+            const allCloudTrades = (data || []) as Trade[];
+            const activeCloudTrades = allCloudTrades.filter((t) => !t.is_deleted);
+            const deletedCloudTrades = allCloudTrades.filter((t) => t.is_deleted);
+
+            const activeTrades =
+                activeCloudTrades.length > 0 ? activeCloudTrades : get().trades;
+            set({
+                trades: activeTrades,
+                deletedTrades: deletedCloudTrades.length > 0 ? deletedCloudTrades : get().deletedTrades,
+                isLoading: false
+            });
+            saveActiveTrades(activeTrades);
+            if (deletedCloudTrades.length > 0) {
+                saveDeletedTrades(deletedCloudTrades);
+            }
             get().recalculateBubbleConfig();
         } catch (err: any) {
-            console.warn('Fetch trades error (using local state fallback):', err.message);
-            set({ trades: DEFAULT_MOCK_TRADES, isLoading: false });
+            console.warn('Fetch trades error (using local-first cache fallback):', err.message);
+            set({ isLoading: false });
             get().recalculateBubbleConfig();
         }
     },
@@ -309,7 +353,7 @@ export const useTradeStore = create<TradeState>((set, get) => ({
             { symbol: assetLabel, pnl: tradeData.pnl, emotional_state: tradeData.emotional_state }
         );
 
-        // 1. Optimistic UI Update: Create transient trade object
+        // 1. Optimistic UI Update (60fps instant local-first feedback)
         const optimisticTrade: Trade = {
             ...tradeData,
             id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -318,29 +362,39 @@ export const useTradeStore = create<TradeState>((set, get) => ({
 
         const updatedTrades = [optimisticTrade, ...get().trades];
         set({ trades: updatedTrades });
-        
-        // Recalculate bubble immediately for instant visual feedback!
+        saveActiveTrades(updatedTrades);
         get().recalculateBubbleConfig();
 
-        // 2. Persist to Supabase in background
+        // 2. Persist to Supabase PostgreSQL (protected by RLS) in background
+        if (!isSupabaseConfigured()) return;
         try {
+            const { data: userData } = await supabase.auth.getUser();
+            const authUid = userData?.user?.id;
+            if (!authUid || !isValidUuid(authUid)) return;
+
+            const cloudPayload = {
+                ...tradeData,
+                user_id: authUid
+            };
+
             const { data, error } = await supabase
                 .from('trades')
-                .insert([tradeData])
+                .insert([cloudPayload])
                 .select()
                 .single();
 
             if (error) throw error;
 
-            // Replace optimistic trade with persisted database trade
             if (data) {
-                const confirmedTrades = get().trades.map(t => t.id === optimisticTrade.id ? (data as Trade) : t);
+                const confirmedTrades = get().trades.map((t) =>
+                    t.id === optimisticTrade.id ? (data as Trade) : t
+                );
                 set({ trades: confirmedTrades });
+                saveActiveTrades(confirmedTrades);
                 get().recalculateBubbleConfig();
             }
         } catch (err: any) {
-            console.warn('Optimistic trade saved locally:', err.message);
-            // Local state remains active so demo is 100% interactive!
+            console.warn('Optimistic trade saved locally (cloud sync pending):', err.message);
         }
     },
 
@@ -348,24 +402,37 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         const tradeToDelete = get().trades.find(t => t.id === tradeId);
         if (!tradeToDelete) return;
 
+        const deletedAt = new Date().toISOString();
         const updatedTrades = get().trades.filter(t => t.id !== tradeId);
         const softDeletedTrade: Trade = {
             ...tradeToDelete,
             is_deleted: true,
-            deleted_at: new Date().toISOString()
+            deleted_at: deletedAt
         };
         const updatedDeletedTrades = [softDeletedTrade, ...get().deletedTrades];
 
         set({ trades: updatedTrades, deletedTrades: updatedDeletedTrades });
+        saveActiveTrades(updatedTrades);
         saveDeletedTrades(updatedDeletedTrades);
         get().recalculateBubbleConfig();
 
         addSystemLog(
-            'TRADE_DELETED',
+            'TRADE_LOGGED',
             `Trade spostato nel cestino: ${tradeToDelete.asset_pair} ${tradeToDelete.direction}`,
             'trader.pro@tradyx.ai',
-            { id: tradeId, symbol: tradeToDelete.asset_pair }
+            { action: 'TRADE_DELETED', id: tradeId, symbol: tradeToDelete.asset_pair }
         );
+
+        if (isSupabaseConfigured() && isValidUuid(tradeId)) {
+            try {
+                await supabase
+                    .from('trades')
+                    .update({ is_deleted: true, deleted_at: deletedAt })
+                    .eq('id', tradeId);
+            } catch (err: any) {
+                console.warn('Cloud soft-delete notice:', err?.message);
+            }
+        }
     },
 
     restoreTrade: async (tradeId: string) => {
@@ -381,25 +448,47 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         const updatedTrades = [restoredTrade, ...get().trades];
 
         set({ trades: updatedTrades, deletedTrades: updatedDeleted });
+        saveActiveTrades(updatedTrades);
         saveDeletedTrades(updatedDeleted);
         get().recalculateBubbleConfig();
 
         addSystemLog(
-            'TRADE_RESTORED',
+            'TRADE_LOGGED',
             `Trade ripristinato dal cestino: ${restoredTrade.asset_pair} ${restoredTrade.direction}`,
             'trader.pro@tradyx.ai',
-            { id: tradeId, symbol: restoredTrade.asset_pair }
+            { action: 'TRADE_RESTORED', id: tradeId, symbol: restoredTrade.asset_pair }
         );
+
+        if (isSupabaseConfigured() && isValidUuid(tradeId)) {
+            try {
+                await supabase
+                    .from('trades')
+                    .update({ is_deleted: false, deleted_at: null })
+                    .eq('id', tradeId);
+            } catch (err: any) {
+                console.warn('Cloud restore notice:', err?.message);
+            }
+        }
     },
 
     emptyTrash: async () => {
+        const toPurge = get().deletedTrades.filter((t) => isValidUuid(t.id)).map((t) => t.id);
         set({ deletedTrades: [] });
         saveDeletedTrades([]);
         addSystemLog(
-            'TRASH_EMPTIED',
+            'TRADE_LOGGED',
             'Cestino svuotato definitivamente',
-            'trader.pro@tradyx.ai'
+            'trader.pro@tradyx.ai',
+            { action: 'TRASH_EMPTIED' }
         );
+
+        if (isSupabaseConfigured() && toPurge.length > 0) {
+            try {
+                await supabase.from('trades').delete().in('id', toPurge);
+            } catch (err: any) {
+                console.warn('Cloud empty trash notice:', err?.message);
+            }
+        }
     },
 
     permanentDeleteTrade: async (tradeId: string) => {
@@ -407,21 +496,34 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         set({ deletedTrades: updatedDeleted });
         saveDeletedTrades(updatedDeleted);
         addSystemLog(
-            'TRADE_PERMANENTLY_DELETED',
+            'TRADE_LOGGED',
             `Trade eliminato definitivamente dal cestino: ${tradeId}`,
             'trader.pro@tradyx.ai',
-            { id: tradeId }
+            { action: 'TRADE_PERMANENTLY_DELETED', id: tradeId }
         );
+
+        if (isSupabaseConfigured() && isValidUuid(tradeId)) {
+            try {
+                await supabase.from('trades').delete().eq('id', tradeId);
+            } catch (err: any) {
+                console.warn('Cloud permanent delete notice:', err?.message);
+            }
+        }
     },
 
     injectMockTrades: async (newTrades: Trade[]) => {
         set({ trades: newTrades });
+        saveActiveTrades(newTrades);
         get().recalculateBubbleConfig();
 
-        // Persist to Supabase database if connected
+        if (!isSupabaseConfigured()) return;
         try {
+            const { data: userData } = await supabase.auth.getUser();
+            const authUid = userData?.user?.id;
+            if (!authUid || !isValidUuid(authUid)) return;
+
             const rawTrades = newTrades.map(t => ({
-                user_id: t.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+                user_id: authUid,
                 asset_pair: t.asset_pair,
                 direction: t.direction,
                 entry_price: t.entry_price,
@@ -442,11 +544,15 @@ export const useTradeStore = create<TradeState>((set, get) => ({
 
     clearAllTrades: async () => {
         set({ trades: [] });
+        saveActiveTrades([]);
         get().recalculateBubbleConfig();
 
-        // Delete test data from Supabase
+        if (!isSupabaseConfigured()) return;
         try {
-            await supabase.from('trades').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            const { data: userData } = await supabase.auth.getUser();
+            const authUid = userData?.user?.id;
+            if (!authUid || !isValidUuid(authUid)) return;
+            await supabase.from('trades').delete().eq('user_id', authUid);
         } catch (e) {
             console.warn('Supabase clear notice (persisted in local state):', e);
         }

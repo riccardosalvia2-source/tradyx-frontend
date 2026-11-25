@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { StoredDiagnosticProfile } from '../types/onboarding';
+import { fetchProfileFromCloud, syncProfileToCloud } from '../services/authService';
 
 export interface Currency {
     code: string;
@@ -118,6 +119,7 @@ interface SettingsState {
     updatePaymentMethod: (pm: { type: 'STRIPE' | 'CARD' | 'WEB3_CRYPTO'; label: string; expires?: string }) => void;
     setPropFirmShield: (enabled: boolean, maxLossPercent?: number, accountSize?: number) => void;
     applyDiagnosticProfile: (profile: StoredDiagnosticProfile) => void;
+    hydrateFromCloud: (userId: string) => Promise<void>;
     
     // Helper
     formatMoney: (amount: number, includeSign?: boolean) => string;
@@ -296,6 +298,49 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             return updated;
         });
     },
+
+    hydrateFromCloud: async (userId: string) => {
+        const cloud = await fetchProfileFromCloud(userId);
+        if (!cloud) return;
+
+        set((state) => {
+            const matchedCurrency =
+                WORLD_CURRENCIES.find((c) => c.code === cloud.base_currency_code) ||
+                state.baseCurrency;
+            const merged = {
+                email: cloud.email || state.email,
+                protocolName: cloud.full_name || state.protocolName,
+                baseCurrency: matchedCurrency,
+                monthlyBudget: Number(cloud.monthly_budget ?? state.monthlyBudget),
+                maxRiskPerTrade: Number(cloud.max_risk_per_trade ?? state.maxRiskPerTrade),
+                maxRiskType:
+                    cloud.max_risk_type === 'PERCENT' || cloud.max_risk_type === 'FIXED'
+                        ? cloud.max_risk_type
+                        : state.maxRiskType,
+                propFirmShieldEnabled:
+                    typeof cloud.prop_firm_shield_enabled === 'boolean'
+                        ? cloud.prop_firm_shield_enabled
+                        : state.propFirmShieldEnabled,
+                propFirmMaxDailyLossPercent: Number(
+                    cloud.prop_firm_max_daily_loss_pct ?? state.propFirmMaxDailyLossPercent
+                ),
+                propFirmAccountSize: Number(
+                    cloud.prop_firm_account_size ?? state.propFirmAccountSize
+                ),
+                ulyssesStrictMode:
+                    typeof cloud.ulysses_strict_mode === 'boolean'
+                        ? cloud.ulysses_strict_mode
+                        : state.ulyssesStrictMode,
+                ulyssesLossThreshold: Number(
+                    cloud.ulysses_loss_threshold ?? state.ulyssesLossThreshold
+                ),
+                preferredMarket: cloud.preferred_market || state.preferredMarket,
+                diagnosticProfile: cloud.diagnostic_profile || state.diagnosticProfile
+            };
+            saveToCache({ ...state, ...merged }, false);
+            return merged;
+        });
+    },
     
     formatMoney: (amount: number, includeSign = true) => {
         const { baseCurrency } = get();
@@ -315,7 +360,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 }));
 
-function saveToCache(state: any) {
+function saveToCache(state: any, pushToCloud = true) {
     if (typeof window !== 'undefined') {
         try {
             const toPersist = {
@@ -340,5 +385,24 @@ function saveToCache(state: any) {
         } catch (e) {
             console.warn('Failed to save settings to localStorage:', e);
         }
+    }
+
+    if (pushToCloud) {
+        void syncProfileToCloud({
+            email: state.email,
+            full_name: state.protocolName,
+            base_currency_code: state.baseCurrency?.code || 'EUR',
+            monthly_budget: state.monthlyBudget,
+            max_risk_per_trade: state.maxRiskPerTrade,
+            max_risk_type: state.maxRiskType,
+            prop_firm_shield_enabled: state.propFirmShieldEnabled,
+            prop_firm_max_daily_loss_pct: state.propFirmMaxDailyLossPercent,
+            prop_firm_account_size: state.propFirmAccountSize,
+            ulysses_strict_mode: state.ulyssesStrictMode,
+            ulysses_loss_threshold: state.ulyssesLossThreshold,
+            preferred_market: state.preferredMarket,
+            diagnostic_profile: state.diagnosticProfile,
+            onboarding_completed: true
+        });
     }
 }

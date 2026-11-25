@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { TradeDirection, TradePsychology } from '../types/trade';
+import { getApiAuthHeaders } from './authService';
 
 export interface ParsedVoiceTrade {
     asset_pair?: string;
@@ -271,60 +272,45 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
 }
 
 /**
- * Enhanced parser using Google Gemini API (gemini-1.5-flash) with specialized Italian trading prompt.
- * Falls back seamlessly to deterministic regex parser if key not present.
+ * Enhanced voice parser routed strictly through the server-side `/api/ai/coach`
+ * gateway (mode: VOICE_PARSE). Falls back seamlessly to the local regex parser
+ * if the serverless endpoint is unavailable or unconfigured.
  */
 export async function parseVoiceWithGemini(transcript: string): Promise<ParsedVoiceTrade> {
-    const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
-                         import.meta.env?.GEMINI_API_KEY || 
-                         (typeof process !== 'undefined' ? (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY) : undefined);
-
-    if (!geminiApiKey || geminiApiKey === 'dummy_gemini_key' || geminiApiKey.includes('Dummy')) {
+    if (!transcript || transcript.trim().length < 2) {
         return parseVoiceTranscript(transcript);
     }
 
     try {
-        const prompt = `Sei un assistente istituzionale di trading. Analizza la seguente frase pronunciata in italiano da un trader ed estrai i parametri operativi.
-IMPORTANTE SULLE CIFRE IN ITALIANO: Il punto è spesso usato come separatore delle migliaia (es. "83.500" = 83500, "84.500" = 84500, "1.500" = 1500).
+        const authHeaders = await getApiAuthHeaders();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
 
-Frase del trader: "${transcript}"
-
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (senza markdown o backtick \`\`\`json) avente questi campi:
-{
-  "asset_pair": string ("BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "NVDA", "EUR/USD", etc.),
-  "direction": "LONG" | "SHORT",
-  "entry_price": number (es. 83500),
-  "exit_price": number (es. 84500),
-  "pnl": number,
-  "position_size": number,
-  "errors": string[] (valori: "FOMO", "OVERTRADING", "NO STOP LOSS", "REVENGE TRADING", "EARLY EXIT"),
-  "psychology": "CONFIDENCE" | "NEUTRAL" | "FEAR",
-  "notes": string
-}`;
-
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-        const res = await fetch(endpoint, {
+        const res = await fetch('/api/ai/coach', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
+            },
             body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }]
-            })
+                mode: 'VOICE_PARSE',
+                transcript: transcript.trim().slice(0, 2000)
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timer);
 
         if (res.ok) {
             const data = await res.json();
-            const textReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textReply) {
-                const cleaned = textReply.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonParsed = JSON.parse(cleaned);
+            if (data?.parsed && typeof data.parsed === 'object') {
                 return {
-                    ...jsonParsed,
+                    ...data.parsed,
                     rawTranscript: transcript
                 };
             }
         }
     } catch (e) {
-        console.warn('Gemini voice parsing notice, using local parser:', e);
+        console.warn('[Tradyx Voice Parser] Gateway fallback to local parser:', e);
     }
 
     return parseVoiceTranscript(transcript);

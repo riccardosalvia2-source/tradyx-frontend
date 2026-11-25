@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { GlobalHub, HubMacroData, FdiHistoryPoint } from '../types/atlas';
+import { getApiAuthHeaders } from './authService';
 
 export interface EnrichedMacroResult {
     macro: HubMacroData;
@@ -52,6 +53,78 @@ export async function fetchCountryMacroData(hub: GlobalHub): Promise<EnrichedMac
     const cached = macroCache.get(hub.iso3);
     if (cached && cached.expiresAt > Date.now()) {
         return cached.data;
+    }
+
+    // 1. Primary path: Secure Vercel API Gateway (/api/atlas/macro — 12h Upstash Redis cache + World Bank + FRED)
+    try {
+        const authHeaders = await getApiAuthHeaders();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const params = new URLSearchParams({ iso3: hub.iso3, iso2: hub.iso2 });
+        const res = await fetch(`/api/atlas/macro?${params.toString()}`, {
+            headers: authHeaders,
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+            const srv = await res.json();
+            if (srv && typeof srv === 'object') {
+                const mergedMacro: HubMacroData = { ...hub.macro };
+                let hasLiveUpdate = false;
+
+                if (typeof srv.gdpNominalBn === 'number') {
+                    mergedMacro.gdpNominalBn = srv.gdpNominalBn;
+                    hasLiveUpdate = true;
+                }
+                if (typeof srv.gdpGrowth === 'number') {
+                    mergedMacro.gdpGrowth = srv.gdpGrowth;
+                    hasLiveUpdate = true;
+                }
+                if (typeof srv.inflationCpi === 'number') {
+                    mergedMacro.inflationCpi = srv.inflationCpi;
+                    hasLiveUpdate = true;
+                }
+                if (typeof srv.unemployment === 'number') {
+                    mergedMacro.unemployment = srv.unemployment;
+                    hasLiveUpdate = true;
+                }
+                if (typeof srv.policyRateFred === 'number') {
+                    mergedMacro.policyRate = srv.policyRateFred;
+                    hasLiveUpdate = true;
+                }
+                if (hasLiveUpdate) {
+                    mergedMacro.source = 'worldbank_live';
+                }
+
+                const fdiHistory5Y =
+                    Array.isArray(srv.fdiHistory5Y) && srv.fdiHistory5Y.length >= 3
+                        ? srv.fdiHistory5Y
+                        : hub.fdiHistory5Y;
+
+                let marketCapToGdpPct = hub.equityMarket.marketCapToGdpPct;
+                let totalMarketCapBn = hub.equityMarket.totalMarketCapBn;
+                if (typeof srv.marketCapToGdpPct === 'number' && srv.marketCapToGdpPct > 1) {
+                    marketCapToGdpPct = srv.marketCapToGdpPct;
+                    totalMarketCapBn = Number(
+                        ((mergedMacro.gdpNominalBn * marketCapToGdpPct) / 100).toFixed(1)
+                    );
+                }
+
+                const result: EnrichedMacroResult = {
+                    macro: mergedMacro,
+                    fdiHistory5Y,
+                    marketCapToGdpPct,
+                    totalMarketCapBn,
+                    isWorldBankLive: hasLiveUpdate,
+                    lastSyncedAt: srv.lastSyncedAt || new Date().toISOString()
+                };
+                macroCache.set(hub.iso3, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+                return result;
+            }
+        }
+    } catch {
+        // Fallback smoothly to direct public World Bank v2 API when running local Vite dev
     }
 
     const [gdpSeries, growthSeries, cpiSeries, unempSeries, fdiSeries, mcapSeries] =

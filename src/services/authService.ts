@@ -9,6 +9,18 @@ import { UserAccount, UserRole, SystemLogEntry, AnomalyReport, LogType, AnomalyS
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dummy-tradyx.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'dummy_anon_key';
 
+export function isSupabaseConfigured(): boolean {
+    return (
+        Boolean(SUPABASE_URL) &&
+        Boolean(SUPABASE_ANON_KEY) &&
+        !SUPABASE_URL.includes('dummy-tradyx.supabase.co') &&
+        !SUPABASE_URL.includes('dummy.supabase.co') &&
+        SUPABASE_ANON_KEY !== 'dummy_anon_key' &&
+        SUPABASE_ANON_KEY !== 'dummy_key' &&
+        SUPABASE_URL.startsWith('https://')
+    );
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         persistSession: true,
@@ -16,6 +28,131 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         detectSessionInUrl: true
     }
 });
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value?: string | null): boolean {
+    return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
+/**
+ * Returns the live Supabase Auth JWT access token if available.
+ */
+export async function getAccessToken(): Promise<string | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+        const { data } = await supabase.auth.getSession();
+        return data?.session?.access_token || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Builds secure authorization headers for calls to Tradyx `/api/*` gateway routes.
+ */
+export async function getApiAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {};
+    const token = await getAccessToken();
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+    const localUser = loadPersistedAuthSession();
+    if (localUser?.id) {
+        headers['X-Tradyx-Session'] = localUser.id;
+    }
+    return headers;
+}
+
+export interface CloudProfileSyncPayload {
+    email?: string;
+    full_name?: string;
+    base_currency_code?: string;
+    monthly_budget?: number;
+    max_risk_per_trade?: number;
+    max_risk_type?: 'PERCENT' | 'FIXED';
+    prop_firm_shield_enabled?: boolean;
+    prop_firm_max_daily_loss_pct?: number;
+    prop_firm_account_size?: number;
+    ulysses_strict_mode?: boolean;
+    ulysses_loss_threshold?: number;
+    preferred_market?: string;
+    diagnostic_profile?: unknown;
+    onboarding_completed?: boolean;
+}
+
+/**
+ * Non-blocking cloud upsert of user profile & settings to Supabase `public.profiles` (protected by RLS).
+ */
+export async function syncProfileToCloud(patch: CloudProfileSyncPayload): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    try {
+        const { data } = await supabase.auth.getUser();
+        const uid = data?.user?.id;
+        if (!uid || !isValidUuid(uid)) return;
+
+        await supabase
+            .from('profiles')
+            .upsert(
+                {
+                    id: uid,
+                    email: patch.email || data.user?.email || '',
+                    ...patch
+                },
+                { onConflict: 'id' }
+            );
+    } catch (err) {
+        console.warn('[Tradyx Cloud Sync] Profile sync notice:', err);
+    }
+}
+
+/**
+ * Loads user profile & settings from Supabase `public.profiles` (protected by RLS).
+ */
+export async function fetchProfileFromCloud(userId: string): Promise<Record<string, any> | null> {
+    if (!isSupabaseConfigured() || !isValidUuid(userId)) return null;
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+        if (error) return null;
+        return data;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Records a Ulysses Protocol session in Supabase `public.ulysses_sessions` (protected by RLS).
+ */
+export async function logUlyssesSessionToCloud(payload: {
+    trigger_reason: string;
+    physiological_state?: string;
+    plan_compliance?: string;
+    procedural_action?: string;
+    cooldown_minutes?: number;
+    unlocked?: boolean;
+    metadata?: Record<string, unknown>;
+}): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    try {
+        const { data } = await supabase.auth.getUser();
+        const uid = data?.user?.id;
+        if (!uid || !isValidUuid(uid)) return;
+
+        await supabase.from('ulysses_sessions').insert([
+            {
+                user_id: uid,
+                ...payload,
+                unlocked_at: payload.unlocked ? new Date().toISOString() : null
+            }
+        ]);
+    } catch (err) {
+        console.warn('[Tradyx Cloud Sync] Ulysses session log notice:', err);
+    }
+}
 
 // ============================================================================
 // PERSISTENT LOCAL AUTH SESSION STORAGE KEYS (ZERO RE-LOGIN ON REOPEN)

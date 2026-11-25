@@ -77,6 +77,7 @@ export const App: React.FC = () => {
             settings.applyDiagnosticProfile(storedDiagnostic);
             saveDiagnosticProfile(storedDiagnostic.answers, storedDiagnostic.result, user.id);
         }
+        void settings.hydrateFromCloud(user.id);
     }, []);
 
     useEffect(() => {

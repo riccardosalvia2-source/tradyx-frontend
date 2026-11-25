@@ -6,10 +6,9 @@
 //              and Behavioral Finance Analytics.
 // ============================================================================
 
-import { GoogleGenAI } from '@google/genai';
 import { UserTradingContext } from '../types/chat';
 import { sanitizeTextForAI } from '../../security/ai_sanitizer';
-import { addSystemLog } from './authService';
+import { addSystemLog, getApiAuthHeaders } from './authService';
 import { getDefaultGeminiModel, recordGeminiCall } from './geminiMetricsService';
 
 export type CoachPersona = 'EMPATHIC' | 'TOUGH_LOVE';
@@ -109,64 +108,105 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
 
     const fullPrompt = `${selectedInstructions}\n${journalContextStr}\n\n[DOMANDA UTENTE]\n${sanitizedPrompt}`;
 
-    // 4. Retrieve Gemini API Key from Environment
-    const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
-                         import.meta.env?.GEMINI_API_KEY || 
-                         (typeof process !== 'undefined' ? process.env?.VITE_GEMINI_API_KEY : undefined);
+    // 4. Call Secure Server-Side API Gateway (/api/ai/coach) — ZERO client-side secret keys
+    try {
+        const authHeaders = await getApiAuthHeaders();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 14_000);
 
-    if (geminiApiKey && geminiApiKey !== 'dummy_gemini_key') {
-        // Attempt Direct GoogleGenAI SDK Call
-        try {
-            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-            const response = await ai.models.generateContent({
-                model: activeModel,
-                contents: fullPrompt,
-            });
-            if (response && response.text) {
+        const res = await fetch('/api/ai/coach', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
+            },
+            body: JSON.stringify({
+                mode: 'COACH',
+                prompt: sanitizedPrompt,
+                persona,
+                context: context
+                    ? {
+                          recentPnL: context.recentPnL,
+                          recentEmotion: context.recentEmotion,
+                          totalWinRate: context.totalWinRate,
+                          tradeCount: context.tradeCount,
+                          lastTradeNotes: context.lastTradeNotes,
+                          cortisolClearingActive: context.cortisolClearingActive,
+                          cortisolRemainingMinutes: context.cortisolRemainingMinutes
+                      }
+                    : undefined
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (res.status === 429) {
+            const retryAfter = res.headers.get('Retry-After') || '60';
+            const latency = Math.round(performance.now() - startTime);
+            recordGeminiCall('trader.pro@tradyx.ai', activeModel, Math.round(fullPrompt.length / 4), 0, latency, '429 Rate Limit');
+            return `⏳ **Protezione Anti-Abuso Attiva (429):** Hai raggiunto il limite massimo di richieste AI al minuto. Attendi **${retryAfter} secondi** prima di inviare un nuovo messaggio al Coach.`;
+        }
+
+        if (res.ok) {
+            const data = await res.json();
+            if (typeof data?.text === 'string' && data.text.trim().length > 0) {
                 const latency = Math.round(performance.now() - startTime);
                 const inTokens = Math.round(fullPrompt.length / 4);
-                const outTokens = Math.round(response.text.length / 4);
+                const outTokens = Math.round(data.text.length / 4);
                 recordGeminiCall('trader.pro@tradyx.ai', activeModel, inTokens, outTokens, latency, '200 OK');
-                return response.text;
+                return data.text;
             }
-        } catch (sdkErr: any) {
-            console.warn('GoogleGenAI SDK query notice, attempting direct REST fetch fallback:', sdkErr?.message || sdkErr);
         }
-
-        // Direct Browser Fetch Fallback to Gemini REST API
-        try {
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${geminiApiKey}`;
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
-                })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (aiReply) {
-                    const latency = Math.round(performance.now() - startTime);
-                    const inTokens = Math.round(fullPrompt.length / 4);
-                    const outTokens = Math.round(aiReply.length / 4);
-                    recordGeminiCall('trader.pro@tradyx.ai', activeModel, inTokens, outTokens, latency, '200 OK');
-                    return aiReply;
-                }
-            }
-        } catch (fetchErr: any) {
-            console.warn('Gemini REST fetch notice:', fetchErr?.message || fetchErr);
-        }
+    } catch (gatewayErr: any) {
+        console.warn('[Tradyx AI Coach] API gateway fallback active:', gatewayErr?.message || gatewayErr);
     }
 
-    // 5. Dynamic Analytical Response Synthesizer (Fallback when API key is unconfigured)
+    // 5. Dynamic Analytical Response Synthesizer (Resilient fallback if gateway offline/unconfigured)
     const fallbackAns = generateDynamicContextualAnalysis(sanitizedPrompt, context, persona);
     const latency = Math.round(performance.now() - startTime) || 180;
     const inTokens = Math.round(fullPrompt.length / 4);
     const outTokens = Math.round(fallbackAns.length / 4);
     recordGeminiCall('trader.pro@tradyx.ai', activeModel, inTokens, outTokens, latency, '200 OK');
     return fallbackAns;
+}
+
+/**
+ * Requests server-side Ulysses Protocol neuro-behavioral guidance via /api/ai/coach.
+ */
+export async function requestUlyssesGuidance(
+    prompt: string,
+    context?: UserTradingContext
+): Promise<string | null> {
+    try {
+        const authHeaders = await getApiAuthHeaders();
+        const res = await fetch('/api/ai/coach', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
+            },
+            body: JSON.stringify({
+                mode: 'ULYSSES',
+                prompt: sanitizeTextForAI(prompt),
+                persona: 'TOUGH_LOVE',
+                context: context
+                    ? {
+                          recentPnL: context.recentPnL,
+                          recentEmotion: context.recentEmotion,
+                          totalWinRate: context.totalWinRate,
+                          tradeCount: context.tradeCount,
+                          cortisolClearingActive: context.cortisolClearingActive,
+                          cortisolRemainingMinutes: context.cortisolRemainingMinutes
+                      }
+                    : undefined
+            })
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return typeof data?.text === 'string' ? data.text : null;
+    } catch {
+        return null;
+    }
 }
 
 /**

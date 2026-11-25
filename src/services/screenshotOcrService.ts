@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { ParsedVoiceTrade } from './voiceTradeParser';
+import { getApiAuthHeaders } from './authService';
 
 export interface ScreenshotOcrResult extends ParsedVoiceTrade {
     asset?: string;
@@ -62,59 +63,48 @@ export async function parseTradingScreenshot(file: File): Promise<ScreenshotOcrR
     }
 
     try {
-        const geminiApiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
-                             import.meta.env?.GEMINI_API_KEY || 
-                             (typeof process !== 'undefined' ? (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY) : undefined);
-
         const base64Data = await fileToBase64(file);
-        const mimeType = file?.type || 'image/jpeg';
+        const allowedMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+        const mimeType = allowedMimes.includes(file?.type) ? file.type : 'image/png';
         const base64ImageBytes = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
-        if (geminiApiKey && geminiApiKey !== 'dummy_gemini_key' && !geminiApiKey.includes('Dummy') && base64ImageBytes) {
+        if (base64ImageBytes && base64ImageBytes.length > 20) {
             try {
-                const prompt = `Analizza questo screenshot di trading (TradingView, MT4/MT5, Binance, Bybit) ed estrai in formato JSON: asset, direction (LONG/SHORT), entry_price, exit_price, pnl_netto, roi_percentage.
-Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown o backtick \`\`\`json):
-{
-  "asset": string ("BTC/USD", "ETH/USD", "EUR/USD", "AAPL", "NVDA", ecc.),
-  "direction": "LONG" | "SHORT",
-  "entry_price": number,
-  "exit_price": number,
-  "pnl_netto": number,
-  "roi_percentage": number,
-  "notes": string
-}`;
+                const authHeaders = await getApiAuthHeaders();
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 14_000);
 
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-                const res = await fetch(endpoint, {
+                const res = await fetch('/api/ai/coach', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeaders
+                    },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inline_data: {
-                                        mime_type: mimeType,
-                                        data: base64ImageBytes
-                                    }
-                                }
-                            ]
-                        }]
-                    })
+                        mode: 'SCREENSHOT_OCR',
+                        imageBase64: base64ImageBytes,
+                        mimeType
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timer);
 
                 if (res.ok) {
                     const data = await res.json();
-                    const textReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (textReply) {
-                        const cleaned = textReply.replace(/```json/g, '').replace(/```/g, '').trim();
-                        const json = JSON.parse(cleaned);
+                    const json = data?.parsed;
+                    if (json && typeof json === 'object') {
                         const asset = json.asset || json.asset_pair || detectedAsset;
                         const direction = json.direction === 'SHORT' ? 'SHORT' : 'LONG';
                         const entry_price = json.entry_price != null ? Number(json.entry_price) : detectedEntry;
                         const exit_price = json.exit_price != null ? Number(json.exit_price) : detectedExit;
-                        const pnl_netto = json.pnl_netto != null ? Number(json.pnl_netto) : (json.pnl != null ? Number(json.pnl) : detectedPnl);
-                        const roi_percentage = json.roi_percentage != null ? Number(json.roi_percentage) : undefined;
+                        const pnl_netto =
+                            json.pnl_netto != null
+                                ? Number(json.pnl_netto)
+                                : json.pnl != null
+                                ? Number(json.pnl)
+                                : detectedPnl;
+                        const roi_percentage =
+                            json.roi_percentage != null ? Number(json.roi_percentage) : undefined;
 
                         return {
                             asset,
@@ -132,7 +122,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown o backtick \`\`\`json
                     }
                 }
             } catch (apiErr) {
-                console.warn('Gemini screenshot OCR api error, fallback active:', apiErr);
+                console.warn('[Tradyx Screenshot OCR] Gateway fallback active:', apiErr);
             }
         }
     } catch (err) {

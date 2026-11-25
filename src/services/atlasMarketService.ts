@@ -8,6 +8,7 @@
 
 import { AtlasLiveAsset, GlobalHub } from '../types/atlas';
 import { WatchlistAsset } from '../types/market';
+import { getApiAuthHeaders } from './authService';
 
 const PUBLIC_API_CACHE_TTL = 60_000; // 60s anti-rate-limit cache
 let lastCryptoFetch = 0;
@@ -233,14 +234,53 @@ export function buildCountryLocalAssets(hub: GlobalHub): AtlasLiveAsset[] {
 }
 
 /**
- * Hydrates real-time public CoinGecko crypto prices & ExchangeRate FX quotes
- * with anti-rate-limit caching (60s TTL). Never throws.
+ * Hydrates real-time market quotes via Tradyx secure `/api/atlas/markets` gateway
+ * (10s distributed Upstash Redis cache), with graceful fallback to public free
+ * endpoints when running locally without Vercel serverless runtime. Never throws.
  */
 export async function fetchPublicLiveQuotes(): Promise<{
     crypto: Record<string, { price: number; change24h: number }>;
     fx: Record<string, number>;
 }> {
     const now = Date.now();
+    if (
+        now - lastCryptoFetch <= PUBLIC_API_CACHE_TTL &&
+        now - lastFxFetch <= PUBLIC_API_CACHE_TTL &&
+        Object.keys(cachedCryptoPrices).length > 0 &&
+        Object.keys(cachedFxRates).length > 0
+    ) {
+        return { crypto: cachedCryptoPrices, fx: cachedFxRates };
+    }
+
+    // 1. Primary path: Secure Vercel API Gateway (/api/atlas/markets)
+    try {
+        const authHeaders = await getApiAuthHeaders();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3200);
+        const res = await fetch('/api/atlas/markets', {
+            headers: authHeaders,
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+            const payload = await res.json();
+            if (payload?.crypto && Object.keys(payload.crypto).length > 0) {
+                cachedCryptoPrices = payload.crypto;
+                lastCryptoFetch = now;
+            }
+            if (payload?.fx && Object.keys(payload.fx).length > 0) {
+                cachedFxRates = payload.fx;
+                lastFxFetch = now;
+            }
+            if (Object.keys(cachedCryptoPrices).length > 0 || Object.keys(cachedFxRates).length > 0) {
+                return { crypto: cachedCryptoPrices, fx: cachedFxRates };
+            }
+        }
+    } catch {
+        // Fallback smoothly to free public endpoints when running local Vite dev
+    }
+
     const tasks: Promise<void>[] = [];
 
     if (now - lastCryptoFetch > PUBLIC_API_CACHE_TTL) {

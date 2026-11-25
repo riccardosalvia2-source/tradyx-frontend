@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { AtlasNewsItem, GlobalHub, NewsSentiment } from '../types/atlas';
+import { getApiAuthHeaders } from './authService';
 
 const newsCache = new Map<string, { items: AtlasNewsItem[]; expiresAt: number }>();
 const NEWS_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
@@ -438,8 +439,10 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
 }
 
 /**
- * Fetches live articles from direct-URL APIs (NewsData.io / GNews / Marketaux if configured)
- * and merges with curated institutional intelligence using ONLY real canonical publisher URLs.
+ * Fetches live country articles + server-side Gemini AI impact analysis via the
+ * secure `/api/atlas/news` gateway (15-min Upstash Redis cache, ZERO client-side
+ * secret keys) and merges with curated institutional intelligence using ONLY
+ * real canonical publisher URLs.
  */
 export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<AtlasNewsItem[]> {
     const cached = newsCache.get(hub.id);
@@ -448,96 +451,51 @@ export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<Atla
     }
 
     const liveItems: AtlasNewsItem[] = [];
-    const env = (import.meta as any).env || {};
-    const newsDataKey = env.VITE_NEWSDATA_API_KEY || env.NEXT_PUBLIC_NEWSDATA_API_KEY || '';
-    const gnewsKey = env.VITE_GNEWS_API_KEY || env.NEXT_PUBLIC_GNEWS_API_KEY || '';
-    const marketauxKey = env.VITE_MARKETAUX_API_KEY || env.NEXT_PUBLIC_MARKETAUX_API_KEY || '';
 
     try {
+        const authHeaders = await getApiAuthHeaders();
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 3200);
+        const timer = setTimeout(() => controller.abort(), 4500);
 
-        if (marketauxKey) {
-            const url = `https://api.marketaux.com/v1/news/all?countries=${hub.iso2.toLowerCase()}&filter_entities=true&limit=12&api_token=${encodeURIComponent(
-                marketauxKey
-            )}`;
-            const res = await fetch(url, { signal: controller.signal });
-            if (res.ok) {
-                const json = await res.json();
-                if (Array.isArray(json?.data)) {
-                    json.data.forEach((a: any, idx: number) => {
-                        if (!a?.title || isBlockedGoogleNewsUrl(a?.url)) return;
-                        const pubMs = a.published_at ? Date.parse(a.published_at) : Date.now();
-                        const minsAgo = Math.max(2, Math.round((Date.now() - pubMs) / 60000));
-                        liveItems.push({
-                            id: `maux-${hub.id}-${idx}`,
-                            title: String(a.title).trim(),
-                            source: a.source || 'Marketaux',
-                            publishedAt: new Date(pubMs).toISOString(),
-                            timeAgo: formatRelativeMinutes(minsAgo),
-                            url: a.url,
-                            category: 'LIVE NEWS',
-                            isLiveFeed: true,
-                            aiImpact: analyzeHeadlineImpact(a.title, hub, idx)
-                        });
+        const params = new URLSearchParams({
+            iso2: hub.iso2,
+            country: hub.countryNameEn || hub.countryName,
+            city: hub.city,
+            indexSymbol: hub.primaryIndex.symbol,
+            fxPair: hub.fxPairLabel,
+            centralBank: hub.macro.centralBank
+        });
+
+        const res = await fetch(`/api/atlas/news?${params.toString()}`, {
+            headers: authHeaders,
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+            const json = await res.json();
+            if (Array.isArray(json?.items)) {
+                json.items.forEach((a: any, idx: number) => {
+                    if (!a?.title || isBlockedGoogleNewsUrl(a?.url)) return;
+                    const pubMs = a.publishedAt ? Date.parse(a.publishedAt) : Date.now();
+                    const minsAgo = Math.max(2, Math.round((Date.now() - pubMs) / 60000));
+                    liveItems.push({
+                        id: String(a.id || `srv-${hub.id}-${idx}`),
+                        title: String(a.title).trim(),
+                        source: String(a.source || 'Live Wire'),
+                        publishedAt: new Date(pubMs).toISOString(),
+                        timeAgo: formatRelativeMinutes(minsAgo),
+                        url: String(a.url),
+                        category: String(a.category || 'LIVE NEWS'),
+                        isLiveFeed: true,
+                        aiImpact:
+                            a.aiImpact && typeof a.aiImpact.operationalImpact === 'string'
+                                ? a.aiImpact
+                                : analyzeHeadlineImpact(a.title, hub, idx)
                     });
-                }
-            }
-        } else if (newsDataKey) {
-            const url = `https://newsdata.io/api/1/news?apikey=${encodeURIComponent(
-                newsDataKey
-            )}&country=${hub.iso2.toLowerCase()}&category=business`;
-            const res = await fetch(url, { signal: controller.signal });
-            if (res.ok) {
-                const json = await res.json();
-                if (Array.isArray(json?.results)) {
-                    json.results.slice(0, 12).forEach((a: any, idx: number) => {
-                        if (!a?.title || isBlockedGoogleNewsUrl(a?.link)) return;
-                        const pubMs = a.pubDate ? Date.parse(a.pubDate) : Date.now();
-                        const minsAgo = Math.max(2, Math.round((Date.now() - pubMs) / 60000));
-                        liveItems.push({
-                            id: `ndata-${hub.id}-${idx}`,
-                            title: String(a.title).trim(),
-                            source: a.source_id || 'NewsData',
-                            publishedAt: new Date(pubMs).toISOString(),
-                            timeAgo: formatRelativeMinutes(minsAgo),
-                            url: a.link,
-                            category: 'LIVE NEWS',
-                            isLiveFeed: true,
-                            aiImpact: analyzeHeadlineImpact(a.title, hub, idx)
-                        });
-                    });
-                }
-            }
-        } else if (gnewsKey) {
-            const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
-                `${hub.countryNameEn} economy markets`
-            )}&topic=business&max=10&token=${encodeURIComponent(gnewsKey)}`;
-            const res = await fetch(url, { signal: controller.signal });
-            if (res.ok) {
-                const json = await res.json();
-                if (Array.isArray(json?.articles)) {
-                    json.articles.forEach((a: any, idx: number) => {
-                        if (!a?.title || isBlockedGoogleNewsUrl(a?.url)) return;
-                        const pubMs = a.publishedAt ? Date.parse(a.publishedAt) : Date.now();
-                        const minsAgo = Math.max(2, Math.round((Date.now() - pubMs) / 60000));
-                        liveItems.push({
-                            id: `gnews-${hub.id}-${idx}`,
-                            title: String(a.title).trim(),
-                            source: a.source?.name || 'GNews',
-                            publishedAt: new Date(pubMs).toISOString(),
-                            timeAgo: formatRelativeMinutes(minsAgo),
-                            url: a.url,
-                            category: 'LIVE NEWS',
-                            isLiveFeed: true,
-                            aiImpact: analyzeHeadlineImpact(a.title, hub, idx)
-                        });
-                    });
-                }
+                });
             }
         }
-
-        clearTimeout(timer);
     } catch {
         // Fallback smoothly to canonical publisher briefs
     }
