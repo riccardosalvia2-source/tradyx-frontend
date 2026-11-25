@@ -47,9 +47,26 @@ export const AtlasTerminalView: React.FC<AtlasTerminalViewProps> = ({ onNavigate
     const [chartAsset, setChartAsset] = useState<WatchlistAsset | null>(null);
 
     const visibleHubs = useMemo(() => {
-        if (regionFilter === 'ALL') return GLOBAL_HUBS;
-        return GLOBAL_HUBS.filter((h) => h.region === regionFilter);
-    }, [regionFilter]);
+        const byRegion =
+            regionFilter === 'ALL'
+                ? GLOBAL_HUBS
+                : GLOBAL_HUBS.filter((h) => h.region === regionFilter);
+
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return byRegion;
+
+        return byRegion.filter(
+            (h) =>
+                h.countryName.toLowerCase().includes(q) ||
+                h.countryNameEn.toLowerCase().includes(q) ||
+                h.city.toLowerCase().includes(q) ||
+                h.iso2.toLowerCase() === q ||
+                h.iso3.toLowerCase() === q ||
+                h.exchangeName.toLowerCase().includes(q) ||
+                h.exchangeCode.toLowerCase().includes(q) ||
+                h.primaryIndex.symbol.toLowerCase().includes(q)
+        );
+    }, [regionFilter, searchQuery]);
 
     const searchResults = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();

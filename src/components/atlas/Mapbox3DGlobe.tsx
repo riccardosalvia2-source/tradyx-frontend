@@ -1,20 +1,31 @@
 // ============================================================================
-// TRADYX ATLAS — MAPBOX GL JS 3D VECTOR GLOBE WITH GPU-NATIVE CITY LIGHTS
+// TRADYX ATLAS — ZERO-KEY MAPLIBRE GL JS 3D VECTOR NIGHT-EARTH GLOBE
 // (src/components/atlas/Mapbox3DGlobe.tsx)
-// - Native Mapbox 3D Globe projection (zero blur at any zoom level 1.3 -> 12)
-// - Custom Night-Earth orbital atmosphere fog, abyssal oceans (#050914),
-//   satin slate landmasses (#101B33), crisp national & regional borders
-// - 3 GPU-native GeoJSON layers (hubs-glow, hubs-core, hubs-labels)
-// - ZERO HTML DOM markers (60fps, zero z-index bleed)
-// - ResizeObserver + clean map.remove() lifecycle + auto-resize on reappear
+// - 100% Zero-Key open-source WebGL 3D Globe (maplibre-gl v6 + Carto Dark Matter)
+// - True spherical projection ({ type: 'globe' }) + orbital sky atmosphere
+// - Night-Earth calibrated layers: abyssal oceans (#050914), slate land (#12213D),
+//   crisp national borders (#38BDF8 @ 0.35), subtle regional borders
+// - 3 GPU-native GeoJSON layers (hubs-glow, hubs-core, hubs-labels) — ZERO DOM markers
+// - Full vector sharpness from zoom 1.3 to 12, ResizeObserver & clean cleanup
 // ============================================================================
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Plus, Minus, RotateCcw, AlertTriangle, Globe } from 'lucide-react';
+import React, { useEffect, useRef, useMemo } from 'react';
+import {
+    Map as MapLibreMap,
+    GeoJSONSource,
+    MapLayerMouseEvent,
+    setWorkerUrl
+} from 'maplibre-gl';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Plus, Minus, RotateCcw, Globe } from 'lucide-react';
 import { GlobalHub } from '../../types/atlas';
 import { UNIQUE_COUNTRIES_COUNT } from '../../data/globalHubs';
+
+// Guarantee MapLibre Web Worker loads cleanly in both Vite dev & Vercel production builds
+if (typeof window !== 'undefined' && maplibreWorkerUrl) {
+    setWorkerUrl(maplibreWorkerUrl);
+}
 
 interface Mapbox3DGlobeProps {
     hubs: GlobalHub[];
@@ -22,9 +33,8 @@ interface Mapbox3DGlobeProps {
     isHidden: boolean;
 }
 
-const envMeta = (import.meta as any).env || {};
-const MAPBOX_TOKEN: string =
-    envMeta.VITE_MAPBOX_TOKEN || envMeta.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+const CARTO_DARK_MATTER_STYLE =
+    'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 function buildHubsGeoJSON(hubs: GlobalHub[]) {
     return {
@@ -51,52 +61,48 @@ function buildHubsGeoJSON(hubs: GlobalHub[]) {
 export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
     ({ hubs, onSelectHub, isHidden }) => {
         const containerRef = useRef<HTMLDivElement | null>(null);
-        const mapRef = useRef<mapboxgl.Map | null>(null);
+        const mapRef = useRef<MapLibreMap | null>(null);
         const isStyleLoadedRef = useRef<boolean>(false);
-        const [mapError, setMapError] = useState<string | null>(null);
 
-        // Stable refs so Mapbox event listeners never recreate the map
         const hubsByIdRef = useRef<Map<string, GlobalHub>>(new Map());
         const onSelectHubRef = useRef(onSelectHub);
         onSelectHubRef.current = onSelectHub;
 
         const geojsonData = useMemo(() => buildHubsGeoJSON(hubs), [hubs]);
+        const latestGeojsonRef = useRef(geojsonData);
+        latestGeojsonRef.current = geojsonData;
 
         useEffect(() => {
-            const m = new Map<string, GlobalHub>();
-            hubs.forEach((h) => m.set(h.id, h));
-            hubsByIdRef.current = m;
+            const lookup = new Map<string, GlobalHub>();
+            hubs.forEach((h) => lookup.set(h.id, h));
+            hubsByIdRef.current = lookup;
         }, [hubs]);
 
-        // Initialize Mapbox GL JS 3D Globe once
+        // Deterministic deep space starfield behind the 3D sphere
+        const spaceStars = useMemo(() => {
+            return Array.from({ length: 64 }).map((_, i) => ({
+                id: i,
+                left: `${(i * 37.3 + 4) % 98}%`,
+                top: `${(i * 61.7 + 6) % 96}%`,
+                size: i % 5 === 0 ? 2 : 1.2,
+                opacity: 0.18 + (i % 4) * 0.17
+            }));
+        }, []);
+
+        // Initialize MapLibre GL JS 3D Globe once
         useEffect(() => {
             const container = containerRef.current;
             if (!container) return;
 
-            if (!MAPBOX_TOKEN) {
-                setMapError('Token Mapbox non configurato (VITE_MAPBOX_TOKEN).');
-                return;
-            }
-
-            mapboxgl.accessToken = MAPBOX_TOKEN;
-
-            let map: mapboxgl.Map;
-            try {
-                map = new mapboxgl.Map({
-                    container,
-                    style: 'mapbox://styles/mapbox/dark-v11',
-                    projection: 'globe',
-                    center: [12, 25],
-                    zoom: 1.85,
-                    minZoom: 1.3,
-                    maxZoom: 12,
-                    antialias: true,
-                    attributionControl: false
-                });
-            } catch (err: any) {
-                setMapError(err?.message || 'Impossibile inizializzare il contesto WebGL Mapbox.');
-                return;
-            }
+            const map = new MapLibreMap({
+                container,
+                style: CARTO_DARK_MATTER_STYLE,
+                center: [12, 25],
+                zoom: 1.85,
+                minZoom: 1.3,
+                maxZoom: 12,
+                attributionControl: false
+            });
 
             mapRef.current = map;
             map.getCanvas().style.cursor = 'grab';
@@ -104,54 +110,87 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
             map.on('style.load', () => {
                 isStyleLoadedRef.current = true;
 
-                // 1. Orbital Space Atmosphere & Stars
+                // 1. Activate Native 3D Spherical Globe Projection & Orbital Atmosphere
                 try {
-                    map.setFog({
-                        color: 'rgb(16, 32, 68)',
-                        'high-color': 'rgb(36, 99, 235)',
-                        'horizon-blend': 0.08,
-                        'space-color': 'rgb(3, 6, 14)',
-                        'star-intensity': 0.8
-                    });
+                    map.setProjection({ type: 'globe' });
                 } catch {
-                    /* ignore fog fallback */
+                    /* projection fallback */
                 }
 
-                // 2. Customize Night-Earth Vector Layers (Abyssal Oceans + Satin Slate Land + Crisp Borders)
+                try {
+                    map.setSky({
+                        'sky-color': '#03060E',
+                        'sky-horizon-blend': 0.5,
+                        'horizon-color': '#2563EB',
+                        'horizon-fog-blend': 0.4,
+                        'fog-color': '#0B1733',
+                        'fog-ground-blend': 0.15,
+                        'atmosphere-blend': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            0,
+                            0.85,
+                            5,
+                            0.45,
+                            7,
+                            0
+                        ]
+                    });
+                } catch {
+                    /* sky fallback */
+                }
+
+                // 2. Customize Carto Dark Matter Vector Layers for Night-Earth from Space
                 const styleLayers = map.getStyle()?.layers || [];
                 for (const layer of styleLayers) {
                     const id = layer.id;
                     try {
                         if (layer.type === 'background') {
-                            map.setPaintProperty(id, 'background-color', '#101B33');
-                        } else if (id === 'land' && layer.type === 'fill') {
-                            map.setPaintProperty(id, 'fill-color', '#101B33');
+                            map.setPaintProperty(id, 'background-color', '#12213D');
                         } else if (
-                            (id === 'water' || id.startsWith('water-')) &&
+                            (id === 'landcover' ||
+                                id === 'landuse' ||
+                                id === 'landuse_residential' ||
+                                id === 'park_national_park' ||
+                                id === 'park_nature_reserve') &&
+                            layer.type === 'fill'
+                        ) {
+                            map.setPaintProperty(id, 'fill-color', '#12213D');
+                        } else if (
+                            (id === 'water' || id === 'water_shadow') &&
                             layer.type === 'fill'
                         ) {
                             map.setPaintProperty(id, 'fill-color', '#050914');
+                        } else if (id === 'waterway' && layer.type === 'line') {
+                            map.setPaintProperty(id, 'line-color', '#09142A');
+                        } else if (id === 'boundary_country_inner' && layer.type === 'line') {
+                            map.setPaintProperty(id, 'line-color', '#38BDF8');
+                            map.setPaintProperty(id, 'line-opacity', 0.35);
+                        } else if (id === 'boundary_country_outline' && layer.type === 'line') {
+                            map.setPaintProperty(id, 'line-color', '#081226');
+                            map.setPaintProperty(id, 'line-opacity', 0.45);
                         } else if (
-                            id.includes('admin-0-boundary') &&
+                            (id === 'boundary_state' || id === 'boundary_county') &&
                             layer.type === 'line'
                         ) {
-                            map.setPaintProperty(id, 'line-color', 'rgba(148, 163, 184, 0.35)');
+                            map.setPaintProperty(id, 'line-color', 'rgba(148, 163, 184, 0.16)');
                         } else if (
-                            id.includes('admin-1-boundary') &&
-                            layer.type === 'line'
+                            (id === 'building' || id === 'building-top') &&
+                            layer.type === 'fill'
                         ) {
-                            map.setPaintProperty(id, 'line-color', 'rgba(148, 163, 184, 0.14)');
+                            map.setPaintProperty(id, 'fill-color', '#1B2E52');
                         }
                     } catch {
-                        // Skip layers that do not support the specific paint property
+                        // Skip layers with incompatible paint expressions
                     }
                 }
 
-                // 3. Add GPU-Native GeoJSON Source & 3 City-Light Layers (ZERO DOM Markers)
+                // 3. GPU-Native GeoJSON Source + 3 Golden City-Light Layers (ZERO DOM Markers)
                 if (!map.getSource('hubs-source')) {
                     map.addSource('hubs-source', {
                         type: 'geojson',
-                        data: geojsonData
+                        data: latestGeojsonRef.current
                     });
                 }
 
@@ -163,24 +202,24 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
                         source: 'hubs-source',
                         paint: {
                             'circle-color': '#F59E0B',
-                            'circle-blur': 1.2,
-                            'circle-opacity': 0.32,
+                            'circle-blur': 1,
+                            'circle-opacity': 0.35,
                             'circle-radius': [
                                 'interpolate',
                                 ['linear'],
                                 ['zoom'],
                                 1.5,
-                                6,
+                                7,
                                 5,
-                                11,
+                                12,
                                 9,
-                                16
+                                17
                             ]
                         }
                     });
                 }
 
-                // Layer 2: Crisp Bright Yellow-Gold City Core
+                // Layer 2: Crisp Yellow-Gold City Core (3px -> 6.5px)
                 if (!map.getLayer('hubs-core')) {
                     map.addLayer({
                         id: 'hubs-core',
@@ -193,19 +232,19 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
                                 ['linear'],
                                 ['zoom'],
                                 1.5,
-                                2.5,
+                                3,
                                 5,
-                                4,
+                                4.5,
                                 9,
-                                6
+                                6.5
                             ],
                             'circle-stroke-width': 1,
-                            'circle-stroke-color': 'rgba(254, 240, 138, 0.75)'
+                            'circle-stroke-color': '#FEF08A'
                         }
                     });
                 }
 
-                // Layer 3: Crisp GPU Symbol City Labels (minzoom 3.2)
+                // Layer 3: Crisp GPU City Labels (visible from zoom 3.2+)
                 if (!map.getLayer('hubs-labels')) {
                     map.addLayer({
                         id: 'hubs-labels',
@@ -214,11 +253,15 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
                         minzoom: 3.2,
                         layout: {
                             'text-field': ['get', 'city'],
+                            'text-font': [
+                                'Montserrat SemiBold',
+                                'Open Sans Bold',
+                                'Noto Sans Regular'
+                            ],
                             'text-size': 11,
-                            'text-offset': [0, 1.1],
+                            'text-offset': [0, 1.15],
                             'text-anchor': 'top',
-                            'text-allow-overlap': false,
-                            'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold']
+                            'text-allow-overlap': false
                         },
                         paint: {
                             'text-color': '#FEF08A',
@@ -229,9 +272,11 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
                 }
             });
 
-            // Guaranteed GPU Click Handling on both hubs-core and hubs-glow
-            const handleLayerClick = (e: mapboxgl.MapLayerMouseEvent) => {
-                const feat = e.features?.[0] as { properties?: Record<string, unknown> } | undefined;
+            // Guaranteed GPU Click Handling on hubs-core and hubs-glow
+            const handleLayerClick = (e: MapLayerMouseEvent) => {
+                const feat = e.features?.[0] as
+                    | { properties?: Record<string, unknown> }
+                    | undefined;
                 const hubId = feat?.properties?.id;
                 if (!hubId) return;
                 const found = hubsByIdRef.current.get(String(hubId));
@@ -254,14 +299,7 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
             map.on('mouseleave', 'hubs-core', setGrab);
             map.on('mouseleave', 'hubs-glow', setGrab);
 
-            map.on('error', (ev) => {
-                const msg = (ev?.error as any)?.message || '';
-                if (msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('401')) {
-                    setMapError('Token Mapbox non valido o scaduto.');
-                }
-            });
-
-            // Smooth canvas resizing via ResizeObserver
+            // ResizeObserver keeps WebGL canvas razor-sharp on viewport changes
             const ro = new ResizeObserver(() => {
                 if (mapRef.current && container.offsetWidth > 0 && container.offsetHeight > 0) {
                     mapRef.current.resize();
@@ -277,17 +315,17 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
             };
         }, []);
 
-        // Update GPU GeoJSON data in place when continent filter changes (zero map rebuild)
+        // Update GPU GeoJSON data in place when continent or search filter changes
         useEffect(() => {
             const map = mapRef.current;
             if (!map || !isStyleLoadedRef.current) return;
-            const src = map.getSource('hubs-source') as mapboxgl.GeoJSONSource | undefined;
-            if (src) {
+            const src = map.getSource('hubs-source') as GeoJSONSource | undefined;
+            if (src && typeof src.setData === 'function') {
                 src.setData(geojsonData);
             }
         }, [geojsonData]);
 
-        // Resize canvas smoothly when returning from Country Panel (display: none -> block)
+        // Realign canvas smoothly when returning from CountryDrilldownDrawer
         useEffect(() => {
             if (!isHidden) {
                 const t = setTimeout(() => {
@@ -317,32 +355,31 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
 
         return (
             <div
-                style={{ display: isHidden ? 'none' : 'block' }}
-                className="relative w-full h-full bg-[#03060E] overflow-hidden"
+                className={`${isHidden ? 'hidden' : 'block'} relative w-full h-full overflow-hidden`}
+                style={{
+                    background:
+                        'radial-gradient(ellipse at 50% 48%, #071329 0%, #03060E 65%, #020409 100%)'
+                }}
             >
-                {/* Mapbox GL JS WebGL Canvas Container */}
-                <div ref={containerRef} className="w-full h-full" />
+                {/* Deep Space Starfield Backdrop */}
+                <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+                    {spaceStars.map((st) => (
+                        <span
+                            key={st.id}
+                            className="absolute rounded-full bg-slate-200"
+                            style={{
+                                left: st.left,
+                                top: st.top,
+                                width: `${st.size}px`,
+                                height: `${st.size}px`,
+                                opacity: st.opacity
+                            }}
+                        />
+                    ))}
+                </div>
 
-                {/* Token Missing / WebGL Fallback Overlay (App Search & Countries remain 100% usable) */}
-                {mapError && (
-                    <div className="absolute inset-0 flex items-center justify-center p-6 pointer-events-none z-20">
-                        <div className="max-w-sm p-5 rounded-2xl bg-[#08090C]/90 border border-amber-500/35 backdrop-blur-xl text-center space-y-2.5 pointer-events-auto shadow-2xl">
-                            <div className="w-10 h-10 mx-auto rounded-xl bg-amber-500/15 border border-amber-500/35 flex items-center justify-center">
-                                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                            </div>
-                            <h3 className="text-xs font-mono font-black uppercase text-white">
-                                Mapbox 3D Globe Ready
-                            </h3>
-                            <p className="text-[11px] text-slate-300 leading-relaxed">
-                                {mapError} Configura{' '}
-                                <code className="text-[#10B981]">VITE_MAPBOX_TOKEN</code> su Vercel
-                                per il globo 3D vettoriale. Puoi comunque cercare e aprire tutti i{' '}
-                                <strong className="text-white">{hubs.length} hub</strong> dalla
-                                barra di ricerca in alto.
-                            </p>
-                        </div>
-                    </div>
-                )}
+                {/* MapLibre GL JS 3D WebGL Canvas */}
+                <div ref={containerRef} className="relative z-10 w-full h-full" />
 
                 {/* Minimalist Bottom-Left Zoom (+ / -) & Reset Global View Controls */}
                 <div className="absolute left-3.5 bottom-24 sm:bottom-24 z-30 flex items-center gap-1.5">
@@ -383,7 +420,7 @@ export const Mapbox3DGlobe: React.FC<Mapbox3DGlobeProps> = React.memo(
                     <Globe className="w-3 h-3 text-[#10B981]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-[#FDE047] shadow-[0_0_8px_#FDE047]" />
                     <span>
-                        {UNIQUE_COUNTRIES_COUNT} PAESI · {hubs.length} HUB · MAPBOX 3D
+                        {UNIQUE_COUNTRIES_COUNT} PAESI · {hubs.length} HUB · GLOBE 3D
                     </span>
                 </div>
             </div>

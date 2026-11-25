@@ -13,13 +13,19 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2020'
+    }
+  },
   build: {
+    target: 'es2020',
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/mapbox-gl')) {
-            return 'mapbox-vendor';
+          if (id.includes('node_modules/maplibre-gl')) {
+            return 'maplibre-vendor';
           }
           if (id.includes('node_modules/recharts')) {
             return 'recharts-vendor';
