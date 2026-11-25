@@ -177,29 +177,36 @@ function buildHub(s: CompactHubSeed): GlobalHub {
     const y5 = Number(((y2 + y10) / 2).toFixed(2));
     const changePct = Number((((h % 320) - 140) / 100).toFixed(2));
 
-    const defaultStocks: HubBlueChip[] = s.stocks || [
-        {
-            symbol: `${s.iso2}BK`,
-            name: `${s.countryName} National Bank`,
-            sector: 'Finanza',
-            basePrice: Number((18 + (h % 85)).toFixed(2)),
-            marketCapBn: Number(Math.max(1.2, s.mktCapBn * 0.14).toFixed(1))
-        },
-        {
-            symbol: `${s.iso2}EN`,
-            name: `${s.city} Energy & Grid`,
-            sector: 'Energia',
-            basePrice: Number((12 + (h % 64)).toFixed(2)),
-            marketCapBn: Number(Math.max(0.9, s.mktCapBn * 0.11).toFixed(1))
-        },
-        {
-            symbol: `${s.iso2}TL`,
-            name: `${s.countryName} Telecom Group`,
-            sector: 'Tech & Telecom',
-            basePrice: Number((9 + (h % 50)).toFixed(2)),
-            marketCapBn: Number(Math.max(0.7, s.mktCapBn * 0.09).toFixed(1))
-        }
+    const sectorPool = [
+        { suffix: 'BK', role: 'National Bank', sector: 'Finanza & Banche', weight: 0.14 },
+        { suffix: 'EN', role: 'Energy & Grid', sector: 'Energia', weight: 0.11 },
+        { suffix: 'TL', role: 'Telecom Group', sector: 'Tech & Digitale', weight: 0.09 },
+        { suffix: 'IN', role: 'Industrial Holdings', sector: 'Manifatturiero', weight: 0.08 },
+        { suffix: 'HC', role: 'Healthcare & Bio', sector: 'Sanità', weight: 0.07 },
+        { suffix: 'RE', role: 'Real Estate Trust', sector: 'Immobiliare', weight: 0.06 },
+        { suffix: 'TR', role: 'Logistics & Ports', sector: 'Trasporti', weight: 0.055 },
+        { suffix: 'CS', role: 'Consumer Retail', sector: 'Consumi', weight: 0.05 },
+        { suffix: 'MT', role: 'Materials & Mining', sector: 'Materie Prime', weight: 0.045 },
+        { suffix: 'FN', role: 'Capital Insurance', sector: 'Assicurazioni', weight: 0.04 }
     ];
+
+    const seedStocks: HubBlueChip[] = [...(s.stocks || [])];
+    const usedSymbols = new Set(seedStocks.map((st) => st.symbol.toUpperCase()));
+    let poolIdx = 0;
+    while (seedStocks.length < 10 && poolIdx < sectorPool.length) {
+        const tpl = sectorPool[poolIdx++];
+        const sym = `${s.iso2}${tpl.suffix}`;
+        if (usedSymbols.has(sym)) continue;
+        usedSymbols.add(sym);
+        seedStocks.push({
+            symbol: sym,
+            name: `${s.countryName.split(' (')[0]} ${tpl.role}`,
+            sector: tpl.sector,
+            basePrice: Number((8 + ((h + poolIdx * 17) % 145) + (poolIdx % 9) * 0.15).toFixed(2)),
+            marketCapBn: Number(Math.max(0.4, s.mktCapBn * tpl.weight).toFixed(1))
+        });
+    }
+    const defaultStocks: HubBlueChip[] = seedStocks.slice(0, 10);
 
     const mktCapToGdpPct = Number(
         Math.min(340, Math.max(8, (s.mktCapBn / Math.max(1, s.gdpBn)) * 100)).toFixed(1)
@@ -293,7 +300,13 @@ const HUB_SEEDS: CompactHubSeed[] = [
             { symbol: 'NVDA', name: 'NVIDIA Corp.', sector: 'AI & Semiconduttori', basePrice: 142.8, marketCapBn: 3490 },
             { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Tecnologia', basePrice: 231.5, marketCapBn: 3520 },
             { symbol: 'MSFT', name: 'Microsoft Corp.', sector: 'Cloud & AI', basePrice: 438.2, marketCapBn: 3250 },
-            { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'Finanza', basePrice: 241.6, marketCapBn: 685 }
+            { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Cloud & Retail', basePrice: 208.4, marketCapBn: 2190 },
+            { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'AI & Search', basePrice: 179.8, marketCapBn: 2210 },
+            { symbol: 'META', name: 'Meta Platforms', sector: 'AI & Social', basePrice: 592.4, marketCapBn: 1495 },
+            { symbol: 'BRK.B', name: 'Berkshire Hathaway', sector: 'Finanza & Holding', basePrice: 468.2, marketCapBn: 1010 },
+            { symbol: 'LLY', name: 'Eli Lilly & Co.', sector: 'Sanità & Bio', basePrice: 824.6, marketCapBn: 782 },
+            { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'Finanza & Banche', basePrice: 241.6, marketCapBn: 685 },
+            { symbol: 'V', name: 'Visa Inc.', sector: 'Pagamenti Globali', basePrice: 311.4, marketCapBn: 618 }
         ]
     },
     {
@@ -517,10 +530,16 @@ const HUB_SEEDS: CompactHubSeed[] = [
         gdpGrowth: 0.8, gdpBn: 2370, unemp: 6.2, debtGdp: 136.8, tradeBn: 54.2, reservesBn: 268, rating: 'BBB', y10: 3.58, mktCapBn: 845,
         fdiProfile: 'industrial', isFlagship: true,
         stocks: [
-            { symbol: 'UCG.MI', name: 'UniCredit S.p.A.', sector: 'Finanza', basePrice: 41.25, marketCapBn: 67.4 },
-            { symbol: 'ISP.MI', name: 'Intesa Sanpaolo', sector: 'Finanza', basePrice: 3.92, marketCapBn: 71.2 },
             { symbol: 'RACE.MI', name: 'Ferrari N.V.', sector: 'Lusso & Auto', basePrice: 428.5, marketCapBn: 77.8 },
-            { symbol: 'ENI.MI', name: 'Eni S.p.A.', sector: 'Energia', basePrice: 14.12, marketCapBn: 45.6 }
+            { symbol: 'ISP.MI', name: 'Intesa Sanpaolo', sector: 'Finanza & Banche', basePrice: 3.92, marketCapBn: 71.2 },
+            { symbol: 'ENEL.MI', name: 'Enel S.p.A.', sector: 'Energia & Utility', basePrice: 6.94, marketCapBn: 70.5 },
+            { symbol: 'UCG.MI', name: 'UniCredit S.p.A.', sector: 'Finanza & Banche', basePrice: 41.25, marketCapBn: 67.4 },
+            { symbol: 'ENI.MI', name: 'Eni S.p.A.', sector: 'Energia', basePrice: 14.12, marketCapBn: 45.6 },
+            { symbol: 'G.MI', name: 'Assicurazioni Generali', sector: 'Assicurazioni', basePrice: 27.15, marketCapBn: 42.4 },
+            { symbol: 'STLAM.MI', name: 'Stellantis N.V.', sector: 'Manifatturiero & Auto', basePrice: 12.64, marketCapBn: 36.8 },
+            { symbol: 'PRY.MI', name: 'Prysmian S.p.A.', sector: 'Cavi & Transizione', basePrice: 63.4, marketCapBn: 18.7 },
+            { symbol: 'PST.MI', name: 'Poste Italiane', sector: 'Finanza & Trasporti', basePrice: 13.4, marketCapBn: 17.4 },
+            { symbol: 'LDO.MI', name: 'Leonardo S.p.A.', sector: 'Aerospazio & Difesa', basePrice: 25.8, marketCapBn: 14.9 }
         ]
     },
     {
@@ -1574,6 +1593,29 @@ const HUB_SEEDS: CompactHubSeed[] = [
         lat: -33.92, lng: 18.42, utcOffset: 2, openHour: 9, closeHour: 17, currency: 'ZAR', fxPair: 'USD/ZAR', fxRate: 17.88,
         idxSym: 'JALSH', idxName: 'FTSE/JSE All Share', idxPrice: 85420.0, centralBank: 'SARB', policyRate: 7.75, cpi: 3.8,
         gdpGrowth: 1.5, gdpBn: 403, unemp: 32.1, debtGdp: 74.1, tradeBn: 11.4, reservesBn: 63, rating: 'BB-', y10: 9.24, mktCapBn: 1040, fdiProfile: 'finance'
+    },
+    {
+        id: 'us-was', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Washington D.C.)', countryNameEn: 'United States Washington DC',
+        flag: '🇺🇸', city: 'Washington D.C.', exchangeName: 'US Treasury & Fed Policy (FED)', region: 'Nord America',
+        lat: 38.91, lng: -77.04, utcOffset: -5, openHour: 9, closeHour: 16, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'US10Y', idxName: 'US Treasury Benchmark', idxPrice: 4.28, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'finance', isFlagship: true
+    },
+    {
+        id: 'us-atl', iso2: 'US', iso3: 'USA', countryName: 'Stati Uniti (Atlanta FinTech)', countryNameEn: 'United States Atlanta',
+        flag: '🇺🇸', city: 'Atlanta', exchangeName: 'ICE / Payments Hub (ICE)', region: 'Nord America',
+        lat: 33.75, lng: -84.39, utcOffset: -5, openHour: 9, closeHour: 16, currency: 'USD', fxPair: 'DXY', fxRate: 104.25,
+        idxSym: 'SPX', idxName: 'S&P 500', idxPrice: 5985.4, centralBank: 'Federal Reserve', policyRate: 4.5, cpi: 2.6,
+        gdpGrowth: 2.7, gdpBn: 29180, unemp: 4.1, debtGdp: 122.3, tradeBn: -785, reservesBn: 245, rating: 'AA+', y10: 4.28, mktCapBn: 55200,
+        fdiProfile: 'tech',
+        stocks: [
+            { symbol: 'ICE', name: 'Intercontinental Exchange', sector: 'Exchange & Dati', basePrice: 161.4, marketCapBn: 92.6 },
+            { symbol: 'KO', name: 'The Coca-Cola Co.', sector: 'Consumi Globali', basePrice: 64.2, marketCapBn: 276.0 },
+            { symbol: 'HD', name: 'Home Depot Inc.', sector: 'Retail & Casa', basePrice: 412.8, marketCapBn: 410.0 },
+            { symbol: 'UPS', name: 'United Parcel Service', sector: 'Trasporti', basePrice: 134.5, marketCapBn: 115.0 },
+            { symbol: 'DAL', name: 'Delta Air Lines', sector: 'Trasporti', basePrice: 64.8, marketCapBn: 41.8 }
+        ]
     }
 ];
 
