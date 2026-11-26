@@ -155,12 +155,14 @@ export async function logUlyssesSessionToCloud(payload: {
 }
 
 // ============================================================================
-// PERSISTENT LOCAL AUTH SESSION STORAGE KEYS (ZERO RE-LOGIN ON REOPEN)
+// PERSISTENT LOCAL AUTH SESSION STORAGE KEYS & 30-DAY GDPR RETENTION POLICY
 // ============================================================================
 export const AUTH_SESSION_STORAGE_KEY = 'tradyx_auth_session';
 export const USER_PROFILE_STORAGE_KEY = 'tradyx_user_profile';
 export const ONBOARDING_COMPLETED_KEY = 'tradyx_onboarding_completed';
 export const LEGACY_USER_STORAGE_KEY = 'tradyx_user';
+export const DATA_EXPIRES_AT_KEY = 'tradyx_data_expires_at';
+export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface PersistedAuthSession {
     user: UserAccount;
@@ -169,8 +171,43 @@ export interface PersistedAuthSession {
 }
 
 /**
+ * GDPR 30-Day Retention Guard:
+ * Checks on startup whether `tradyx_data_expires_at` exists and has passed.
+ * If more than 30 days elapsed since logout, wipes all local data automatically.
+ */
+export function checkAndEnforceDataRetention(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const rawExpiry = localStorage.getItem(DATA_EXPIRES_AT_KEY);
+        if (!rawExpiry) return false;
+        const expiresAt = Number(rawExpiry);
+        if (Number.isFinite(expiresAt) && expiresAt < Date.now()) {
+            localStorage.clear();
+            sessionStorage.clear();
+            return true;
+        }
+    } catch (err) {
+        console.warn('[Tradyx Auth] Retention check notice:', err);
+    }
+    return false;
+}
+
+/**
+ * Removes the 30-day pending wipe timer when the user logs back in within 30 days.
+ */
+export function clearDataRetentionExpiry(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem(DATA_EXPIRES_AT_KEY);
+    } catch {
+        // Ignore storage errors
+    }
+}
+
+/**
  * Persists authenticated user & session flags permanently in localStorage
  * so subsequent app launches bypass Onboarding and Login automatically.
+ * Also cancels any pending 30-day data expiry timer so all operational data is restored.
  */
 export function persistAuthSession(
     user: UserAccount,
@@ -183,6 +220,7 @@ export function persistAuthSession(
             provider,
             authenticatedAt: new Date().toISOString()
         };
+        localStorage.removeItem(DATA_EXPIRES_AT_KEY);
         localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(sessionPayload));
         localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(user));
         localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
@@ -194,16 +232,28 @@ export function persistAuthSession(
 
 /**
  * Loads any valid persisted auth session from localStorage synchronously.
+ * Respects active logout-with-30-day-retention (`tradyx_data_expires_at`): if the
+ * user logged out keeping data for 30 days, returns null until they sign back in.
  */
 export function loadPersistedAuthSession(): UserAccount | null {
     if (typeof window === 'undefined') return null;
     try {
+        // Enforce 30-day GDPR expiry before reading any session data
+        if (checkAndEnforceDataRetention()) {
+            return null;
+        }
+
         const rawSession = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
         if (rawSession) {
             const parsed = JSON.parse(rawSession) as PersistedAuthSession;
             if (parsed?.user?.id && parsed?.user?.email) {
                 return parsed.user;
             }
+        }
+
+        // If user explicitly logged out with 30-day retention, keep them logged out
+        if (localStorage.getItem(DATA_EXPIRES_AT_KEY)) {
+            return null;
         }
 
         const rawProfile = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
@@ -227,6 +277,39 @@ export function loadPersistedAuthSession(): UserAccount | null {
         console.warn('[Tradyx Auth] Failed to read persisted session:', err);
     }
     return null;
+}
+
+/**
+ * Option 1 Logout (GDPR 30-Day Retention):
+ * Closes the active session (`tradyx_auth_session` removed) and schedules
+ * automatic deletion in exactly 30 days (`tradyx_data_expires_at`), keeping
+ * trades, wallet, watchlist and settings intact for quick re-login.
+ */
+export function logoutKeepDataFor30Days(): number {
+    const expiresAt = Date.now() + THIRTY_DAYS_MS;
+    if (typeof window === 'undefined') return expiresAt;
+    try {
+        localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_USER_STORAGE_KEY);
+        localStorage.setItem(DATA_EXPIRES_AT_KEY, String(expiresAt));
+    } catch (err) {
+        console.warn('[Tradyx Auth] Failed to set 30-day retention logout:', err);
+    }
+    return expiresAt;
+}
+
+/**
+ * Option 2 Logout (Immediate Full Device Wipe):
+ * Permanently clears all localStorage and sessionStorage immediately.
+ */
+export function logoutAndWipeAllData(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.clear();
+        sessionStorage.clear();
+    } catch (err) {
+        console.warn('[Tradyx Auth] Failed to wipe local storage:', err);
+    }
 }
 
 /**

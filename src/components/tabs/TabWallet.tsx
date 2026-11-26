@@ -18,9 +18,13 @@ import {
     LogOut,
     Sparkles,
     Database,
-    KeyRound
+    KeyRound,
+    User,
+    Cloud,
+    HardDrive
 } from 'lucide-react';
 import { PropFirmShieldWidget } from '../PropFirmShieldWidget';
+import { isSupabaseConfigured } from '../../services/authService';
 
 interface TabWalletProps {
     authUser: UserAccount | null;
@@ -208,17 +212,55 @@ export const TabWallet: React.FC<TabWalletProps> = ({ authUser, onLogout }) => {
                 </div>
             </section>
 
-            {/* User Profile & Logout */}
-            <div className="pt-2 flex flex-col items-center gap-2">
+            {/* 6. CARD ACCOUNT & SICUREZZA (DARK FINTECH GLASSMORPHISM + LOGOUT) */}
+            <section className="w-full rounded-2xl bg-[#08090C]/95 backdrop-blur-xl border border-white/10 p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] space-y-4">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+                    <span className="text-xs font-mono font-bold text-white uppercase flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+                        <span>ACCOUNT & SICUREZZA</span>
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">
+                        GDPR 30G
+                    </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/35 flex items-center justify-center shrink-0">
+                            <User className="w-5 h-5 text-[#10B981]" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-extrabold text-white truncate">
+                                {authUser?.full_name || authUser?.email?.split('@')[0] || 'Trader Tradyx'}
+                            </p>
+                            <p className="text-[11px] font-mono text-slate-400 truncate">
+                                {authUser?.email || 'sessione.locale@tradyx.ai'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {isSupabaseConfigured() ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#10B981]/15 border border-[#10B981]/40 text-[10px] font-mono font-black text-[#10B981]">
+                            <Cloud className="w-3 h-3" />
+                            <span>Account Cloud Supabase</span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/35 text-[10px] font-mono font-black text-cyan-300">
+                            <HardDrive className="w-3 h-3" />
+                            <span>Account Locale</span>
+                        </span>
+                    )}
+                </div>
+
                 <button
                     type="button"
                     onClick={onLogout}
-                    className="w-full h-11 rounded-xl glass-subcard hover:bg-white/10 text-slate-400 hover:text-white font-mono text-xs font-bold uppercase transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-sans font-extrabold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] shadow-lg shadow-[#DC2626]/25"
                 >
                     <LogOut className="w-4 h-4" />
-                    <span>Disconnetti Terminale</span>
+                    <span>Esci dall&apos;account (Logout)</span>
                 </button>
-            </div>
+            </section>
 
         </div>
     );

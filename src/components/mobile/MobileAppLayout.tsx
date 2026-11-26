@@ -5,6 +5,7 @@
 // ============================================================================
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { LogOut, User } from 'lucide-react';
 import { UserAccount } from '../../types/auth';
 import { BottomNavBar, AppTab } from '../BottomNavBar';
 import { TabHome } from '../tabs/TabHome';
@@ -14,11 +15,12 @@ import { TabStats } from '../tabs/TabStats';
 import { TabWallet } from '../tabs/TabWallet';
 import { TabAICoach } from '../tabs/TabAICoach';
 import { AtlasTerminalView } from '../atlas/AtlasTerminalView';
+import { LogoutConfirmModal, LogoutMode } from '../LogoutConfirmModal';
 import { useNeuralTelemetryStore } from '../../services/tradyxNeuralContext';
 
 interface MobileAppLayoutProps {
     authUser: UserAccount | null;
-    onLogout: () => void;
+    onLogout: (mode: LogoutMode) => void | Promise<void>;
 }
 
 export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
@@ -26,6 +28,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     onLogout
 }) => {
     const [activeTab, setActiveTabState] = useState<AppTab>('home');
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
     const setActiveTab = useCallback((tab: AppTab) => {
         setActiveTabState(tab);
@@ -56,6 +59,19 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     );
 
     const isAtlasView = activeTab === 'atlas';
+    const showQuickProfilePill =
+        activeTab === 'home' ||
+        activeTab === 'wallet' ||
+        activeTab === 'stats' ||
+        activeTab === 'coach';
+
+    const handleConfirmLogout = useCallback(
+        async (mode: LogoutMode) => {
+            setIsLogoutModalOpen(false);
+            await onLogout(mode);
+        },
+        [onLogout]
+    );
 
     return (
         <div className="w-full min-h-[100dvh] bg-[#08090C] flex justify-center items-start selection:bg-[#10B981] selection:text-white relative">
@@ -76,6 +92,22 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         : 'w-full max-w-lg mx-auto min-h-[100dvh] bg-[#08090C]/80 text-white overflow-x-hidden relative z-10 flex flex-col pt-[env(safe-area-inset-top,12px)] shadow-2xl'
                 }
             >
+                {/* Top-Right Quick Access Pill ("Profilo / Esci") on HOME, WALLET, STATS, COACH */}
+                {showQuickProfilePill && (
+                    <div className="w-full px-3 sm:px-4 pt-1 pb-0.5 flex items-center justify-end z-40">
+                        <button
+                            type="button"
+                            onClick={() => setIsLogoutModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#08090C]/90 hover:bg-white/[0.08] border border-white/10 hover:border-[#10B981]/50 text-[10px] font-mono font-bold text-slate-200 hover:text-white transition shadow-lg backdrop-blur-xl cursor-pointer active:scale-95"
+                            title="Gestisci profilo o esci dall'account"
+                        >
+                            <User className="w-3 h-3 text-[#10B981]" />
+                            <span>Profilo / Esci</span>
+                            <LogOut className="w-3 h-3 text-rose-400" />
+                        </button>
+                    </div>
+                )}
+
                 {/* Active Tab Content Screen */}
                 <main className="w-full flex-1 flex flex-col min-h-0">
                     {activeTab === 'home' && (
@@ -91,7 +123,10 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     )}
                     {activeTab === 'stats' && <TabStats />}
                     {activeTab === 'wallet' && (
-                        <TabWallet authUser={authUser} onLogout={onLogout} />
+                        <TabWallet
+                            authUser={authUser}
+                            onLogout={() => setIsLogoutModalOpen(true)}
+                        />
                     )}
                     {activeTab === 'coach' && <TabAICoach />}
                     {activeTab === 'atlas' && (
@@ -102,8 +137,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     )}
                 </main>
 
-                {/* Fixed Mobile Bottom Navigation Bar (7 Tabs, with iOS Safe Area) */}
+                {/* Fixed Mobile Bottom Navigation Bar (7 Tabs, untouched) */}
                 <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+
+                {/* Global Logout Confirmation Modal (30-day GDPR retention vs immediate wipe) */}
+                <LogoutConfirmModal
+                    isOpen={isLogoutModalOpen}
+                    authUser={authUser}
+                    onConfirmLogout={handleConfirmLogout}
+                    onCancel={() => setIsLogoutModalOpen(false)}
+                />
             </div>
         </div>
     );

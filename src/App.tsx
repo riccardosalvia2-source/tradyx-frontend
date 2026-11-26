@@ -14,8 +14,13 @@ import {
     supabase,
     persistAuthSession,
     loadPersistedAuthSession,
-    clearPersistedAuthSession
+    checkAndEnforceDataRetention,
+    clearDataRetentionExpiry,
+    logoutKeepDataFor30Days,
+    logoutAndWipeAllData,
+    DATA_EXPIRES_AT_KEY
 } from './services/authService';
+import { LogoutMode } from './components/LogoutConfirmModal';
 import {
     loadDiagnosticProfile,
     saveDiagnosticProfile
@@ -84,9 +89,18 @@ export const App: React.FC = () => {
         let isMounted = true;
         let isSettled = false;
 
-        // If user already has a persisted local session, hydrate trades & preferences immediately
+        // 1. GDPR 30-Day Retention Check: auto-wipe expired local data on app startup
+        const wasExpiredAndWiped = checkAndEnforceDataRetention();
+        if (wasExpiredAndWiped) {
+            setAuthUser(null);
+            setPendingDiagnosticResult(null);
+            setPreAuthView('WELCOME');
+        }
+
+        // 2. If user already has a persisted local session, hydrate trades & preferences immediately
         const persisted = loadPersistedAuthSession();
         if (persisted) {
+            clearDataRetentionExpiry();
             setAuthUser(persisted);
             applyOnboardingPreferencesForUser(persisted);
             fetchTrades(persisted.id);
@@ -187,9 +201,10 @@ export const App: React.FC = () => {
                     setIsInitializing(false);
                 }
             } else if (event === 'SIGNED_OUT' && explicitLogoutRef.current) {
-                clearPersistedAuthSession();
+                if (typeof window !== 'undefined' && !localStorage.getItem(DATA_EXPIRES_AT_KEY)) {
+                    logoutAndWipeAllData();
+                }
                 setAuthUser(null);
-                setPreAuthView('WELCOME');
                 recalculateBubbleConfig();
             }
         });
@@ -203,6 +218,7 @@ export const App: React.FC = () => {
 
     const handleAuthenticated = (user: UserAccount) => {
         explicitLogoutRef.current = false;
+        clearDataRetentionExpiry();
         persistAuthSession(user, 'email');
         setAuthUser(user);
         applyOnboardingPreferencesForUser(user);
@@ -219,17 +235,27 @@ export const App: React.FC = () => {
             created_at: new Date().toISOString()
         };
         explicitLogoutRef.current = false;
+        clearDataRetentionExpiry();
         persistAuthSession(demoUser, 'demo');
         setAuthUser(demoUser);
         applyOnboardingPreferencesForUser(demoUser);
         fetchTrades(demoUser.id);
     };
 
-    const handleLogout = async () => {
+    const handleLogout = async (mode: LogoutMode = 'keep_30d') => {
         explicitLogoutRef.current = true;
-        clearPersistedAuthSession();
+
+        if (mode === 'wipe_now') {
+            logoutAndWipeAllData();
+            useTradeStore.setState({ trades: [], deletedTrades: [] });
+            setPendingDiagnosticResult(null);
+            setPreAuthView('WELCOME');
+        } else {
+            logoutKeepDataFor30Days();
+            setPreAuthView('LOGIN');
+        }
+
         setAuthUser(null);
-        setPreAuthView('WELCOME');
         try {
             await supabase.auth.signOut();
         } catch (e) {
