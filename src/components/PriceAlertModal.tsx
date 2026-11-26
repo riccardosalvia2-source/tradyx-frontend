@@ -27,6 +27,7 @@ import {
 } from '../services/priceAlertService';
 import { formatPrice } from '../services/marketWatchService';
 import { triggerHaptic } from '../services/circuitBreakerService';
+import { recordNeuralEvent } from '../services/tradyxNeuralContext';
 
 interface PriceAlertModalProps {
     symbol: string;
@@ -95,6 +96,11 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
             condition,
             note
         });
+        recordNeuralEvent(
+            'PRICE_ALERT_CREATED',
+            `Creato Price Alert su ${cleanSymbol} (${condition} ${parsedTarget})`,
+            { symbol: cleanSymbol, targetPrice: parsedTarget }
+        );
 
         refreshAlerts();
         setSavedSuccess(true);
@@ -108,6 +114,9 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
     const handleDeleteAlert = (id: string) => {
         triggerHaptic('click');
         deletePriceAlert(id);
+        recordNeuralEvent('PRICE_ALERT_DELETED', `Eliminato Price Alert su ${cleanSymbol}`, {
+            symbol: cleanSymbol
+        });
         refreshAlerts();
     };
 

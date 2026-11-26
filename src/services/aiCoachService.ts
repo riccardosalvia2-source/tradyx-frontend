@@ -50,8 +50,8 @@ export interface CoachSettingsSnapshot {
     maxRiskType?: 'PERCENT' | 'FIXED';
     diagnosticProfile?: {
         result?: {
-            archetypeTitle?: string;
-            primaryVulnerability?: string;
+            archetypeLabel?: string;
+            riskBadgeTitle?: string;
         };
     } | null;
 }
@@ -160,8 +160,8 @@ export function buildTraderCoachContext(
         propFirmAccountSize: settings.propFirmAccountSize,
         propFirmMaxDailyLossPct: settings.propFirmMaxDailyLossPercent,
         primaryBiasDetected:
-            settings.diagnosticProfile?.result?.primaryVulnerability ||
-            settings.diagnosticProfile?.result?.archetypeTitle ||
+            settings.diagnosticProfile?.result?.riskBadgeTitle ||
+            settings.diagnosticProfile?.result?.archetypeLabel ||
             undefined,
         ulyssesStrictMode: settings.ulyssesStrictMode,
         monthlyBudget: settings.monthlyBudget,

@@ -5,7 +5,7 @@
 // Clinical Framework: Rational Unlock Triad to neutralize amygdala hijacking
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
     BrainCircuit, 
@@ -22,6 +22,7 @@ import {
     Clock
 } from 'lucide-react';
 import { triggerHaptic } from '../services/circuitBreakerService';
+import { recordNeuralEvent } from '../services/tradyxNeuralContext';
 
 interface UlyssesProtocolModalProps {
     isOpen: boolean;
@@ -51,6 +52,15 @@ export const UlyssesProtocolModal: React.FC<UlyssesProtocolModalProps> = ({
     // Dopamine Loop Warning Flag
     const [showDopamineLoopWarning, setShowDopamineLoopWarning] = useState<boolean>(false);
 
+    useEffect(() => {
+        if (isOpen) {
+            recordNeuralEvent(
+                'ULYSSES_TRIGGERED',
+                `Attivato Protocollo Ulysses: ${reason.slice(0, 120)}`
+            );
+        }
+    }, [isOpen, reason]);
+
     if (!isOpen) return null;
 
     const handleSelectPhysiology = (state: PhysiologicalState) => {
@@ -75,10 +85,12 @@ export const UlyssesProtocolModal: React.FC<UlyssesProtocolModalProps> = ({
         setProceduralAction(action);
         if (action === 'CLOSE_PLATFORM') {
             triggerHaptic('calm');
+            recordNeuralEvent('ULYSSES_BREAK', 'Utente ha scelto pausa disciplinata di 20 min nel Protocollo Ulysses');
             if (onTakeBreak) onTakeBreak(20);
             onClose();
         } else {
             triggerHaptic('calm');
+            recordNeuralEvent('ULYSSES_UNLOCKED', 'Superata Triade di Sblocco Razionale Ulysses (esecuzione con SL rigido)');
             setCurrentStep(4);
             setTimeout(() => {
                 onUnlockSuccess();

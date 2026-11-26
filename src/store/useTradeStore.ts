@@ -13,6 +13,7 @@ import {
     addSystemLog
 } from '../services/authService';
 import { isTiltDetected } from '../services/circuitBreakerService';
+import { recordNeuralEvent } from '../services/tradyxNeuralContext';
 
 export { supabase };
 
@@ -345,12 +346,17 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         const assetLabel = (tradeData as any).symbol || tradeData.asset_pair || 'UNKNOWN';
         const pnlLabel = tradeData.pnl != null ? `${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl}` : 'Open';
 
-        // Log System Audit Event
+        // Log System Audit Event + Neural Telemetry Event Bus
         addSystemLog(
             'TRADE_LOGGED',
             `Trade registrato: ${assetLabel} ${tradeData.direction} (${pnlLabel})`,
             'trader.pro@tradyx.ai',
             { symbol: assetLabel, pnl: tradeData.pnl, emotional_state: tradeData.emotional_state }
+        );
+        recordNeuralEvent(
+            'TRADE_CREATED',
+            `Registrato trade ${tradeData.direction} su ${assetLabel} (${pnlLabel}, stato: ${tradeData.emotional_state || 'N/D'})`,
+            { symbol: assetLabel, direction: tradeData.direction, pnl: Number(tradeData.pnl) || 0 }
         );
 
         // 1. Optimistic UI Update (60fps instant local-first feedback)
@@ -421,6 +427,11 @@ export const useTradeStore = create<TradeState>((set, get) => ({
             `Trade spostato nel cestino: ${tradeToDelete.asset_pair} ${tradeToDelete.direction}`,
             'trader.pro@tradyx.ai',
             { action: 'TRADE_DELETED', id: tradeId, symbol: tradeToDelete.asset_pair }
+        );
+        recordNeuralEvent(
+            'TRADE_DELETED',
+            `Spostato nel cestino trade ${tradeToDelete.direction} su ${tradeToDelete.asset_pair}`,
+            { symbol: tradeToDelete.asset_pair }
         );
 
         if (isSupabaseConfigured() && isValidUuid(tradeId)) {

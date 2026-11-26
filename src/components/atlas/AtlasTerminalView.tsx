@@ -21,9 +21,11 @@ import { Mapbox3DGlobe } from './Mapbox3DGlobe';
 import { TopGlobalTickerBar } from './TopGlobalTickerBar';
 import { CountryDrilldownDrawer } from './CountryDrilldownDrawer';
 import { TradingViewChartModal } from '../TradingViewChartModal';
+import { useNeuralTelemetryStore } from '../../services/tradyxNeuralContext';
 
 interface AtlasTerminalViewProps {
     onNavigateToTrade?: (symbol?: string) => void;
+    onAskTradyxAI?: (prompt: string, source: string) => void;
 }
 
 const CONTINENT_PILLS: Array<{ id: 'ALL' | WorldRegion; label: string }> = [
@@ -39,7 +41,10 @@ const CONTINENT_PILLS: Array<{ id: 'ALL' | WorldRegion; label: string }> = [
 
 const STATIC_GLOBAL_LOOKUP = buildGlobalBaselineAssets();
 
-export const AtlasTerminalView: React.FC<AtlasTerminalViewProps> = ({ onNavigateToTrade }) => {
+export const AtlasTerminalView: React.FC<AtlasTerminalViewProps> = ({
+    onNavigateToTrade,
+    onAskTradyxAI
+}) => {
     const [selectedHub, setSelectedHub] = useState<GlobalHub | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
@@ -90,19 +95,23 @@ export const AtlasTerminalView: React.FC<AtlasTerminalViewProps> = ({ onNavigate
         setSelectedHub(hub);
         setIsSearchFocused(false);
         setSearchQuery('');
+        useNeuralTelemetryStore.getState().setActiveAtlasHub(hub);
     }, []);
 
     const handleCloseHub = useCallback(() => {
         setSelectedHub(null);
+        useNeuralTelemetryStore.getState().setActiveAtlasHub(null);
     }, []);
 
     const handleOpenAssetChart = useCallback((asset: AtlasLiveAsset) => {
         setChartAsset(toTradyxWatchlistAsset(asset));
+        useNeuralTelemetryStore.getState().setLastViewedTicker(asset.symbol);
     }, []);
 
     const handleTickerClick = useCallback(
         (tickerSymbol: string) => {
             const clean = tickerSymbol.trim().toUpperCase();
+            useNeuralTelemetryStore.getState().setLastViewedTicker(clean);
             const localPool = selectedHub ? buildCountryLocalAssets(selectedHub) : [];
             const match =
                 localPool.find((a) => a.symbol.toUpperCase() === clean) ||
@@ -299,6 +308,7 @@ export const AtlasTerminalView: React.FC<AtlasTerminalViewProps> = ({ onNavigate
                     onClose={handleCloseHub}
                     onOpenAssetChart={handleOpenAssetChart}
                     onTickerClick={handleTickerClick}
+                    onAskTradyxAI={onAskTradyxAI}
                 />
             )}
 

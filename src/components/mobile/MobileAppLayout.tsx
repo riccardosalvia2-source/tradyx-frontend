@@ -4,7 +4,7 @@
 // Native Mobile-First PWA for iOS Safari & iPhone Notch / Safe Areas
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { UserAccount } from '../../types/auth';
 import { BottomNavBar, AppTab } from '../BottomNavBar';
 import { TabHome } from '../tabs/TabHome';
@@ -14,6 +14,7 @@ import { TabStats } from '../tabs/TabStats';
 import { TabWallet } from '../tabs/TabWallet';
 import { TabAICoach } from '../tabs/TabAICoach';
 import { AtlasTerminalView } from '../atlas/AtlasTerminalView';
+import { useNeuralTelemetryStore } from '../../services/tradyxNeuralContext';
 
 interface MobileAppLayoutProps {
     authUser: UserAccount | null;
@@ -24,17 +25,35 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     authUser,
     onLogout
 }) => {
-    const [activeTab, setActiveTab] = useState<AppTab>('home');
+    const [activeTab, setActiveTabState] = useState<AppTab>('home');
 
-    const handleOpenAtlas = () => {
+    const setActiveTab = useCallback((tab: AppTab) => {
+        setActiveTabState(tab);
+        useNeuralTelemetryStore.getState().setActiveTab(tab);
+    }, []);
+
+    useEffect(() => {
+        useNeuralTelemetryStore.getState().setActiveTab('home');
+    }, []);
+
+    const handleOpenAtlas = useCallback(() => {
         setActiveTab('atlas');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }, [setActiveTab]);
 
-    const handleNavigateToTrade = () => {
+    const handleNavigateToTrade = useCallback(() => {
         setActiveTab('trade');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }, [setActiveTab]);
+
+    const handleAskTradyxAI = useCallback(
+        (prompt: string, source: string) => {
+            useNeuralTelemetryStore.getState().queueCopilotPrompt(prompt, source);
+            setActiveTab('coach');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        [setActiveTab]
+    );
 
     const isAtlasView = activeTab === 'atlas';
 
@@ -67,14 +86,19 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         />
                     )}
                     {activeTab === 'trade' && <TabTrade />}
-                    {activeTab === 'history' && <TabHistory />}
+                    {activeTab === 'history' && (
+                        <TabHistory onAskTradyxAI={handleAskTradyxAI} />
+                    )}
                     {activeTab === 'stats' && <TabStats />}
                     {activeTab === 'wallet' && (
                         <TabWallet authUser={authUser} onLogout={onLogout} />
                     )}
                     {activeTab === 'coach' && <TabAICoach />}
                     {activeTab === 'atlas' && (
-                        <AtlasTerminalView onNavigateToTrade={handleNavigateToTrade} />
+                        <AtlasTerminalView
+                            onNavigateToTrade={handleNavigateToTrade}
+                            onAskTradyxAI={handleAskTradyxAI}
+                        />
                     )}
                 </main>
 

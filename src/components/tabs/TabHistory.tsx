@@ -28,7 +28,8 @@ import {
     Percent,
     Share2,
     Trash2,
-    RotateCcw
+    RotateCcw,
+    Sparkles
 } from 'lucide-react';
 import { StoryCardModal } from '../StoryCardModal';
 
@@ -36,6 +37,7 @@ interface SwipeableTradeCardProps {
     trade: Trade;
     onSelect: (trade: Trade) => void;
     onDelete: (id: string) => void;
+    onAskAI?: (trade: Trade) => void;
     formatMoney: (val: number, showSign?: boolean) => string;
     formatTimestamp: (iso: string) => string;
 }
@@ -44,6 +46,7 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
     trade,
     onSelect,
     onDelete,
+    onAskAI,
     formatMoney,
     formatTimestamp
 }) => {
@@ -152,16 +155,26 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
                     </div>
                 </div>
 
-                {/* Card Bottom Row: Strategy & Trigger preview */}
-                <div className="flex items-center justify-between pt-1 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF] pointer-events-none">
-                    <span className="text-slate-300 truncate max-w-[180px] sm:max-w-xs">
+                {/* Card Bottom Row: Strategy & Contextual Ask Tradyx AI */}
+                <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.08] text-[11px] font-mono text-[#9CA3AF]">
+                    <span className="text-slate-300 truncate max-w-[140px] sm:max-w-[200px] pointer-events-none">
                         {trade.strategy || 'Tactical Trend Setup'}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
-                        <span className="text-[9px] text-slate-500">
-                            {isRevealed ? 'Tocca ELIMINA o richiudi' : 'Swipe sinistra per opzioni'}
-                        </span>
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 text-slate-400 ${isRevealed ? 'rotate-180 text-rose-400' : ''}`} />
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                        {onAskAI && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAskAI(trade);
+                                }}
+                                className="px-2 py-0.5 rounded-lg bg-[#10B981]/15 hover:bg-[#10B981] text-[#10B981] hover:text-[#050A08] border border-[#10B981]/35 text-[9px] font-mono font-black inline-flex items-center gap-1 transition cursor-pointer active:scale-95"
+                            >
+                                <Sparkles className="w-2.5 h-2.5" />
+                                <span>Chiedi a Tradyx AI</span>
+                            </button>
+                        )}
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 text-slate-400 pointer-events-none ${isRevealed ? 'rotate-180 text-rose-400' : ''}`} />
                     </div>
                 </div>
             </motion.div>
@@ -169,7 +182,11 @@ const SwipeableTradeCard: React.FC<SwipeableTradeCardProps> = ({
     );
 };
 
-export const TabHistory: React.FC = () => {
+interface TabHistoryProps {
+    onAskTradyxAI?: (prompt: string, source: string) => void;
+}
+
+export const TabHistory: React.FC<TabHistoryProps> = ({ onAskTradyxAI }) => {
     const { 
         trades, 
         deletedTrades, 
@@ -236,6 +253,14 @@ export const TabHistory: React.FC = () => {
             setFeedbackMessage('Cestino svuotato');
             setTimeout(() => setFeedbackMessage(null), 3000);
         }
+    };
+
+    const handleAskAIForTrade = (trade: Trade) => {
+        if (!onAskTradyxAI) return;
+        const pnlStr = formatMoney(Number(trade.pnl) || 0, true);
+        const prompt = `Analizza questo trade specifico dal mio storico: ${trade.direction} su ${trade.asset_pair} (${formatTimestamp(trade.created_at)}), PnL ${pnlStr}, size ${trade.position_size || 1}, strategia "${trade.strategy || 'N/D'}", stato emotivo "${trade.emotional_state || trade.psychology || 'N/D'}"${trade.errors && trade.errors.length > 0 ? `, errori [${trade.errors.join(', ')}]` : ''}${trade.notes ? `, note: "${trade.notes}"` : ''}. Valuta esecuzione tecnica, gestione del rischio ed eventuali bias psicologici.`;
+        setSelectedTrade(null);
+        onAskTradyxAI(prompt, `HISTORY (${trade.asset_pair})`);
     };
 
     return (
@@ -333,6 +358,7 @@ export const TabHistory: React.FC = () => {
                                 trade={trade}
                                 onSelect={setSelectedTrade}
                                 onDelete={deleteTrade}
+                                onAskAI={onAskTradyxAI ? handleAskAIForTrade : undefined}
                                 formatMoney={formatMoney}
                                 formatTimestamp={formatTimestamp}
                             />
@@ -576,6 +602,18 @@ export const TabHistory: React.FC = () => {
                                 {selectedTrade.reasoning || selectedTrade.notes || 'Institutional entry executed strictly adhering to pre-defined algorithmic risk and volatility boundaries.'}
                             </p>
                         </div>
+
+                        {/* ROW 7.2: Contextual Ask Tradyx AI Analysis Button */}
+                        {onAskTradyxAI && (
+                            <button
+                                type="button"
+                                onClick={() => handleAskAIForTrade(selectedTrade)}
+                                className="w-full py-2.5 rounded-xl bg-[#10B981]/15 hover:bg-[#10B981]/25 border border-[#10B981]/40 text-[#10B981] text-xs font-mono font-black flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                <span>Chiedi a Tradyx AI di analizzare questo trade</span>
+                            </button>
+                        )}
 
                         {/* ROW 7.5: Delete Trade Button */}
                         <button

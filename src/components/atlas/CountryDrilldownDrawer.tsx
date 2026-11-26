@@ -38,13 +38,15 @@ interface CountryDrilldownDrawerProps {
     onClose: () => void;
     onOpenAssetChart: (asset: AtlasLiveAsset) => void;
     onTickerClick: (tickerSymbol: string) => void;
+    onAskTradyxAI?: (prompt: string, source: string) => void;
 }
 
 export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
     hub,
     onClose,
     onOpenAssetChart,
-    onTickerClick
+    onTickerClick,
+    onAskTradyxAI
 }) => {
     const [activeTab, setActiveTab] = useState<DrawerMainTab>('MARKETS');
 
@@ -132,16 +134,32 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
                 {/* FIXED INSTITUTIONAL COUNTRY HEADER                        */}
                 {/* ========================================================= */}
                 <header className="sticky top-0 z-20 px-4 sm:px-6 pt-[max(env(safe-area-inset-top,14px),14px)] pb-3.5 border-b border-white/[0.08] bg-[#08090C]/95 backdrop-blur-xl space-y-3">
-                    {/* Row 1: Back to Map + Exchange Status + Sovereign Rating */}
+                    {/* Row 1: Back to Map + Contextual Ask Tradyx AI + Exchange Status */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-bold text-slate-100 transition active:scale-95 cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 text-[#10B981]" />
-                            <span>Torna alla Mappa</span>
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-bold text-slate-100 transition active:scale-95 cursor-pointer"
+                            >
+                                <ArrowLeft className="w-4 h-4 text-[#10B981]" />
+                                <span>Torna alla Mappa</span>
+                            </button>
+
+                            {onAskTradyxAI && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const prompt = `Valuta opportunità, rischi macro e correlazioni su ${hub.countryName} (${hub.city}, indice ${hub.primaryIndex.symbol}, ${hub.macro.centralBank} al ${hub.macro.policyRate}%, CPI ${hub.macro.inflationCpi}%, rendimento ${hub.iso2}10Y al ${hub.bondYields.y10}%, cambio ${hub.fxPairLabel}) in relazione al mio portafoglio, al mio drawdown attuale e al mio stile di trading.`;
+                                        onAskTradyxAI(prompt, `ATLAS (${hub.countryName})`);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#10B981]/15 hover:bg-[#10B981] text-[#10B981] hover:text-[#050A08] border border-[#10B981]/40 text-xs font-mono font-black transition active:scale-95 cursor-pointer shadow-md shadow-[#10B981]/15"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>Chiedi a Tradyx AI</span>
+                                </button>
+                            )}
+                        </div>
 
                         <div className="flex items-center gap-1.5 flex-wrap">
                             <span
