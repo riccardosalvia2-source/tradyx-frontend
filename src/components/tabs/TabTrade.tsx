@@ -35,13 +35,27 @@ import {
     Share2, 
     RefreshCw,
     X,
-    ShieldAlert
+    ShieldAlert,
+    ShieldCheck,
+    Globe,
+    Cpu,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 
 export const TabTrade: React.FC = () => {
     const { trades, addTrade, draftTradeAsset, setDraftTradeAsset } = useTradeStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
-    const { baseCurrency, formatMoney } = useSettingsStore();
+    const {
+        baseCurrency,
+        formatMoney,
+        monthlyBudget,
+        maxRiskPerTrade,
+        maxRiskType,
+        propFirmShieldEnabled,
+        propFirmMaxDailyLossPercent,
+        propFirmAccountSize
+    } = useSettingsStore();
 
     // Ulysses Protocol Active Friction & Rational Unlock State
     const [showUlyssesModal, setShowUlyssesModal] = useState<boolean>(false);
@@ -80,8 +94,26 @@ export const TabTrade: React.FC = () => {
     const [isProcessingVoice, setIsProcessingVoice] = useState<boolean>(false);
     const [isUploadingOcr, setIsUploadingOcr] = useState<boolean>(false);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+    const [preTradeAudit, setPreTradeAudit] = useState<ParsedVoiceTrade | null>(null);
+    const [showPreTradeReasoning, setShowPreTradeReasoning] = useState<boolean>(false);
     const speechRecognizerRef = useRef<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const buildRiskPlanPayload = () => {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const dailyPnl = safeTrades
+            .filter((t) => (t.created_at || '').startsWith(todayStr))
+            .reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+        return {
+            accountType: (propFirmShieldEnabled ? 'PROP_FIRM' : 'PERSONAL') as 'PROP_FIRM' | 'PERSONAL',
+            monthlyBudget,
+            maxRiskPerTrade,
+            maxRiskType,
+            propFirmAccountSize,
+            propFirmMaxDailyLossPct: propFirmMaxDailyLossPercent,
+            dailyPnl: Number(dailyPnl.toFixed(2))
+        };
+    };
 
     // Stop voice recording safely
     const stopVoiceRecording = () => {
@@ -183,25 +215,31 @@ export const TabTrade: React.FC = () => {
         return (diff * 100).toFixed(1);
     }, [entryPrice, exitPrice, direction, hasDirectPnl, netPnlInput]);
 
-    // Helper: Apply parsed trade data directly to React form inputs
+    // Helper: Apply parsed trade data directly to React form inputs + Pre-Trade Check
     const applyParsedTradeData = (parsed: any) => {
         const pair = parsed.asset_pair || parsed.asset;
         if (pair) setAssetPair(pair);
         if (parsed.direction) setDirection(parsed.direction);
         if (parsed.entry_price != null) setEntryPrice(parsed.entry_price.toString());
-        if (parsed.exit_price != null) setExitPrice(parsed.exit_price.toString());
+        const targetOrExit = parsed.exit_price != null ? parsed.exit_price : parsed.take_profit;
+        if (targetOrExit != null) setExitPrice(targetOrExit.toString());
         const netPnl = parsed.pnl_netto != null ? parsed.pnl_netto : parsed.pnl;
         if (netPnl != null) setNetPnlInput(netPnl.toString());
         if (parsed.position_size != null) setPositionSize(parsed.position_size.toString());
+        if (parsed.risk_reward) setRiskReward(parsed.risk_reward);
         if (parsed.psychology) setPsychology(parsed.psychology);
         if (parsed.errors && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
             setSelectedErrors(parsed.errors);
         }
         if (parsed.notes) setNotes(parsed.notes);
+        if (parsed.pre_trade_check) {
+            setPreTradeAudit(parsed);
+            setShowPreTradeReasoning(false);
+        }
     };
 
     // ============================================================================
-    // 1. VOICE-TO-TRADE (CONTINUOUS PUSH-TO-TALK & AI PARSER)
+    // 1. VOICE-TO-TRADE (CONTINUOUS PUSH-TO-TALK & AI PRE-TRADE CHECK)
     // ============================================================================
     const handleVoiceToggle = async () => {
         if (!isSpeechRecognitionSupported()) {
@@ -210,7 +248,7 @@ export const TabTrade: React.FC = () => {
             return;
         }
 
-        // If currently listening: user taps to stop -> parse with AI
+        // If currently listening: user taps to stop -> parse with AI + Pre-Trade Check
         if (isListening) {
             stopVoiceRecording();
             triggerHaptic('calm');
@@ -218,11 +256,13 @@ export const TabTrade: React.FC = () => {
             const currentTranscript = voiceTranscript.trim();
             if (currentTranscript) {
                 setIsProcessingVoice(true);
-                setFeedbackMessage('Analisi vocale con AI in corso...');
+                setFeedbackMessage('Analisi vocale, R:R e verifica macro ATLAS in corso...');
                 try {
-                    const parsed = await parseVoiceWithGemini(currentTranscript);
+                    const parsed = await parseVoiceWithGemini(currentTranscript, {
+                        userRiskPlan: buildRiskPlanPayload()
+                    });
                     applyParsedTradeData(parsed);
-                    setFeedbackMessage('Dati estratti con successo!');
+                    setFeedbackMessage('Dati estratti + Pre-Trade Check completato!');
                 } catch (err) {
                     console.warn('Voice parsing error, local fallback used:', err);
                     const parsed = parseVoiceTranscript(currentTranscript);
@@ -277,16 +317,18 @@ export const TabTrade: React.FC = () => {
         }
     };
 
-    // Applica ai campi da textarea: usa AI Gemini o fallback locale
+    // Applica ai campi da textarea: usa AI Gemini + Pre-Trade Check (R:R, ATLAS Macro, Risk Plan)
     const handleApplyTranscript = async () => {
         if (!voiceTranscript.trim()) return;
         setIsProcessingVoice(true);
-        setFeedbackMessage('Analisi vocale con AI in corso...');
+        setFeedbackMessage('Analisi AI: R:R, coerenza macro ATLAS e piano rischio...');
         try {
             triggerHaptic('calm');
-            const parsed = await parseVoiceWithGemini(voiceTranscript);
+            const parsed = await parseVoiceWithGemini(voiceTranscript, {
+                userRiskPlan: buildRiskPlanPayload()
+            });
             applyParsedTradeData(parsed);
-            setFeedbackMessage('Dati applicati ai campi dal testo vocale!');
+            setFeedbackMessage('Dati applicati + Pre-Trade Check completato!');
         } catch (err) {
             console.warn('Error applying transcript:', err);
             const parsed = parseVoiceTranscript(voiceTranscript);
@@ -301,6 +343,7 @@ export const TabTrade: React.FC = () => {
     // Cancella testo vocale
     const handleClearTranscript = () => {
         setVoiceTranscript('');
+        setPreTradeAudit(null);
     };
 
     // ============================================================================
@@ -653,6 +696,118 @@ export const TabTrade: React.FC = () => {
                             <span>Cancella testo</span>
                         </button>
                     </div>
+
+                    {/* INTELLIGENT AI PRE-TRADE CHECK CARD (R:R + ATLAS MACRO + RISK PLAN) */}
+                    {preTradeAudit?.pre_trade_check && (() => {
+                        const check = preTradeAudit.pre_trade_check;
+                        const verdictStyle =
+                            check.verdict === 'APPROVATO'
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                                : check.verdict === 'VIOLAZIONE_PIANO'
+                                ? 'bg-rose-500/15 text-rose-300 border-rose-500/40'
+                                : 'bg-amber-500/15 text-amber-300 border-amber-500/40';
+                        const macroBadge =
+                            check.atlas_macro_alignment === 'ALLINEATO'
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                : check.atlas_macro_alignment === 'CONTROTREND_MACRO'
+                                ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                                : 'bg-slate-700/60 text-slate-200 border-slate-600/50';
+
+                        return (
+                            <div className="mt-2 p-3 rounded-xl bg-[#05080F]/95 border border-cyan-500/30 space-y-2.5 font-sans animate-in fade-in">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-black text-cyan-300 uppercase">
+                                        {check.risk_plan_violation ? (
+                                            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                                        ) : (
+                                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                        )}
+                                        <span>AI PRE-TRADE CHECK</span>
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black border ${verdictStyle}`}>
+                                        {check.verdict.replace('_', ' ')}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                                    <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.07]">
+                                        <span className="text-slate-400 block text-[9px] uppercase">Rischio / Rendimento</span>
+                                        <span className="text-white font-black">{check.risk_reward_ratio}</span>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.07]">
+                                        <span className="text-slate-400 block text-[9px] uppercase">Rischio Stimato SL</span>
+                                        <span className="text-white font-black">
+                                            {check.estimated_risk_amount != null
+                                                ? formatMoney(-Math.abs(check.estimated_risk_amount), true)
+                                                : 'SL non definito'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* ATLAS Macro Coherence */}
+                                <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.07] space-y-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-cyan-300 uppercase">
+                                            <Globe className="w-3 h-3 text-cyan-400" />
+                                            <span>Coerenza Macro ATLAS</span>
+                                        </span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-black border ${macroBadge}`}>
+                                            {check.atlas_macro_alignment.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-300 leading-snug">
+                                        {check.atlas_macro_note}
+                                    </p>
+                                </div>
+
+                                {/* Risk Plan Violation Alert */}
+                                {check.risk_plan_violation && check.violation_reason && (
+                                    <div className="p-2.5 rounded-lg bg-rose-950/50 border border-rose-500/40 text-[11px] text-rose-200 leading-snug flex items-start gap-2">
+                                        <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <strong className="font-mono text-[10px] uppercase text-rose-300 block">
+                                                Violazione Piano di Risk Management
+                                            </strong>
+                                            <span>{check.violation_reason}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Discrete Reasoning Toggle */}
+                                {preTradeAudit.internal_reasoning && preTradeAudit.internal_reasoning.length > 0 && (
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPreTradeReasoning((v) => !v)}
+                                            className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-cyan-300 transition cursor-pointer"
+                                        >
+                                            <Cpu className="w-3 h-3 text-cyan-400" />
+                                            <span>
+                                                {showPreTradeReasoning
+                                                    ? 'Nascondi Catena di Ragionamento AI'
+                                                    : 'Mostra Catena di Ragionamento AI'}
+                                            </span>
+                                            {showPreTradeReasoning ? (
+                                                <ChevronUp className="w-3 h-3" />
+                                            ) : (
+                                                <ChevronDown className="w-3 h-3" />
+                                            )}
+                                        </button>
+                                        {showPreTradeReasoning && (
+                                            <div className="mt-1.5 p-2 rounded-lg bg-black/50 border border-white/[0.08] space-y-1 text-[10px] font-mono text-slate-300">
+                                                {preTradeAudit.internal_reasoning.map((step, i) => (
+                                                    <div key={i}>
+                                                        <span className="text-cyan-400 font-bold mr-1">[{i + 1}]</span>
+                                                        {step.replace(/^\d+[.)]\s*/, '')}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 

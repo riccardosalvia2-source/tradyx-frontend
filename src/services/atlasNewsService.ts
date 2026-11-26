@@ -420,6 +420,44 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
 
     return templates.map((t, i) => {
         const pub = pickPub(i);
+        const normalizedSentiment: NewsSentiment =
+            t.sentiment === 'NEUTRAL' ? 'VOLATILITÀ' : t.sentiment;
+        const horizon: 'Intraday' | 'Multi-day' =
+            t.category === 'FOREX' ||
+            t.category === 'DERIVATI' ||
+            t.category === 'FLUSSI EQUITY' ||
+            t.category === 'CROSS-ASSET' ||
+            t.category === 'ETF & PASSIVE'
+                ? 'Intraday'
+                : 'Multi-day';
+        const mechanismMap: Record<string, string> = {
+            'BANCHE CENTRALI': `Tassi ${cb} (${rate}%) vs CPI (${cpi}%) -> Ricalibrazione curva ${bnd2}/${bnd10} -> Costo del capitale su ${idx}`,
+            'BOND SOVRANI': `Domanda in asta ${bnd10} (${y10}%) -> Compressione spread sovrano -> Costo funding banche (${s1.symbol})`,
+            EQUITY: `Revisione target/margini ${s1.symbol} -> Afflussi istituzionali settore ${s1.sector} -> Espansione multipli su ${idx}`,
+            FOREX: `Differenziale yield ${bnd10} vs US10Y -> Flussi carry trade -> Direzionalità intraday su ${fx}`,
+            MACRO: `Crescita PIL ${gdp}% + FDI -> Sostenibilità Debito/PIL (${hub.macro.debtToGdp}%) -> Rating & flussi esteri`,
+            CORPORATE: `Espansione CAPEX ${s2.symbol} -> Visibilità flussi di cassa 24M -> Trazione filiera industriale ${hub.city}`,
+            COMMODITIES: `Shock prezzi energia/metalli -> Impatto bilancia commerciale (${hub.macro.tradeBalanceBn}B$) -> Pressione inflazione & ${fx}`,
+            'TECH & AI': `Adozione AI in ${s3.sector} -> Produttività & margini operativi -> Afflussi tematici su ${s3.symbol} e NDX`,
+            'CREDIT & RATING': `Conferma rating ${hub.macro.sovereignRating} -> Assenza vendite forzate fondi benchmark -> Stabilità curva ${bnd10}`,
+            'LIQUIDITÀ': `Riserve FX ($${hub.macro.fxReservesBn}B) -> Scudo anti-svalutazione ${hub.currencyCode} -> Riduzione coda di rischio`,
+            'FLUSSI EQUITY': `Rotazione istituzionale Ciclici -> Quality -> Dispersione settoriale intraday su ${idxName}`,
+            'LAVORO & MACRO': `Disoccupazione al ${hub.macro.unemployment}% -> Pressione salariale -> Ritardo tagli ${cb} & supporto NII banche`,
+            'CROSS-ASSET': `Movimento US10Y / SPX -> Ricalibrazione premio al rischio globale -> Trasmissione immediata su ${idx} e ${fx}`,
+            'FDI & M&A': `Afflussi fondi sovrani su ${hub.fdiSectors[0]?.sector || 'Tech'} -> Profondità book ${hub.exchangeName} -> Rerating ${idx}`,
+            DERIVATI: `Domanda put protettive -> Skew volatilità implicita -> Aumento rischio stop-run intraday su ${idx}`,
+            'CRYPTO & FINTECH': `Espansione liquidità M2 -> Flussi ETF Spot BTC -> Correlazione risk-on su fintech e QQQ`,
+            ENERGIA: `Scorte gas/petrolio -> Costo input utility e manifattura -> Compressione margini & CPI (${cpi}%)`,
+            'ETF & PASSIVE': `Ribilanciamento MSCI ($${hub.equityMarket.totalMarketCapBn}B cap) -> Picchi volumi in asta -> Impatto tecnico su ${s1.symbol}`,
+            'SAFE HAVEN': `Acquisti Oro banche centrali -> Floor XAU/USD -> Hedging valutario per portafogli ${hub.currencyCode}`,
+            FINANZA: `CET1 sopra soglia regolamentare -> Capacità dividendi/buyback -> Riduzione premio rischio su ${s1.symbol}`,
+            'SUPPLY CHAIN': `Ciclo semiconduttori/logistica -> Stime export manifatturiero -> Multipli industriali ${hub.city}`
+        };
+
+        const transmissionMechanism =
+            mechanismMap[t.category] ||
+            `Catalyst ${t.category} (${hub.countryName}) -> Ricalibrazione flussi ${hub.exchangeName} -> Impatto su ${t.tickers[0] || idx}`;
+
         return {
             id: `curated-${hub.id}-${i}`,
             title: t.title,
@@ -431,18 +469,24 @@ function buildCuratedCountryNews(hub: GlobalHub): AtlasNewsItem[] {
             isLiveFeed: false,
             aiImpact: {
                 operationalImpact: t.operationalImpact,
-                sentiment: t.sentiment,
-                impactedTickers: t.tickers
+                transmissionMechanism,
+                sentiment: normalizedSentiment,
+                horizon,
+                impactedTickers: t.tickers,
+                internalReasoning: [
+                    `1. Contesto macro ${hub.countryName}: ${cb} al ${rate}%, inflazione CPI ${cpi}%, rendimento ${bnd10} al ${y10}%.`,
+                    `2. Meccanismo di trasmissione: ${transmissionMechanism}.`,
+                    `3. Orizzonte ${horizon} (${normalizedSentiment}) con trasmissione prioritaria sui ticker ${t.tickers.join(', ')}.`
+                ]
             }
         };
     });
 }
 
 /**
- * Fetches live country articles + server-side Gemini AI impact analysis via the
- * secure `/api/atlas/news` gateway (15-min Upstash Redis cache, ZERO client-side
- * secret keys) and merges with curated institutional intelligence using ONLY
- * real canonical publisher URLs.
+ * Fetches live country articles + server-side Gemini Chain-of-Thought batch
+ * impact analysis via `/api/atlas/news` (injecting the country's real macro
+ * regime: policy rate, CPI, GDP, 10Y yield, top stocks).
  */
 export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<AtlasNewsItem[]> {
     const cached = newsCache.get(hub.id);
@@ -455,7 +499,7 @@ export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<Atla
     try {
         const authHeaders = await getApiAuthHeaders();
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4500);
+        const timer = setTimeout(() => controller.abort(), 5500);
 
         const params = new URLSearchParams({
             iso2: hub.iso2,
@@ -463,7 +507,13 @@ export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<Atla
             city: hub.city,
             indexSymbol: hub.primaryIndex.symbol,
             fxPair: hub.fxPairLabel,
-            centralBank: hub.macro.centralBank
+            currencyCode: hub.currencyCode,
+            centralBank: hub.macro.centralBank,
+            policyRate: String(hub.macro.policyRate),
+            inflationCpi: String(hub.macro.inflationCpi),
+            gdpGrowth: String(hub.macro.gdpGrowth),
+            yield10y: String(hub.bondYields.y10),
+            topStocks: hub.topStocks.map((s) => s.symbol).slice(0, 6).join(',')
         });
 
         const res = await fetch(`/api/atlas/news?${params.toString()}`, {
@@ -479,6 +529,11 @@ export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<Atla
                     if (!a?.title || isBlockedGoogleNewsUrl(a?.url)) return;
                     const pubMs = a.publishedAt ? Date.parse(a.publishedAt) : Date.now();
                     const minsAgo = Math.max(2, Math.round((Date.now() - pubMs) / 60000));
+                    const fallbackImpact = analyzeHeadlineImpact(a.title, hub, idx);
+                    const rawSent = a.aiImpact?.sentiment || fallbackImpact.sentiment;
+                    const normalizedSent: NewsSentiment =
+                        rawSent === 'NEUTRAL' ? 'VOLATILITÀ' : rawSent;
+
                     liveItems.push({
                         id: String(a.id || `srv-${hub.id}-${idx}`),
                         title: String(a.title).trim(),
@@ -490,8 +545,23 @@ export async function fetchCountryNewsWithAIImpact(hub: GlobalHub): Promise<Atla
                         isLiveFeed: true,
                         aiImpact:
                             a.aiImpact && typeof a.aiImpact.operationalImpact === 'string'
-                                ? a.aiImpact
-                                : analyzeHeadlineImpact(a.title, hub, idx)
+                                ? {
+                                      operationalImpact: a.aiImpact.operationalImpact,
+                                      transmissionMechanism: a.aiImpact.transmissionMechanism,
+                                      sentiment: normalizedSent,
+                                      horizon: a.aiImpact.horizon || 'Intraday',
+                                      impactedTickers: Array.isArray(a.aiImpact.impactedTickers)
+                                          ? a.aiImpact.impactedTickers
+                                          : fallbackImpact.impactedTickers,
+                                      internalReasoning: Array.isArray(a.aiImpact.internalReasoning)
+                                          ? a.aiImpact.internalReasoning
+                                          : undefined
+                                  }
+                                : {
+                                      ...fallbackImpact,
+                                      sentiment: normalizedSent,
+                                      horizon: 'Intraday'
+                                  }
                     });
                 });
             }

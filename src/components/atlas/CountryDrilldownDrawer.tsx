@@ -17,7 +17,12 @@ import {
     Sparkles,
     Search,
     RefreshCw,
-    Zap
+    Zap,
+    Clock,
+    Cpu,
+    ChevronDown,
+    ChevronUp,
+    GitBranch
 } from 'lucide-react';
 import { GlobalHub, AtlasLiveAsset, AtlasNewsItem } from '../../types/atlas';
 import { getExchangeStatus } from '../../data/globalHubs';
@@ -47,9 +52,10 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
     const [newsItems, setNewsItems] = useState<AtlasNewsItem[]>([]);
     const [isLoadingNews, setIsLoadingNews] = useState<boolean>(true);
     const [newsSentimentFilter, setNewsSentimentFilter] = useState<
-        'ALL' | 'BULLISH' | 'BEARISH' | 'NEUTRAL'
+        'ALL' | 'BULLISH' | 'BEARISH' | 'VOLATILITÀ'
     >('ALL');
     const [newsSearch, setNewsSearch] = useState<string>('');
+    const [expandedNewsReasoning, setExpandedNewsReasoning] = useState<Record<string, boolean>>({});
 
     // Macro state (fetched once per hub, NEVER re-rendered by 1s market ticks)
     const [macroData, setMacroData] = useState<EnrichedMacroResult>(() => ({
@@ -104,13 +110,16 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
     const filteredNews = useMemo(() => {
         const q = newsSearch.trim().toLowerCase();
         return newsItems.filter((n) => {
+            const normalizedSent =
+                n.aiImpact.sentiment === 'NEUTRAL' ? 'VOLATILITÀ' : n.aiImpact.sentiment;
             const matchesSentiment =
-                newsSentimentFilter === 'ALL' || n.aiImpact.sentiment === newsSentimentFilter;
+                newsSentimentFilter === 'ALL' || normalizedSent === newsSentimentFilter;
             const matchesText =
                 !q ||
                 n.title.toLowerCase().includes(q) ||
                 n.source.toLowerCase().includes(q) ||
                 n.aiImpact.operationalImpact.toLowerCase().includes(q) ||
+                (n.aiImpact.transmissionMechanism || '').toLowerCase().includes(q) ||
                 n.aiImpact.impactedTickers.some((t) => t.toLowerCase().includes(q));
             return matchesSentiment && matchesText;
         });
@@ -310,8 +319,8 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center gap-1">
-                                        {(['ALL', 'BULLISH', 'BEARISH', 'NEUTRAL'] as const).map(
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                        {(['ALL', 'BULLISH', 'BEARISH', 'VOLATILITÀ'] as const).map(
                                             (sent) => (
                                                 <button
                                                     key={sent}
@@ -352,12 +361,17 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     {filteredNews.map((news) => {
+                                        const displaySent =
+                                            news.aiImpact.sentiment === 'NEUTRAL'
+                                                ? 'VOLATILITÀ'
+                                                : news.aiImpact.sentiment;
                                         const sentClasses =
-                                            news.aiImpact.sentiment === 'BULLISH'
+                                            displaySent === 'BULLISH'
                                                 ? 'bg-emerald-500/15 text-[#10B981] border-emerald-500/40'
-                                                : news.aiImpact.sentiment === 'BEARISH'
+                                                : displaySent === 'BEARISH'
                                                 ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
-                                                : 'bg-slate-700/50 text-slate-300 border-slate-600/60';
+                                                : 'bg-amber-500/15 text-amber-300 border-amber-500/40';
+                                        const isReasoningOpen = !!expandedNewsReasoning[news.id];
 
                                         return (
                                             <article
@@ -395,40 +409,96 @@ export const CountryDrilldownDrawer: React.FC<CountryDrilldownDrawerProps> = ({
                                                     </a>
                                                 </div>
 
-                                                {/* Dedicated AI MARKET IMPACT Box */}
+                                                {/* Dedicated AI MARKET IMPACT Box (Causal Chain + Mechanism + Horizon) */}
                                                 <div className="p-3 rounded-xl bg-[#05080F]/90 border border-white/[0.07] space-y-2">
                                                     <div className="flex items-center justify-between gap-2 flex-wrap">
                                                         <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-black text-cyan-300 uppercase">
                                                             <Zap className="w-3 h-3 text-[#10B981]" />
                                                             <span>AI MARKET IMPACT</span>
                                                         </span>
-                                                        <span
-                                                            className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black border ${sentClasses}`}
-                                                        >
-                                                            {news.aiImpact.sentiment}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            {news.aiImpact.horizon && (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-white/[0.06] text-slate-300 border border-white/[0.1]">
+                                                                    <Clock className="w-2.5 h-2.5 text-cyan-400" />
+                                                                    {news.aiImpact.horizon}
+                                                                </span>
+                                                            )}
+                                                            <span
+                                                                className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black border ${sentClasses}`}
+                                                            >
+                                                                {displaySent}
+                                                            </span>
+                                                        </div>
                                                     </div>
+
+                                                    {news.aiImpact.transmissionMechanism && (
+                                                        <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-500/[0.07] border border-cyan-500/20 text-[10px] font-mono text-cyan-200 leading-snug">
+                                                            <GitBranch className="w-3 h-3 text-cyan-400 shrink-0 mt-0.5" />
+                                                            <span>{news.aiImpact.transmissionMechanism}</span>
+                                                        </div>
+                                                    )}
 
                                                     <p className="text-[11px] text-slate-300 leading-relaxed">
                                                         {news.aiImpact.operationalImpact}
                                                     </p>
 
-                                                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                                        {news.aiImpact.impactedTickers.map(
-                                                            (ticker) => (
+                                                    <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {news.aiImpact.impactedTickers.map(
+                                                                (ticker) => (
+                                                                    <button
+                                                                        key={ticker}
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            onTickerClick(ticker)
+                                                                        }
+                                                                        className="px-2 py-0.5 rounded-md bg-[#10B981]/10 hover:bg-[#10B981] text-[#10B981] hover:text-[#050A08] border border-[#10B981]/30 text-[10px] font-mono font-black transition cursor-pointer"
+                                                                    >
+                                                                        {ticker}
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                        </div>
+
+                                                        {news.aiImpact.internalReasoning &&
+                                                            news.aiImpact.internalReasoning.length > 0 && (
                                                                 <button
-                                                                    key={ticker}
                                                                     type="button"
                                                                     onClick={() =>
-                                                                        onTickerClick(ticker)
+                                                                        setExpandedNewsReasoning((prev) => ({
+                                                                            ...prev,
+                                                                            [news.id]: !prev[news.id]
+                                                                        }))
                                                                     }
-                                                                    className="px-2 py-0.5 rounded-md bg-[#10B981]/10 hover:bg-[#10B981] text-[#10B981] hover:text-[#050A08] border border-[#10B981]/30 text-[10px] font-mono font-black transition cursor-pointer"
+                                                                    className="inline-flex items-center gap-1 text-[9px] font-mono text-slate-400 hover:text-cyan-300 transition cursor-pointer"
                                                                 >
-                                                                    {ticker}
+                                                                    <Cpu className="w-3 h-3 text-cyan-400/80" />
+                                                                    <span>
+                                                                        {isReasoningOpen
+                                                                            ? 'Nascondi Catena AI'
+                                                                            : 'Catena Causale AI'}
+                                                                    </span>
+                                                                    {isReasoningOpen ? (
+                                                                        <ChevronUp className="w-3 h-3" />
+                                                                    ) : (
+                                                                        <ChevronDown className="w-3 h-3" />
+                                                                    )}
                                                                 </button>
-                                                            )
-                                                        )}
+                                                            )}
                                                     </div>
+
+                                                    {isReasoningOpen && news.aiImpact.internalReasoning && (
+                                                        <div className="mt-1.5 p-2 rounded-lg bg-black/50 border border-white/[0.08] space-y-1 text-[10px] font-mono text-slate-300 animate-in fade-in">
+                                                            {news.aiImpact.internalReasoning.map((step, sIdx) => (
+                                                                <div key={sIdx} className="leading-snug">
+                                                                    <span className="text-cyan-400 font-bold mr-1">
+                                                                        [{sIdx + 1}]
+                                                                    </span>
+                                                                    {step.replace(/^\d+[.)]\s*/, '')}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </article>
                                         );

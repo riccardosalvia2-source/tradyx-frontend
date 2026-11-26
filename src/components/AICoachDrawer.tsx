@@ -7,8 +7,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, UserTradingContext } from '../types/chat';
-import { generateCoachResponse } from '../services/aiCoachService';
+import {
+    generateStructuredCoachResponse,
+    buildTraderCoachContext
+} from '../services/aiCoachService';
 import { useTradeStore } from '../store/useTradeStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import { FINANCIAL_DISCLAIMER_IT } from '../../security/disclaimer';
 import { 
     BrainCircuit, 
@@ -16,11 +20,15 @@ import {
     Send, 
     Sparkles, 
     ShieldAlert, 
+    ShieldCheck,
     Bot, 
     User, 
     RefreshCw, 
     Flame, 
-    Activity 
+    Activity,
+    ChevronDown,
+    ChevronUp,
+    Cpu
 } from 'lucide-react';
 
 import { 
@@ -58,37 +66,29 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { trades } = useTradeStore();
+    const settings = useSettingsStore();
+    const [expandedReasoningIds, setExpandedReasoningIds] = useState<Record<string, boolean>>({});
 
     // Auto-scroll to bottom of messages
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    // Extract current trading context from Zustand store
+    // Extract current trading context (15-trade telemetry + onboarding + drawdown limits)
     const getTradingContext = (): UserTradingContext => {
         if (!trades || trades.length === 0) return {};
-        const recent = trades[0];
-        const totalPnl = trades.reduce((acc, t) => acc + (t.pnl || 0), 0);
-        const wins = trades.filter(t => (t.pnl || 0) > 0).length;
-        const winRate = Number(((wins / trades.length) * 100).toFixed(1));
-
         const cortisolStatus = getCortisolClearingStatus(trades);
         const disposition = analyzeDispositionEffect(trades);
         const delay = analyzeDelayDiscounting(trades);
 
-        return {
-            recentEmotion: recent.emotional_state,
-            recentPnL: recent.pnl || 0,
-            totalWinRate: winRate,
-            lastTradeNotes: recent.notes || undefined,
-            tradeCount: trades.length,
+        return buildTraderCoachContext(trades, settings, {
             cortisolClearingActive: cortisolStatus.isClearingActive,
             cortisolRemainingMinutes: cortisolStatus.remainingMinutes,
             dispositionEffectDetected: disposition.detected,
             dispositionDetails: disposition.clinicalAssessment,
             delayDiscountingDetected: delay.detected,
             delayDiscountingDetails: delay.clinicalAssessment
-        };
+        });
     };
 
     const handleSendMessage = async (textToSend?: string) => {
@@ -107,12 +107,13 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
         setIsTyping(true);
 
         const context = getTradingContext();
-        const aiResponseText = await generateCoachResponse(query, context);
+        const structured = await generateStructuredCoachResponse(query, context, 'TOUGH_LOVE', true);
 
         const aiMsg: ChatMessage = {
             id: `ai-${Date.now()}`,
             sender: 'assistant',
-            content: aiResponseText,
+            content: structured.diagnosis,
+            structured,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -218,12 +219,77 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
                                     </div>
 
                                     {/* Bubble */}
-                                    <div className={`max-w-[82%] p-3.5 rounded-2xl space-y-1 ${
+                                    <div className={`max-w-[85%] p-3.5 rounded-2xl space-y-2 ${
                                         isUser 
                                             ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-semibold shadow-lg' 
-                                            : 'bg-slate-900/90 border border-slate-800 text-slate-200 shadow-md leading-relaxed whitespace-pre-wrap'
+                                            : 'bg-slate-900/90 border border-slate-800 text-slate-200 shadow-md leading-relaxed'
                                     }`}>
-                                        <div>{msg.content}</div>
+                                        {!isUser && msg.structured ? (
+                                            <div className="space-y-2.5">
+                                                <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1.5 border-b border-slate-800">
+                                                    <span className="text-[10px] font-mono font-bold text-cyan-300">
+                                                        {msg.structured.cognitive_bias_detected}
+                                                    </span>
+                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-black ${
+                                                        msg.structured.risk_score >= 70
+                                                            ? 'bg-rose-500/20 text-rose-300'
+                                                            : msg.structured.risk_score >= 40
+                                                            ? 'bg-amber-500/20 text-amber-300'
+                                                            : 'bg-emerald-500/20 text-emerald-300'
+                                                    }`}>
+                                                        RISK {msg.structured.risk_score}/100
+                                                    </span>
+                                                </div>
+                                                <div className="whitespace-pre-wrap">{msg.structured.diagnosis}</div>
+                                                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-100">
+                                                    <div className="flex items-center gap-1 text-[9px] font-mono font-black uppercase text-emerald-300 mb-0.5">
+                                                        <ShieldCheck className="w-3 h-3" />
+                                                        <span>Regola Operativa (Prossima Ora)</span>
+                                                    </div>
+                                                    {msg.structured.actionable_rule}
+                                                </div>
+                                                {msg.structured.internal_reasoning?.length > 0 && (
+                                                    <div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setExpandedReasoningIds((p) => ({
+                                                                    ...p,
+                                                                    [msg.id]: !p[msg.id]
+                                                                }))
+                                                            }
+                                                            className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-cyan-300 transition cursor-pointer"
+                                                        >
+                                                            <Cpu className="w-3 h-3 text-cyan-400" />
+                                                            <span>
+                                                                {expandedReasoningIds[msg.id]
+                                                                    ? 'Nascondi Catena di Ragionamento AI'
+                                                                    : 'Mostra Catena di Ragionamento AI'}
+                                                            </span>
+                                                            {expandedReasoningIds[msg.id] ? (
+                                                                <ChevronUp className="w-3 h-3" />
+                                                            ) : (
+                                                                <ChevronDown className="w-3 h-3" />
+                                                            )}
+                                                        </button>
+                                                        {expandedReasoningIds[msg.id] && (
+                                                            <div className="mt-1.5 p-2 rounded-lg bg-slate-950/90 border border-slate-800 space-y-1 text-[10px] font-mono text-slate-300">
+                                                                {msg.structured.internal_reasoning.map((s, i) => (
+                                                                    <div key={i}>
+                                                                        <span className="text-cyan-400 font-bold mr-1">
+                                                                            [{i + 1}]
+                                                                        </span>
+                                                                        {s.replace(/^\d+[.)]\s*/, '')}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="whitespace-pre-wrap">{msg.content}</div>
+                                        )}
                                         <div className={`text-[9px] font-mono text-right ${isUser ? 'text-slate-900/70' : 'text-slate-500'}`}>
                                             {msg.timestamp}
                                         </div>

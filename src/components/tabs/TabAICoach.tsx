@@ -4,8 +4,13 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTradeStore, DEFAULT_MOCK_TRADES } from '../../store/useTradeStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { ChatMessage, UserTradingContext } from '../../types/chat';
-import { generateCoachResponse, CoachPersona } from '../../services/aiCoachService';
+import {
+    generateStructuredCoachResponse,
+    buildTraderCoachContext,
+    CoachPersona
+} from '../../services/aiCoachService';
 import { analyzeCorrelationOfDoom, checkCurrentSessionDoomRisk } from '../../services/correlationOfDoomService';
 import { 
     BrainCircuit, 
@@ -25,7 +30,10 @@ import {
     ShieldAlert,
     HeartPulse,
     Scale,
-    History
+    History,
+    ChevronDown,
+    ChevronUp,
+    Cpu
 } from 'lucide-react';
 import { 
     getCortisolClearingStatus, 
@@ -35,13 +43,19 @@ import {
 
 export const TabAICoach: React.FC = () => {
     const { trades } = useTradeStore();
+    const settings = useSettingsStore();
     const safeTrades = Array.isArray(trades) && trades.length > 0 ? trades : DEFAULT_MOCK_TRADES;
 
     const [coachPersona, setCoachPersona] = useState<CoachPersona>('TOUGH_LOVE');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputPrompt, setInputPrompt] = useState<string>('');
     const [isTyping, setIsTyping] = useState<boolean>(false);
+    const [expandedReasoningIds, setExpandedReasoningIds] = useState<Record<string, boolean>>({});
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const toggleReasoning = (msgId: string) => {
+        setExpandedReasoningIds((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+    };
 
     // Compute Correlation of Doom patterns from trades
     const doomPatterns = useMemo(() => analyzeCorrelationOfDoom(safeTrades), [safeTrades]);
@@ -58,27 +72,16 @@ export const TabAICoach: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    // Extract trading context from store for AI Coach
-    const getTradingContext = (): UserTradingContext => {
-        const totalPnl = safeTrades.reduce((acc, t) => acc + (Number(t?.pnl) || 0), 0);
-        const wins = safeTrades.filter(t => (Number(t?.pnl) || 0) > 0).length;
-        const winRate = Number(((wins / safeTrades.length) * 100).toFixed(1));
-        const recent = safeTrades[0];
-
-        return {
-            recentEmotion: recent?.emotional_state,
-            recentPnL: recent?.pnl || 0,
-            totalWinRate: winRate,
-            lastTradeNotes: recent?.notes || undefined,
-            tradeCount: safeTrades.length,
+    // Extract full 15-trade behavioral telemetry + onboarding & drawdown limits
+    const getTradingContext = (): UserTradingContext =>
+        buildTraderCoachContext(safeTrades, settings, {
             cortisolClearingActive: cortisolStatus.isClearingActive,
             cortisolRemainingMinutes: cortisolStatus.remainingMinutes,
             dispositionEffectDetected: dispositionEffect.detected,
             dispositionDetails: dispositionEffect.clinicalAssessment,
             delayDiscountingDetected: delayDiscounting.detected,
             delayDiscountingDetails: delayDiscounting.clinicalAssessment
-        };
-    };
+        });
 
     const handleSendMessage = async (textToSend?: string) => {
         const query = (textToSend || inputPrompt).trim();
@@ -97,12 +100,18 @@ export const TabAICoach: React.FC = () => {
 
         try {
             const context = getTradingContext();
-            const aiResponseText = await generateCoachResponse(query, context, coachPersona);
+            const structured = await generateStructuredCoachResponse(
+                query,
+                context,
+                coachPersona,
+                true
+            );
 
             const aiMsg: ChatMessage = {
                 id: `ai-${Date.now()}`,
                 sender: 'assistant',
-                content: aiResponseText,
+                content: structured.diagnosis,
+                structured,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             setMessages(prev => [...prev, aiMsg]);
@@ -110,9 +119,8 @@ export const TabAICoach: React.FC = () => {
             const fallbackMsg: ChatMessage = {
                 id: `ai-err-${Date.now()}`,
                 sender: 'assistant',
-                content: coachPersona === 'TOUGH_LOVE'
-                    ? '🏛️ **CRO VERDICT:** La disciplina si misura nei momenti di drawdown, non durante i trend rialzisti facili. Riduci la size del 50%, imposta stop loss ferrei su BTC/USD e non osare toccare il tasto buy senza conferma volumetrica.'
-                    : 'Ottima osservazione. Il tuo win rate attuale del 60.0% e profit factor di 5.50 riflettono un vantaggio istituzionale solido. Mantieni stop loss ferrei su asset ad alta volatilità come BTC ed evita entrate tardive.',
+                content:
+                    'Impossibile completare la diagnosi in questo momento. Verifica i tuoi limiti di drawdown e attendi qualche secondo prima di riprovare.',
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             setMessages(prev => [...prev, fallbackMsg]);
@@ -281,31 +289,132 @@ export const TabAICoach: React.FC = () => {
                 )}
 
                 {/* Message Bubble Feed */}
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        {msg.sender === 'assistant' && (
-                            <div className="w-7 h-7 rounded-lg glass-subcard border border-[#10B981]/40 flex items-center justify-center shrink-0 mt-0.5">
-                                <Bot className="w-4 h-4 text-[#10B981]" />
-                            </div>
-                        )}
+                {messages.map((msg) => {
+                    const st = msg.structured;
+                    const isExpanded = !!expandedReasoningIds[msg.id];
+                    const riskScore = st?.risk_score ?? 0;
+                    const riskColor =
+                        riskScore >= 70
+                            ? 'text-rose-400 bg-rose-500/15 border-rose-500/40'
+                            : riskScore >= 40
+                            ? 'text-amber-300 bg-amber-500/15 border-amber-500/40'
+                            : 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40';
+                    const riskBarColor =
+                        riskScore >= 70
+                            ? 'bg-rose-500'
+                            : riskScore >= 40
+                            ? 'bg-amber-400'
+                            : 'bg-emerald-400';
 
-                        <div className={`max-w-[85%] rounded-2xl p-3.5 shadow-lg text-xs leading-relaxed ${
-                            msg.sender === 'user'
-                                ? 'bg-[#10B981] text-white font-semibold rounded-br-xs'
-                                : 'glass-panel text-slate-200 rounded-bl-xs font-sans'
-                        }`}>
-                            <div className="whitespace-pre-wrap">{msg.content}</div>
-                            <span className={`text-[9px] font-mono mt-1 block ${
-                                msg.sender === 'user' ? 'text-white/70 text-right' : 'text-slate-500'
+                    return (
+                        <div
+                            key={msg.id}
+                            className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            {msg.sender === 'assistant' && (
+                                <div className="w-7 h-7 rounded-lg glass-subcard border border-[#10B981]/40 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Bot className="w-4 h-4 text-[#10B981]" />
+                                </div>
+                            )}
+
+                            <div className={`max-w-[88%] rounded-2xl p-3.5 shadow-lg text-xs leading-relaxed ${
+                                msg.sender === 'user'
+                                    ? 'bg-[#10B981] text-white font-semibold rounded-br-xs'
+                                    : 'glass-panel text-slate-200 rounded-bl-xs font-sans space-y-3'
                             }`}>
-                                {msg.timestamp}
-                            </span>
+                                {msg.sender === 'assistant' && st ? (
+                                    <>
+                                        {/* Header: Cognitive Bias + Emotional Risk Score */}
+                                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/[0.08]">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/[0.1] text-[10px] font-mono font-bold text-cyan-300">
+                                                <BrainCircuit className="w-3 h-3 text-cyan-400 shrink-0" />
+                                                <span>{st.cognitive_bias_detected}</span>
+                                            </span>
+                                            <span className={`px-2 py-0.5 rounded-lg border text-[10px] font-mono font-black ${riskColor}`}>
+                                                RISK {riskScore}/100
+                                            </span>
+                                        </div>
+
+                                        {/* Risk Meter Bar */}
+                                        <div className="w-full h-1.5 rounded-full bg-black/40 overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 ${riskBarColor}`}
+                                                style={{ width: `${riskScore}%` }}
+                                            />
+                                        </div>
+
+                                        {/* Lucid Numbers-Backed Diagnosis */}
+                                        <p className="text-xs text-slate-100 leading-relaxed whitespace-pre-wrap">
+                                            {st.diagnosis}
+                                        </p>
+
+                                        {/* Actionable Rule for Next 60 Minutes */}
+                                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-mono font-black uppercase text-emerald-300">
+                                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                                <span>Regola Operativa (Prossima Ora)</span>
+                                            </div>
+                                            <p className="text-[11px] text-emerald-100 leading-snug font-medium">
+                                                {st.actionable_rule}
+                                            </p>
+                                        </div>
+
+                                        {/* Discrete Expandable Chain-of-Thought Toggle */}
+                                        {st.internal_reasoning && st.internal_reasoning.length > 0 && (
+                                            <div className="pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleReasoning(msg.id)}
+                                                    className="inline-flex items-center gap-1.5 text-[10px] font-mono text-slate-400 hover:text-cyan-300 transition cursor-pointer"
+                                                >
+                                                    <Cpu className="w-3 h-3 text-cyan-400/80" />
+                                                    <span>
+                                                        {isExpanded
+                                                            ? 'Nascondi Catena di Ragionamento AI'
+                                                            : 'Mostra Catena di Ragionamento AI'}
+                                                    </span>
+                                                    {isExpanded ? (
+                                                        <ChevronUp className="w-3 h-3" />
+                                                    ) : (
+                                                        <ChevronDown className="w-3 h-3" />
+                                                    )}
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="mt-2 p-2.5 rounded-xl bg-[#05080F]/90 border border-white/[0.08] space-y-1.5 animate-in fade-in">
+                                                        {st.internal_reasoning.map((step, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="flex items-start gap-2 text-[10px] font-mono text-slate-300 leading-relaxed"
+                                                            >
+                                                                <span className="text-cyan-400 font-black shrink-0">
+                                                                    [{idx + 1}]
+                                                                </span>
+                                                                <span>{step.replace(/^\d+[.)]\s*/, '')}</span>
+                                                            </div>
+                                                        ))}
+                                                        {st.modelUsed && (
+                                                            <div className="pt-1 border-t border-white/[0.06] text-[9px] font-mono text-slate-500 text-right">
+                                                                Engine: {st.modelUsed}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                                )}
+                                <span className={`text-[9px] font-mono mt-1 block ${
+                                    msg.sender === 'user' ? 'text-white/70 text-right' : 'text-slate-500'
+                                }`}>
+                                    {msg.timestamp}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {/* Typing indicator */}
                 {isTyping && (

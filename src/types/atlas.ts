@@ -126,7 +126,8 @@ export interface AtlasLiveAsset {
     source: 'binance_ws' | 'coingecko' | 'fx_api' | 'live_engine';
 }
 
-export type NewsSentiment = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+export type NewsSentiment = 'BULLISH' | 'BEARISH' | 'VOLATILITÀ' | 'NEUTRAL';
+export type NewsHorizon = 'Intraday' | 'Multi-day';
 
 export interface AtlasNewsItem {
     id: string;
@@ -139,7 +140,10 @@ export interface AtlasNewsItem {
     isLiveFeed: boolean;
     aiImpact: {
         operationalImpact: string;
+        transmissionMechanism?: string;
         sentiment: NewsSentiment;
+        horizon?: NewsHorizon;
         impactedTickers: string[];
+        internalReasoning?: string[];
     };
 }

@@ -5,11 +5,46 @@
 
 import { TradeDirection, TradePsychology } from '../types/trade';
 import { getApiAuthHeaders } from './authService';
+import { GLOBAL_HUBS } from '../data/globalHubs';
+
+export interface PreTradeCheckResult {
+    risk_reward_ratio: string;
+    estimated_risk_amount?: number | null;
+    atlas_macro_alignment: 'ALLINEATO' | 'CONTROTREND_MACRO' | 'NEUTRALE';
+    atlas_macro_note: string;
+    risk_plan_violation: boolean;
+    violation_reason?: string | null;
+    verdict: 'APPROVATO' | 'ATTENZIONE' | 'VIOLAZIONE_PIANO';
+}
+
+export interface VoiceRiskPlanContext {
+    accountType?: 'PROP_FIRM' | 'PERSONAL';
+    monthlyBudget?: number;
+    maxRiskPerTrade?: number;
+    maxRiskType?: 'PERCENT' | 'FIXED';
+    propFirmAccountSize?: number;
+    propFirmMaxDailyLossPct?: number;
+    dailyPnl?: number;
+}
+
+export interface AtlasMacroSnapshot {
+    countryName: string;
+    iso2: string;
+    centralBank: string;
+    policyRate: number;
+    inflationCpi: number;
+    gdpGrowth: number;
+    yield10y: number;
+    primaryIndex: string;
+    fxPair: string;
+}
 
 export interface ParsedVoiceTrade {
     asset_pair?: string;
     direction?: TradeDirection;
     entry_price?: number;
+    stop_loss?: number;
+    take_profit?: number;
     exit_price?: number;
     pnl?: number;
     position_size?: number;
@@ -18,6 +53,8 @@ export interface ParsedVoiceTrade {
     errors?: string[];
     notes?: string;
     rawTranscript: string;
+    internal_reasoning?: string[];
+    pre_trade_check?: PreTradeCheckResult;
 }
 
 // Check Web Speech API browser availability
@@ -272,19 +309,200 @@ export function parseVoiceTranscript(rawText: string = ''): ParsedVoiceTrade {
 }
 
 /**
- * Enhanced voice parser routed strictly through the server-side `/api/ai/coach`
- * gateway (mode: VOICE_PARSE). Falls back seamlessly to the local regex parser
- * if the serverless endpoint is unavailable or unconfigured.
+ * Maps a ticker or spoken transcript to the most relevant ATLAS country macro hub
+ * so pre-trade AI checks verify macro coherence (policy rates, CPI, 10Y yield).
  */
-export async function parseVoiceWithGemini(transcript: string): Promise<ParsedVoiceTrade> {
+export function resolveAtlasMacroContextForAsset(assetOrText: string): AtlasMacroSnapshot {
+    const upper = (assetOrText || '').toUpperCase();
+
+    let targetIso2 = 'US';
+    if (/(UCG|ISP|RACE|ENI|ENEL|FTSEMIB|MIB|BTP|ITALIA|MILANO)/.test(upper)) {
+        targetIso2 = 'IT';
+    } else if (/(DAX|SAP|SIE|BUND|GERMANIA|FRANCOFORTE)/.test(upper)) {
+        targetIso2 = 'DE';
+    } else if (/(CAC|LVMH|MC\.PA|OAT|FRANCIA|PARIGI)/.test(upper)) {
+        targetIso2 = 'FR';
+    } else if (/(GBP|FTSE|UKX|GILT|LONDRA|STERLINA)/.test(upper)) {
+        targetIso2 = 'GB';
+    } else if (/(JPY|N225|NIKKEI|GIAPPONE|TOKYO|YEN)/.test(upper)) {
+        targetIso2 = 'JP';
+    } else if (/(CHF|SMI|SVIZZERA|ZURIGO)/.test(upper)) {
+        targetIso2 = 'CH';
+    } else if (/(CNY|HSI|HANG SENG|CINA|SHANGHAI|BABA)/.test(upper)) {
+        targetIso2 = 'CN';
+    } else if (/(EUR\/USD|EURUSD|EURO|BCE|ECB)/.test(upper)) {
+        targetIso2 = 'DE';
+    }
+
+    const hub = GLOBAL_HUBS.find((h) => h.iso2 === targetIso2) || GLOBAL_HUBS[0];
+    return {
+        countryName: hub.countryName,
+        iso2: hub.iso2,
+        centralBank: hub.macro.centralBank,
+        policyRate: hub.macro.policyRate,
+        inflationCpi: hub.macro.inflationCpi,
+        gdpGrowth: hub.macro.gdpGrowth,
+        yield10y: hub.bondYields.y10,
+        primaryIndex: hub.primaryIndex.symbol,
+        fxPair: hub.fxPairLabel
+    };
+}
+
+/**
+ * Extracts stop loss and take profit from Italian/English spoken phrases if present.
+ */
+function extractStopAndTarget(rawText: string): { stopLoss?: number; takeProfit?: number } {
+    const slMatch = rawText.match(/(?:stop\s*loss|stop|sl)\s*(?:a|at|su)?\s*([\d.,]+k?)/i);
+    const tpMatch = rawText.match(/(?:take\s*profit|target|tp|obiettivo)\s*(?:a|at|su)?\s*([\d.,]+k?)/i);
+    const stopLoss = slMatch?.[1] ? parseTradingPrice(slMatch[1]) : undefined;
+    const takeProfit = tpMatch?.[1] ? parseTradingPrice(tpMatch[1]) : undefined;
+    return {
+        stopLoss: stopLoss && stopLoss > 0 ? stopLoss : undefined,
+        takeProfit: takeProfit && takeProfit > 0 ? takeProfit : undefined
+    };
+}
+
+/**
+ * Deterministic quantitative Pre-Trade Check (R:R math + ATLAS macro check + Risk Plan audit).
+ * Used as a rock-solid fallback when server AI is unavailable or to validate extracted numbers.
+ */
+export function buildLocalPreTradeCheck(
+    parsed: ParsedVoiceTrade,
+    riskPlan?: VoiceRiskPlanContext,
+    atlasMacro?: AtlasMacroSnapshot
+): { pre_trade_check: PreTradeCheckResult; internal_reasoning: string[]; risk_reward?: string } {
+    const macro = atlasMacro || resolveAtlasMacroContextForAsset(parsed.asset_pair || parsed.rawTranscript);
+    const entry = parsed.entry_price;
+    const sl = parsed.stop_loss;
+    const tp = parsed.take_profit || parsed.exit_price;
+    const size = parsed.position_size && parsed.position_size > 0 ? parsed.position_size : 1;
+    const dir = parsed.direction || 'LONG';
+
+    let rrRatioNum: number | null = null;
+    let rrLabel = 'N/D (Stop Loss non specificato)';
+    let estimatedRisk: number | null = null;
+
+    if (entry && sl && entry !== sl) {
+        const riskPerUnit = Math.abs(entry - sl);
+        estimatedRisk = Number((riskPerUnit * size).toFixed(2));
+        if (tp && tp !== entry) {
+            const rewardPerUnit =
+                dir === 'LONG' ? tp - entry : entry - tp;
+            if (rewardPerUnit > 0) {
+                rrRatioNum = Number((rewardPerUnit / riskPerUnit).toFixed(2));
+                rrLabel = `1:${rrRatioNum}`;
+            } else {
+                rrLabel = 'Inverso (TP dal lato sbagliato)';
+            }
+        } else {
+            rrLabel = 'SL presente · TP non definito';
+        }
+    }
+
+    // Risk Plan Audit
+    const capital =
+        riskPlan?.accountType === 'PROP_FIRM'
+            ? riskPlan.propFirmAccountSize || 100000
+            : riskPlan?.monthlyBudget || 10000;
+    const maxRiskAllowed =
+        riskPlan?.maxRiskType === 'PERCENT'
+            ? (capital * (riskPlan.maxRiskPerTrade || 2)) / 100
+            : riskPlan?.maxRiskPerTrade || 200;
+
+    const violations: string[] = [];
+    if (!sl) {
+        violations.push('Stop Loss assente nella descrizione del trade (esposizione potenzialmente illimitata).');
+    }
+    if (estimatedRisk !== null && estimatedRisk > maxRiskAllowed) {
+        violations.push(
+            `Rischio stimato ($${estimatedRisk.toLocaleString('en-US')}) superiore al limite del piano ($${maxRiskAllowed.toFixed(0)}/trade).`
+        );
+    }
+    if (rrRatioNum !== null && rrRatioNum < 1.5) {
+        violations.push(`Rapporto R:R (${rrLabel}) inferiore alla soglia minima istituzionale 1:1.5.`);
+    }
+    if (parsed.errors?.some((e) => /FOMO|REVENGE|OVERTRADING/i.test(e))) {
+        violations.push(`Segnale emotivo critico rilevato nella nota (${parsed.errors.join(', ')}).`);
+    }
+
+    // ATLAS Macro Alignment
+    const isRestrictiveRegime = macro.policyRate >= 4.0 || macro.inflationCpi >= 3.2;
+    const isRiskAsset = /BTC|ETH|SOL|NVDA|TSLA|AAPL|NQ|NDX|SPX|DAX|FTSEMIB|UCG/i.test(
+        parsed.asset_pair || ''
+    );
+    let alignment: PreTradeCheckResult['atlas_macro_alignment'] = 'NEUTRALE';
+    let macroNote = `Contesto ${macro.countryName}: ${macro.centralBank} al ${macro.policyRate.toFixed(2)}%, CPI ${macro.inflationCpi.toFixed(1)}% e rendimento 10Y al ${macro.yield10y.toFixed(2)}%.`;
+
+    if (isRiskAsset && isRestrictiveRegime && dir === 'LONG') {
+        alignment = 'CONTROTREND_MACRO';
+        macroNote = `Regime restrittivo in ${macro.countryName} (${macro.centralBank} ${macro.policyRate.toFixed(2)}%, 10Y ${macro.yield10y.toFixed(2)}%): un LONG su ${parsed.asset_pair || 'asset risk-on'} opera contro il costo del capitale elevato — richiedi conferma volumetrica e stop rigido.`;
+    } else if (isRiskAsset && !isRestrictiveRegime && dir === 'LONG') {
+        alignment = 'ALLINEATO';
+        macroNote = `Regime accomodante/stabile in ${macro.countryName} (${macro.centralBank} ${macro.policyRate.toFixed(2)}%, CPI ${macro.inflationCpi.toFixed(1)}%): coerente con posizionamento LONG su ${parsed.asset_pair || macro.primaryIndex}.`;
+    } else if (isRiskAsset && isRestrictiveRegime && dir === 'SHORT') {
+        alignment = 'ALLINEATO';
+        macroNote = `Tassi elevati (${macro.policyRate.toFixed(2)}%) e rendimenti ${macro.iso2}10Y al ${macro.yield10y.toFixed(2)}% comprimono i multipli: direzione SHORT coerente con la pressione macro di ${macro.countryName}.`;
+    }
+
+    const hasViolation = violations.length > 0;
+    const verdict: PreTradeCheckResult['verdict'] =
+        estimatedRisk !== null && estimatedRisk > maxRiskAllowed
+            ? 'VIOLAZIONE_PIANO'
+            : hasViolation
+            ? 'ATTENZIONE'
+            : 'APPROVATO';
+
+    const reasoning = [
+        `1. Parametri estratti: ${parsed.asset_pair || 'N/D'} ${dir}, entry=${entry ?? 'N/D'}, SL=${sl ?? 'ASSENTE'}, TP/Exit=${tp ?? 'N/D'}, size=${size}.`,
+        `2. Matematica del rischio: R:R=${rrLabel}, rischio monetario stimato=${estimatedRisk !== null ? `$${estimatedRisk}` : 'non calcolabile senza SL'} vs tetto piano $${maxRiskAllowed.toFixed(0)}.`,
+        `3. Verifica macro ATLAS (${macro.countryName}): ${macro.centralBank} ${macro.policyRate.toFixed(2)}%, CPI ${macro.inflationCpi.toFixed(1)}%, yield 10Y ${macro.yield10y.toFixed(2)}% -> ${alignment}.`,
+        `4. Esito audit risk plan: ${hasViolation ? violations[0] : 'Conforme ai parametri operativi configurati.'}`
+    ];
+
+    return {
+        risk_reward: rrRatioNum ? rrLabel : parsed.risk_reward,
+        internal_reasoning: reasoning,
+        pre_trade_check: {
+            risk_reward_ratio: rrLabel,
+            estimated_risk_amount: estimatedRisk,
+            atlas_macro_alignment: alignment,
+            atlas_macro_note: macroNote,
+            risk_plan_violation: hasViolation,
+            violation_reason: hasViolation ? violations.join(' ') : null,
+            verdict
+        }
+    };
+}
+
+/**
+ * Enhanced voice/text pre-trade parser routed strictly through server-side
+ * `/api/ai/coach` (mode: VOICE_PARSE) with automatic R:R calculation, ATLAS
+ * macro alignment check, and Risk Plan violation audit.
+ */
+export async function parseVoiceWithGemini(
+    transcript: string,
+    options?: {
+        userRiskPlan?: VoiceRiskPlanContext;
+        atlasMacroContext?: AtlasMacroSnapshot;
+    }
+): Promise<ParsedVoiceTrade> {
     if (!transcript || transcript.trim().length < 2) {
         return parseVoiceTranscript(transcript);
     }
 
+    const localBaseline = parseVoiceTranscript(transcript);
+    const { stopLoss, takeProfit } = extractStopAndTarget(transcript);
+    if (stopLoss) localBaseline.stop_loss = stopLoss;
+    if (takeProfit) localBaseline.take_profit = takeProfit;
+
+    const macroCtx =
+        options?.atlasMacroContext ||
+        resolveAtlasMacroContextForAsset(localBaseline.asset_pair || transcript);
+
     try {
         const authHeaders = await getApiAuthHeaders();
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 8000);
+        const timer = setTimeout(() => controller.abort(), 12_000);
 
         const res = await fetch('/api/ai/coach', {
             method: 'POST',
@@ -294,7 +512,9 @@ export async function parseVoiceWithGemini(transcript: string): Promise<ParsedVo
             },
             body: JSON.stringify({
                 mode: 'VOICE_PARSE',
-                transcript: transcript.trim().slice(0, 2000)
+                transcript: transcript.trim().slice(0, 2000),
+                userRiskPlan: options?.userRiskPlan,
+                atlasMacroContext: macroCtx
             }),
             signal: controller.signal
         });
@@ -304,14 +524,21 @@ export async function parseVoiceWithGemini(transcript: string): Promise<ParsedVo
             const data = await res.json();
             if (data?.parsed && typeof data.parsed === 'object') {
                 return {
+                    ...localBaseline,
                     ...data.parsed,
                     rawTranscript: transcript
                 };
             }
         }
     } catch (e) {
-        console.warn('[Tradyx Voice Parser] Gateway fallback to local parser:', e);
+        console.warn('[Tradyx Voice Parser] Gateway fallback to local pre-trade check:', e);
     }
 
-    return parseVoiceTranscript(transcript);
+    const localAudit = buildLocalPreTradeCheck(localBaseline, options?.userRiskPlan, macroCtx);
+    return {
+        ...localBaseline,
+        risk_reward: localAudit.risk_reward || localBaseline.risk_reward,
+        internal_reasoning: localAudit.internal_reasoning,
+        pre_trade_check: localAudit.pre_trade_check
+    };
 }

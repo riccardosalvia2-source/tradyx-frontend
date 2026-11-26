@@ -133,11 +133,16 @@ export const TradeForm: React.FC = () => {
 
             const current = voiceTranscript.trim();
             if (current) {
-                setFeedback('Analisi vocale con AI in corso...');
+                setFeedback('Analisi vocale, R:R e verifica macro ATLAS in corso...');
                 try {
                     const parsed = await parseVoiceWithGemini(current);
                     applyParsedData(parsed);
-                    setFeedback('Dati vocali estratti con successo!');
+                    const violationMsg = parsed.pre_trade_check?.risk_plan_violation
+                        ? ` · ⚠️ ${parsed.pre_trade_check.verdict}`
+                        : parsed.pre_trade_check?.risk_reward_ratio
+                        ? ` · R:R ${parsed.pre_trade_check.risk_reward_ratio}`
+                        : '';
+                    setFeedback(`Dati vocali estratti${violationMsg}`);
                 } catch (err) {
                     const parsed = parseVoiceTranscript(current);
                     applyParsedData(parsed);

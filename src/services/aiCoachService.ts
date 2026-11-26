@@ -1,118 +1,243 @@
 // ============================================================================
-// TRADYX GEMINI AI COACH SERVICE (src/services/aiCoachService.ts)
-// Author: Senior AI Engineer & Lead React Developer
-// Description: Trading Psychology AI Coach service powered by Google Gemini API,
-//              incorporating real user trading journal context, PII Sanitization,
-//              and Behavioral Finance Analytics.
+// TRADYX AI COACH & BEHAVIORAL RISK MANAGER SERVICE
+// (src/services/aiCoachService.ts)
+// Routes strictly through server-side `/api/ai/coach` (Chain-of-Thought +
+// Context Injection + Strict JSON Schema) with data-backed local fallback.
+// ZERO client-side secret API keys.
 // ============================================================================
 
-import { UserTradingContext } from '../types/chat';
+import {
+    CoachStructuredResponse,
+    OnboardingTraderProfile,
+    RecentTradeSnapshot,
+    UserTradingContext
+} from '../types/chat';
+import { Trade } from '../types/trade';
 import { sanitizeTextForAI } from '../../security/ai_sanitizer';
 import { addSystemLog, getApiAuthHeaders } from './authService';
 import { getDefaultGeminiModel, recordGeminiCall } from './geminiMetricsService';
 
 export type CoachPersona = 'EMPATHIC' | 'TOUGH_LOVE';
 
-// Master System Prompt for Tradyx Coach Persona (Empathic)
-export const TRADYX_COACH_EMPATHIC_INSTRUCTIONS = `
-Sei "Tradyx Coach", un assistente virtuale altamente specializzato in psicologia del trading, finanza comportamentale e disciplina operativa per la piattaforma Tradyx.
-
-REGOLE FONDAMENTALI ED ETICHE:
-1. NON FORNIRE MAI CONSIGLI FINANZIARI O SEGNALI OPERATIVI. Non suggerire mai se acquistare, vendere, aprire o chiudere posizioni su specifici asset (BTC, ETH, Forex, Azioni). Se l'utente ti chiede un segnale di trading, rifiuta garbatamente ricordandogli che sei un coach psicologico e non un consulente finanziario.
-2. OBIETTIVO PRINCIPALE: Aiutare il trader a identificare e superare i bias cognitivi legati al denaro: FOMO (Fear Of Missing Out), Revenge Trading, Avidità, Over-trading e Ansia da prestazione.
-3. RISPOSTE DINAMICHE ED ANALITICHE: Esamina attentamente le metriche reali del diario operativo ed integrali direttamente nell'analisi.
-4. TONO E STILE: Empatico, riflessivo, professionale e calmo.
-`;
-
-// Institutional Risk Manager Master Prompt (Tough Love)
-export const TRADYX_TOUGH_LOVE_INSTRUCTIONS = `
-Sei il "Chief Risk Officer (CRO) Istituzionale" di Tradyx e di un prop trading desk di Wall Street.
-La tua persona è "TOUGH LOVE RISK MANAGER": schietto, inflessibile, professionale, autoritario e senza fronzoli.
-Il tuo compito assoluto è PROTEGGERE IL CAPITALE del trader ed eliminare ogni traccia di dilettantismo emotivo.
-
-LINEE GUIDA PERSONA:
-1. NESSUN COMPLIMENTO FACILE: Se il trader vince per fortuna o dopo aver rotto le regole, redarguiscilo ("Hai guadagnato violando il risk plan: un colpo di fortuna che rafforza cattive abitudini è più velenoso di una perdita").
-2. TOLLERANZA ZERO PER FOMO / REVENGE: Se vedi FOMO o Revenge Trading, sbattigli in faccia la realtà ("Stai giocando alla slot machine", "Chiudi il terminale immediatamente prima che il mercato confischi il tuo conto").
-3. FOCUS SUGLI ERRORI E SUL PROCESSO: Valuta il drawdown, l'eccesso di size e la violazione dei limiti.
-4. NON FORNIRE MAI SEGNALI DI TRADING O CONSIGLI DI INVESTIMENTO (rifiuta ricordando che il tuo lavoro è la gestione del rischio e la disciplina, non le scommesse).
-5. TONO: Diretto, lapidario, pungente ma orientato alla sopravvivenza a lungo termine del trader.
-`;
-
-// Financial Advice Trigger Keywords
 const FINANCIAL_ADVICE_TRIGGERS = [
-    'comprare', 'vendere', 'buy', 'sell', 'segnale', 'signal', 
-    'dove investire', 'che asset comprare', 'target price', 
-    'previsione btc', 'previsione prezzo', 'conviene comprare'
+    'comprare',
+    'vendere',
+    'buy',
+    'sell',
+    'segnale',
+    'signal',
+    'dove investire',
+    'che asset comprare',
+    'target price',
+    'previsione btc',
+    'previsione prezzo',
+    'conviene comprare'
 ];
 
 export function isFinancialAdviceQuery(text: string): boolean {
     const lower = text.toLowerCase();
-    return FINANCIAL_ADVICE_TRIGGERS.some(trigger => lower.includes(trigger));
+    return FINANCIAL_ADVICE_TRIGGERS.some((trigger) => lower.includes(trigger));
+}
+
+export interface CoachSettingsSnapshot {
+    preferredMarket?: string;
+    propFirmShieldEnabled?: boolean;
+    propFirmMaxDailyLossPercent?: number;
+    propFirmAccountSize?: number;
+    ulyssesStrictMode?: boolean;
+    monthlyBudget?: number;
+    maxRiskPerTrade?: number;
+    maxRiskType?: 'PERCENT' | 'FIXED';
+    diagnosticProfile?: {
+        result?: {
+            archetypeTitle?: string;
+            primaryVulnerability?: string;
+        };
+    } | null;
+}
+
+export interface NeuroPsychSnapshot {
+    cortisolClearingActive: boolean;
+    cortisolRemainingMinutes: number;
+    dispositionEffectDetected: boolean;
+    dispositionDetails?: string;
+    delayDiscountingDetected: boolean;
+    delayDiscountingDetails?: string;
 }
 
 /**
- * Generates a dynamic AI response from Tradyx Coach powered by Gemini API,
- * incorporating user trading journal metrics (PnL, Emotional state, WinRate) and chosen Persona.
+ * Builds the full quantitative behavioral telemetry payload from the last 15 trades,
+ * onboarding diagnostic profile, and active risk/drawdown limits.
  */
-export async function generateCoachResponse(
-    rawUserPrompt: string, 
+export function buildTraderCoachContext(
+    trades: Trade[],
+    settings: CoachSettingsSnapshot,
+    neuro: NeuroPsychSnapshot
+): UserTradingContext {
+    const sorted = [...trades].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    const last15 = sorted.slice(0, 15);
+    const totalCount = sorted.length;
+    const wins = sorted.filter((t) => (Number(t?.pnl) || 0) > 0).length;
+    const winRate = totalCount > 0 ? Number(((wins / totalCount) * 100).toFixed(1)) : 0;
+
+    // Consecutive loss streak from most recent trade
+    let lossStreak = 0;
+    for (const t of sorted) {
+        if ((Number(t?.pnl) || 0) < 0) lossStreak += 1;
+        else break;
+    }
+
+    // Build last 15 snapshots with exact Δt (minutes since previous trade)
+    let fastestReentryAfterLoss: number | null = null;
+    const recentTrades: RecentTradeSnapshot[] = last15.map((t, idx) => {
+        const prev = last15[idx + 1];
+        let deltaMins: number | null = null;
+        if (prev?.created_at && t?.created_at) {
+            const diffMs = new Date(t.created_at).getTime() - new Date(prev.created_at).getTime();
+            if (Number.isFinite(diffMs) && diffMs >= 0) {
+                deltaMins = Math.round(diffMs / 60000);
+                if ((Number(prev.pnl) || 0) < 0) {
+                    if (fastestReentryAfterLoss === null || deltaMins < fastestReentryAfterLoss) {
+                        fastestReentryAfterLoss = deltaMins;
+                    }
+                }
+            }
+        }
+        return {
+            asset_pair: t.asset_pair || 'UNKNOWN',
+            direction: t.direction === 'SHORT' ? 'SHORT' : 'LONG',
+            pnl: Number(t.pnl) || 0,
+            position_size: Number(t.position_size) || 1,
+            entry_price: t.entry_price != null ? Number(t.entry_price) : undefined,
+            exit_price: t.exit_price != null ? Number(t.exit_price) : undefined,
+            timestamp: t.created_at
+                ? new Date(t.created_at).toLocaleString('it-IT', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                  })
+                : 'N/D',
+            minutesSincePreviousTrade: deltaMins,
+            emotional_state: t.emotional_state,
+            errors: Array.isArray(t.errors) ? t.errors : [],
+            notes: t.notes ? t.notes.slice(0, 240) : undefined
+        };
+    });
+
+    // Average size vs latest trade size (oversizing detector)
+    const sizes = last15.map((t) => Number(t.position_size) || 0).filter((s) => s > 0);
+    const avgPositionSize =
+        sizes.length > 0 ? Number((sizes.reduce((a, b) => a + b, 0) / sizes.length).toFixed(3)) : 0;
+    const lastTradeSize = Number(last15[0]?.position_size) || 0;
+    const sizeChangePctVsAvg =
+        avgPositionSize > 0
+            ? Number((((lastTradeSize - avgPositionSize) / avgPositionSize) * 100).toFixed(1))
+            : 0;
+
+    // Daily PnL & Daily Drawdown vs limit
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todaysTrades = sorted.filter((t) => (t.created_at || '').startsWith(todayStr));
+    const dailyPnl = Number(
+        todaysTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0).toFixed(2)
+    );
+    const referenceCapital = settings.propFirmShieldEnabled
+        ? settings.propFirmAccountSize || 100000
+        : settings.monthlyBudget || 10000;
+    const dailyDrawdownPct =
+        dailyPnl < 0 && referenceCapital > 0
+            ? Number(((Math.abs(dailyPnl) / referenceCapital) * 100).toFixed(2))
+            : 0;
+    const dailyDrawdownLimitPct = settings.propFirmShieldEnabled
+        ? settings.propFirmMaxDailyLossPercent || 4.0
+        : 5.0;
+
+    const onboardingProfile: OnboardingTraderProfile = {
+        preferredMarket: settings.preferredMarket || 'Crypto & Indici',
+        accountType: settings.propFirmShieldEnabled ? 'PROP_FIRM' : 'PERSONAL',
+        propFirmAccountSize: settings.propFirmAccountSize,
+        propFirmMaxDailyLossPct: settings.propFirmMaxDailyLossPercent,
+        primaryBiasDetected:
+            settings.diagnosticProfile?.result?.primaryVulnerability ||
+            settings.diagnosticProfile?.result?.archetypeTitle ||
+            undefined,
+        ulyssesStrictMode: settings.ulyssesStrictMode,
+        monthlyBudget: settings.monthlyBudget,
+        maxRiskPerTrade: settings.maxRiskPerTrade,
+        maxRiskType: settings.maxRiskType
+    };
+
+    const latest = sorted[0];
+    return {
+        recentEmotion: latest?.emotional_state,
+        recentPnL: Number(latest?.pnl) || 0,
+        totalWinRate: winRate,
+        lastTradeNotes: latest?.notes || undefined,
+        tradeCount: totalCount,
+        cortisolClearingActive: neuro.cortisolClearingActive,
+        cortisolRemainingMinutes: neuro.cortisolRemainingMinutes,
+        dispositionEffectDetected: neuro.dispositionEffectDetected,
+        dispositionDetails: neuro.dispositionDetails,
+        delayDiscountingDetected: neuro.delayDiscountingDetected,
+        delayDiscountingDetails: neuro.delayDiscountingDetails,
+        lossStreak,
+        avgPositionSize,
+        lastTradeSize,
+        sizeChangePctVsAvg,
+        dailyPnl,
+        dailyDrawdownPct,
+        dailyDrawdownLimitPct,
+        fastestReentryMinutesAfterLoss: fastestReentryAfterLoss,
+        onboardingProfile,
+        recentTrades
+    };
+}
+
+/**
+ * Generates a structured Chain-of-Thought diagnosis from `/api/ai/coach`
+ * with a rigorous, numbers-backed analytical fallback if the server is offline.
+ */
+export async function generateStructuredCoachResponse(
+    rawUserPrompt: string,
     context?: UserTradingContext,
-    persona: CoachPersona = 'TOUGH_LOVE'
-): Promise<string> {
+    persona: CoachPersona = 'TOUGH_LOVE',
+    deepAnalysis = false
+): Promise<CoachStructuredResponse> {
     const activeModel = getDefaultGeminiModel();
     const startTime = performance.now();
 
-    // Log Gemini API Query to System Audit Logs
     addSystemLog(
-        'AI_QUERY', 
-        `Chiamata API Gemini Coach [${activeModel}]: "${rawUserPrompt.slice(0, 45)}${rawUserPrompt.length > 45 ? '...' : ''}"`,
-        'trader.pro@tradyx.ai', 
-        { model: activeModel, prompt_length: rawUserPrompt.length, has_journal_context: !!context }
+        'AI_QUERY',
+        `Chain-of-Thought Coach [${persona}]: "${rawUserPrompt.slice(0, 45)}${rawUserPrompt.length > 45 ? '...' : ''}"`,
+        'trader.pro@tradyx.ai',
+        { model: activeModel, prompt_length: rawUserPrompt.length, trades_injected: context?.recentTrades?.length ?? 0 }
     );
 
-    // 1. PII Sanitization
     const sanitizedPrompt = sanitizeTextForAI(rawUserPrompt);
 
-    // 2. Financial Advice Restriction Guard
     if (isFinancialAdviceQuery(sanitizedPrompt)) {
-        return `⚠️ **Nota di Responsabilità:** Come **Tradyx Coach**, sono specializzato esclusivamente nello sviluppo della disciplina emotiva e nella psicologia del trading. 
-
-*Non fornisco in alcun modo segnali operativi, raccomandazioni di investimento o consigli su quali asset acquistare o vendere.*
-
-Se avverti la tentazione di aprire una posizione senza un setup ben definito, chiediti:
-- *Stai seguendo le regole del tuo trading plan o ti sta guidando l'ansia di perdere un movimento (FOMO)?*
-- *Qual è il rapporto Rischio/Rendimento pianificato prima dell'ingresso?*
-
-Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emotiva durante la sessione!`;
+        return {
+            internal_reasoning: [
+                '1. Il messaggio contiene una richiesta diretta di segnale operativo o scelta di asset.',
+                '2. Il protocollo Tradyx vieta consigli finanziari e concentra il supporto sul controllo del rischio comportamentale.',
+                '3. Trasformo la domanda in una checklist pre-trade oggettiva per evitare ingressi guidati da FOMO.'
+            ],
+            diagnosis:
+                'Hai chiesto un segnale o un consiglio su cosa comprare/vendere. Come Chief Risk Officer comportamentale non fornisco segnali operativi: cercare conferme esterne sull’ingresso indica quasi sempre assenza di un edge codificato o impulso FOMO.',
+            cognitive_bias_detected: 'Delegation Bias / FOMO Operativa',
+            actionable_rule:
+                'Nei prossimi 60 minuti non aprire alcuna posizione priva di entry, stop loss, invalidazione tecnica e R:R minimo 1:2 trascritti prima del click.',
+            risk_score: 46,
+            modelUsed: 'policy-guard'
+        };
     }
 
-    // 3. Construct Contextual User Journal Data Block
-    let journalContextStr = 'Nessun trade ancora registrato nel diario per la sessione corrente.';
-    if (context) {
-        journalContextStr = `
-[METRICHE E CONTESTO TRADING REALE UTENTE]
-- PnL Cumulativo Recente: $${(context.recentPnL ?? 0).toLocaleString()}
-- Stato Emotivo Dominante: ${context.recentEmotion || 'Calm'}
-- Win Rate Storico: ${context.totalWinRate ?? 0}%
-- Numero totale operazioni registrate: ${context.tradeCount ?? 0}
-- Note dall'ultima operazione: "${context.lastTradeNotes || 'Nessuna nota aggiuntiva'}"
-- Finestra Cortisolo: ${context.cortisolClearingActive ? `ATTIVA (~${context.cortisolRemainingMinutes || 25} min rimanenti per il decadimento plasmatico)` : 'Normale (PFC in equilibrio)'}
-- Disposition Effect (Loss Aversion): ${context.dispositionEffectDetected ? `RILEVATO (${context.dispositionDetails || 'Taglio precoce dei profitti e attesa irrazionale sulle perdite'})` : 'Equilibrato (Take Profit e Stop Loss rispettati)'}
-- Delay Discounting (Revenge Sizing): ${context.delayDiscountingDetected ? `RILEVATO (${context.delayDiscountingDetails || 'Raddoppio della size su operazioni successive a una perdita'})` : 'Assente (Size costante e disciplinata)'}
-`;
-    }
-
-    const selectedInstructions = persona === 'TOUGH_LOVE' 
-        ? TRADYX_TOUGH_LOVE_INSTRUCTIONS 
-        : TRADYX_COACH_EMPATHIC_INSTRUCTIONS;
-
-    const fullPrompt = `${selectedInstructions}\n${journalContextStr}\n\n[DOMANDA UTENTE]\n${sanitizedPrompt}`;
-
-    // 4. Call Secure Server-Side API Gateway (/api/ai/coach) — ZERO client-side secret keys
     try {
         const authHeaders = await getApiAuthHeaders();
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 14_000);
+        const timer = setTimeout(() => controller.abort(), 18_000);
 
         const res = await fetch('/api/ai/coach', {
             method: 'POST',
@@ -124,17 +249,8 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
                 mode: 'COACH',
                 prompt: sanitizedPrompt,
                 persona,
-                context: context
-                    ? {
-                          recentPnL: context.recentPnL,
-                          recentEmotion: context.recentEmotion,
-                          totalWinRate: context.totalWinRate,
-                          tradeCount: context.tradeCount,
-                          lastTradeNotes: context.lastTradeNotes,
-                          cortisolClearingActive: context.cortisolClearingActive,
-                          cortisolRemainingMinutes: context.cortisolRemainingMinutes
-                      }
-                    : undefined
+                deepAnalysis,
+                context
             }),
             signal: controller.signal
         });
@@ -143,31 +259,76 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
         if (res.status === 429) {
             const retryAfter = res.headers.get('Retry-After') || '60';
             const latency = Math.round(performance.now() - startTime);
-            recordGeminiCall('trader.pro@tradyx.ai', activeModel, Math.round(fullPrompt.length / 4), 0, latency, '429 Rate Limit');
-            return `⏳ **Protezione Anti-Abuso Attiva (429):** Hai raggiunto il limite massimo di richieste AI al minuto. Attendi **${retryAfter} secondi** prima di inviare un nuovo messaggio al Coach.`;
+            recordGeminiCall('trader.pro@tradyx.ai', activeModel, Math.round(sanitizedPrompt.length / 4), 0, latency, '429 Rate Limit');
+            return {
+                internal_reasoning: [
+                    '1. Il rate limiter anti-abuso (30 req/min) ha bloccato temporaneamente la chiamata.',
+                    `2. Finestra residua indicata dal server: ${retryAfter} secondi.`
+                ],
+                diagnosis: `Protezione anti-abuso attiva (HTTP 429): hai superato il limite di richieste AI al minuto. Riprova tra ${retryAfter} secondi.`,
+                cognitive_bias_detected: 'Rate Limit — Raffreddamento Operativo',
+                actionable_rule: `Attendi ${retryAfter} secondi prima della prossima query e usa questo intervallo per rivedere gli ultimi 3 trade nel diario.`,
+                risk_score: 35,
+                modelUsed: 'rate-limiter'
+            };
         }
 
         if (res.ok) {
             const data = await res.json();
-            if (typeof data?.text === 'string' && data.text.trim().length > 0) {
+            if (data?.structured && typeof data.structured.diagnosis === 'string') {
+                const structured: CoachStructuredResponse = {
+                    internal_reasoning: Array.isArray(data.structured.internal_reasoning)
+                        ? data.structured.internal_reasoning
+                        : [],
+                    diagnosis: data.structured.diagnosis,
+                    cognitive_bias_detected:
+                        data.structured.cognitive_bias_detected || 'Analisi Comportamentale',
+                    actionable_rule:
+                        data.structured.actionable_rule ||
+                        'Mantieni la size entro il limite del piano operativo per i prossimi 60 minuti.',
+                    risk_score: Math.max(1, Math.min(100, Math.round(Number(data.structured.risk_score) || 40))),
+                    modelUsed: data.model || 'gemini-2.5-flash'
+                };
                 const latency = Math.round(performance.now() - startTime);
-                const inTokens = Math.round(fullPrompt.length / 4);
-                const outTokens = Math.round(data.text.length / 4);
-                recordGeminiCall('trader.pro@tradyx.ai', activeModel, inTokens, outTokens, latency, '200 OK');
-                return data.text;
+                recordGeminiCall(
+                    'trader.pro@tradyx.ai',
+                    activeModel,
+                    Math.round(sanitizedPrompt.length / 4),
+                    Math.round(structured.diagnosis.length / 4),
+                    latency,
+                    '200 OK'
+                );
+                return structured;
             }
         }
     } catch (gatewayErr: any) {
-        console.warn('[Tradyx AI Coach] API gateway fallback active:', gatewayErr?.message || gatewayErr);
+        console.warn('[Tradyx AI Coach] Structured gateway fallback active:', gatewayErr?.message || gatewayErr);
     }
 
-    // 5. Dynamic Analytical Response Synthesizer (Resilient fallback if gateway offline/unconfigured)
-    const fallbackAns = generateDynamicContextualAnalysis(sanitizedPrompt, context, persona);
-    const latency = Math.round(performance.now() - startTime) || 180;
-    const inTokens = Math.round(fullPrompt.length / 4);
-    const outTokens = Math.round(fallbackAns.length / 4);
-    recordGeminiCall('trader.pro@tradyx.ai', activeModel, inTokens, outTokens, latency, '200 OK');
-    return fallbackAns;
+    // Data-backed quantitative fallback using real injected diary numbers (never generic clichés!)
+    const fallback = synthesizeQuantitativeFallback(sanitizedPrompt, context, persona);
+    const latency = Math.round(performance.now() - startTime) || 140;
+    recordGeminiCall(
+        'trader.pro@tradyx.ai',
+        activeModel,
+        Math.round(sanitizedPrompt.length / 4),
+        Math.round(fallback.diagnosis.length / 4),
+        latency,
+        '200 OK'
+    );
+    return fallback;
+}
+
+/**
+ * Backward-compatible string wrapper returning formatted structured diagnosis.
+ */
+export async function generateCoachResponse(
+    rawUserPrompt: string,
+    context?: UserTradingContext,
+    persona: CoachPersona = 'TOUGH_LOVE'
+): Promise<string> {
+    const res = await generateStructuredCoachResponse(rawUserPrompt, context, persona);
+    return `**Bias Rilevato:** ${res.cognitive_bias_detected} (Risk Score: ${res.risk_score}/100)\n\n${res.diagnosis}\n\n**Regola Operativa (Prossima Ora):** ${res.actionable_rule}`;
 }
 
 /**
@@ -176,7 +337,7 @@ Posso aiutarti ad analizzare come mantenere la calma o superare la tensione emot
 export async function requestUlyssesGuidance(
     prompt: string,
     context?: UserTradingContext
-): Promise<string | null> {
+): Promise<CoachStructuredResponse | null> {
     try {
         const authHeaders = await getApiAuthHeaders();
         const res = await fetch('/api/ai/coach', {
@@ -189,168 +350,124 @@ export async function requestUlyssesGuidance(
                 mode: 'ULYSSES',
                 prompt: sanitizeTextForAI(prompt),
                 persona: 'TOUGH_LOVE',
-                context: context
-                    ? {
-                          recentPnL: context.recentPnL,
-                          recentEmotion: context.recentEmotion,
-                          totalWinRate: context.totalWinRate,
-                          tradeCount: context.tradeCount,
-                          cortisolClearingActive: context.cortisolClearingActive,
-                          cortisolRemainingMinutes: context.cortisolRemainingMinutes
-                      }
-                    : undefined
+                deepAnalysis: true,
+                context
             })
         });
         if (!res.ok) return null;
         const data = await res.json();
-        return typeof data?.text === 'string' ? data.text : null;
+        if (data?.structured) {
+            return { ...data.structured, modelUsed: data.model };
+        }
+        return null;
     } catch {
         return null;
     }
 }
 
 /**
- * Dynamic Contextual Analysis Generator synthesizing user trading journal metrics and prompt text.
+ * Numbers-backed quantitative behavioral fallback computed strictly from the trader's
+ * real 15-trade telemetry, Δt intervals, size deltas, and drawdown limits.
  */
-function generateDynamicContextualAnalysis(
-    prompt: string, 
+function synthesizeQuantitativeFallback(
+    prompt: string,
     context?: UserTradingContext,
     persona: CoachPersona = 'TOUGH_LOVE'
-): string {
-    const pnl = context?.recentPnL ?? 0;
-    const emotion = context?.recentEmotion || 'Disciplined';
-    const winRate = context?.totalWinRate ?? 50;
-    const isNegativePnL = pnl < 0;
+): CoachStructuredResponse {
+    const trades = context?.recentTrades || [];
+    const latest = trades[0];
+    const lossStreak = context?.lossStreak ?? 0;
+    const sizeDelta = context?.sizeChangePctVsAvg ?? 0;
+    const fastestReentry = context?.fastestReentryMinutesAfterLoss;
+    const ddPct = context?.dailyDrawdownPct ?? 0;
+    const ddLimit = context?.dailyDrawdownLimitPct ?? 4;
+    const winRate = context?.totalWinRate ?? 0;
+    const accountLabel =
+        context?.onboardingProfile?.accountType === 'PROP_FIRM'
+            ? `conto Prop Firm (limite daily loss ${ddLimit}%)`
+            : `conto personale (budget $${(context?.onboardingProfile?.monthlyBudget ?? 10000).toLocaleString('en-US')})`;
 
-    if (persona === 'TOUGH_LOVE') {
-        let toughHeader = `🏛️ **INSTITUTIONAL RISK MANAGER (TOUGH LOVE)**\n\n`;
+    const reasoning: string[] = [
+        `1. Telemetria ultimi ${trades.length} trade: Win Rate ${winRate}%, serie perdite consecutive=${lossStreak}, ultimo asset=${latest?.asset_pair || 'N/D'} (${latest ? `${latest.pnl >= 0 ? '+' : ''}$${latest.pnl}` : '$0'}).`,
+        `2. Controllo size & velocità: ultima size ${context?.lastTradeSize ?? 0} vs media ${context?.avgPositionSize ?? 0} (${sizeDelta >= 0 ? '+' : ''}${sizeDelta}%), re-entry più rapido post-loss=${fastestReentry != null ? `${fastestReentry} min` : 'nessuno <60m'}.`,
+        `3. Esposizione giornaliera: drawdown odierno ${ddPct}% su limite ${ddLimit}% (${accountLabel}); finestra cortisolo ${context?.cortisolClearingActive ? `ATTIVA (${context.cortisolRemainingMinutes} min)` : 'inattiva'}.`
+    ];
 
-        if (isNegativePnL || emotion === 'FOMO' || emotion === 'Frustrated' || emotion === 'Anxious') {
-            toughHeader += `⚠️ **DESK WARNING:** Sei in rosso di \`-$${Math.abs(pnl).toLocaleString()}\` e registri uno stato di \`${emotion}\`. Smettila di cercare giustificazioni nel rumore di mercato.\n\n`;
-        } else {
-            toughHeader += `📊 PnL Attuale: \`+$${pnl.toLocaleString()}\` | Win Rate: \`${winRate}%\`. Ottimo, ma ricorda: un singolo trade fuori dalle regole può cancellare una settimana di disciplina.\n\n`;
-        }
-
-        const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('revenge') || lowerPrompt.includes('recuperare') || lowerPrompt.includes('perdita')) {
-            return toughHeader + `🛑 **VIOLAZIONE CRITICA: TENTATIVO DI REVENGE TRADING.**
-- **La Dura Verità:** Il mercato non sa chi sei e non ti deve assolutamente nulla. Tentare di "recuperare" forzando la size è la via più veloce per la squalifica del conto.
-- **Ordine Operativo del Risk Desk:**
-  1. Chiudi la piattaforma adesso. Cooldown minimo di 15-30 minuti.
-  2. Registra la perdita a bilancio. I professionisti pagano le perdite come costi d'impresa, i principianti le combattono come un'offesa personale.
-  3. Se riapri un ordine senza setup verificato, sei fuori dal desk.`;
-        }
-
-        if (lowerPrompt.includes('fomo') || lowerPrompt.includes('scappare') || lowerPrompt.includes('tardi')) {
-            return toughHeader + `🔥 **DIAGNOSI: SINDROME FOMO DA DILETTANTE.**
-- **La Dura Verità:** Inseguire candele verdi giganti significa comprare la liquidità di uscita di chi è entrato ore prima di te. Sei il loro exit liquidity provider.
-- **Protocollo Istituzionale:**
-  1. No setup = No trade. Punto.
-  2. Un trade perso costa ZERO euro. Un trade da FOMO ti costa il capitale e la concentrazione.
-  3. Attendi che il prezzo formi una struttura tecnica valida.`;
-        }
-
-        if (lowerPrompt.includes('disposition') || lowerPrompt.includes('taglio') || lowerPrompt.includes('loss aversion') || lowerPrompt.includes('profitti')) {
-            return toughHeader + `⚖️ **VERIFICA CLINICA: DISPOSITION EFFECT (LOSS AVERSION).**
-- **Diagnosi Comportamentale:** Tagli i trade in profitto troppo presto per paura viscerale di veder svanire il guadagno, mentre lasci correre le perdite sperando irrazionalmente che il mercato torni a pareggio.
-- **La Dura Verità del Desk:** Stai invertendo la matematica dell'edge: un trader professionista taglia le perdite senza esitazione e lascia correre i vincitori con trailing stop.
-- **Protocollo Obbligatorio:**
-  1. Take Profit rigido impostato ad almeno 1:2.5 prima di inserire l'ordine.
-  2. Divieto assoluto di uscita discrezionale anticipata se il setup non è invalidato.
-  3. Chiudi gli occhi sul P&L fluttuante: concentrati esclusivamente sulla struttura tecnica.`;
-        }
-
-        if (lowerPrompt.includes('delay discounting') || lowerPrompt.includes('size') || lowerPrompt.includes('raddoppio') || lowerPrompt.includes('sollievo')) {
-            return toughHeader + `⏳ **VERIFICA CLINICA: DELAY DISCOUNTING (REVENGE SIZING).**
-- **Diagnosi Comportamentale:** Rilevato aumento o raddoppio della size sulle operazioni aperte subito dopo una perdita.
-- **Principio Neurobiologico:** Svaluti il rischio a lungo termine pur di ottenere un sollievo emotivo dopaminergico immediato. Stai usando il trading come anestetico per l'ego ferito.
-- **Protocollo Obbligatorio:**
-  1. Blocco rigido della size: max 1% di rischio sul conto dopo ogni perdita.
-  2. Attivazione dell'Ulysses Protocol con Triade di Sblocco Razionale.
-  3. Se violi la size prefissata, il conto viene congelato per 24 ore.`;
-        }
-
-        if (lowerPrompt.includes('cortisolo') || lowerPrompt.includes('cortisol') || lowerPrompt.includes('25 min') || lowerPrompt.includes('window') || lowerPrompt.includes('clearing')) {
-            return toughHeader + `🧪 **ANALISI CINETICA: CORTISOL CLEARING WINDOW (~25 MIN).**
-- **Diagnosi Neurovegetativa:** Dopo un drawdown significativo o due perdite consecutive, l'asse ipotalamo-ipofisi-surrene inonda il flusso ematico di cortisolo e catecolamine.
-- **Impatto Cognitivo:** L'amigdala assume il controllo esecutivo, riducendo l'attività razionale della corteccia prefrontale (PFC) del 40-60%. Qualsiasi decisione presa in questa finestra è statisticamente viziata.
-- **Protocollo di De-Escalation:**
-  1. Rispettare rigorosamente la finestra di decadimento di ~25 minuti lontano dai grafici.
-  2. Eseguire 4 cicli completi di Box Breathing 4-4-4-4 (Inhale 4s, Hold 4s, Exhale 4s, Hold 4s) per riattivare il tono vagale.
-  3. Non toccare il mouse finché la finestra non è tornata al 100% CLEAR.`;
-        }
-
-        return toughHeader + `💼 **VERDETTO SULLA TUA SESSIONE:**
-> "${prompt}"
-
-- **Focus di Sopravvivenza:** Il tuo unico lavoro come trader non è fare soldi su ogni singola candela, ma proteggere il tuo capitale per poter operare domani.
-- **Regole d'Oro del Desk:**
-  - Non rischiare mai più del tuo max risk prefissato.
-  - Se avverti agitazione o rabbia, alzati e spegni il monitor.
-  - La disciplina è il tuo unico vero vantaggio statistico.`;
+    // Priority 1: Rapid Revenge Re-entry or Oversizing after loss
+    if ((fastestReentry !== null && fastestReentry !== undefined && fastestReentry <= 15) || (lossStreak >= 2 && sizeDelta >= 20)) {
+        const score = Math.min(96, 72 + lossStreak * 7 + (sizeDelta > 20 ? 10 : 0));
+        reasoning.push(
+            `4. Nesso causale confermato: re-entry in ${fastestReentry ?? '<15'} min con delta size ${sizeDelta >= 0 ? '+' : ''}${sizeDelta}% indica sequestro limbico (Hot-Cold Empathy Gap) ad alto rischio di breach.`
+        );
+        return {
+            internal_reasoning: reasoning,
+            diagnosis:
+                persona === 'TOUGH_LOVE'
+                    ? `Su ${latest?.asset_pair || 'l’ultimo asset'} alle ${latest?.timestamp || 'sessione odierna'} stai operando in modalità reattiva: hai registrato ${lossStreak} perdite consecutive con re-entry in ${fastestReentry ?? '<15'} minuti e variazione di size del ${sizeDelta >= 0 ? '+' : ''}${sizeDelta}% rispetto alla tua media (${context?.avgPositionSize ?? 1}). Sul tuo ${accountLabel} questo pattern porta statisticamente al breach del drawdown.`
+                    : `I dati del tuo diario mostrano un picco di pressione emotiva su ${latest?.asset_pair || 'gli ultimi eseguiti'}: rientrare entro ${fastestReentry ?? '<15'} minuti da uno stop loss variando la size del ${sizeDelta >= 0 ? '+' : ''}${sizeDelta}% è il segnale tipico di un tentativo impulsivo di recupero immediato.`,
+            cognitive_bias_detected: 'Revenge Trading (Hot-Cold Empathy Gap)',
+            actionable_rule:
+                'Attiva un blocco operativo obbligatorio di 25 minuti (decadimento cortisolo) e riduci la size al 50% della tua media sul prossimo setup valido.',
+            risk_score: score,
+            modelUsed: 'quant-local-engine'
+        };
     }
 
-    let responseHeader = `🧠 **Analisi Psicologica Tradyx Coach**\n\n`;
-
-    if (isNegativePnL || emotion === 'FOMO' || emotion === 'Frustrated' || emotion === 'Anxious') {
-        responseHeader += `Dall'analisi delle tue recenti operazioni (PnL attuale: \`-$${Math.abs(pnl).toLocaleString()}\`, Stato emotivo: \`${emotion}\`), emerge una fase di pressione psicologica sui mercati.\n\n`;
-    } else {
-        responseHeader += `Dati del diario operativo: PnL attuale: \`+$${pnl.toLocaleString()}\`, Emozione prevalente: \`${emotion}\`, Win Rate: \`${winRate}%\`.\n\n`;
+    // Priority 2: Disposition Effect / Delay Discounting detected
+    if (context?.delayDiscountingDetected || sizeDelta >= 30) {
+        reasoning.push(
+            `4. Rilevato incremento di leva/size (+${sizeDelta}%) non giustificato da espansione di edge: elevata asimmetria negativa sul drawdown (${ddPct}% / ${ddLimit}%).`
+        );
+        return {
+            internal_reasoning: reasoning,
+            diagnosis: `L'ultima posizione su ${latest?.asset_pair || 'portafoglio'} (${context?.lastTradeSize}) supera del +${sizeDelta}% la tua size media (${context?.avgPositionSize}). Con un drawdown giornaliero al ${ddPct}% rispetto al tetto del ${ddLimit}%, stai amplificando la varianza proprio nel punto peggiore della curva equity.`,
+            cognitive_bias_detected: 'Delay Discounting (Oversizing)',
+            actionable_rule: `Blocca la position size a massimo ${((context?.avgPositionSize || 1) * 0.75).toFixed(2)} unità per i prossimi 60 minuti e disattiva qualsiasi aggiunta in perdita (no averaging down).`,
+            risk_score: 76,
+            modelUsed: 'quant-local-engine'
+        };
     }
 
-    const lowerPrompt = prompt.toLowerCase();
-
-    if (lowerPrompt.includes('disposition') || lowerPrompt.includes('taglio') || lowerPrompt.includes('loss aversion') || lowerPrompt.includes('profitti')) {
-        return responseHeader + `⚖️ **Analisi Disposition Effect (Loss Aversion):**
-- **Principio Clinico:** Esiste una naturale asimmetria psicologica formulata da Kahneman & Tversky: il dolore di una perdita pesa emotivamente il doppio rispetto alla gioia di un pari guadagno. Questo spinge il trader a monetizzare piccoli profitti (+1R) e a tollerare perdite profonde (-3R).
-- **Strategia di Bonifica Comportamentale:**
-  1. 🎯 **Definisci il Take Profit in Anticipo:** Il target deve essere calcolato sui livelli strutturali del mercato e non sulla paura del conto economico.
-  2. 🔒 **Usa Trailing Stop Meccanici:** Lascia che sia la regola algoritmica a chiudere la posizione, sottraendo la decisione manuale all'amigdala.
-  3. ❓ **Quesito Guida:** *Stai chiudendo perché il mercato ha mostrato debolezza o per alleviare l'ansia di vedere il saldo oscillare?*`;
+    if (context?.dispositionEffectDetected) {
+        reasoning.push(
+            '4. Asimmetria tra taglio precoce dei vincitori e tolleranza eccessiva sugli stop loss: il rapporto R:R realizzato erode il Win Rate.'
+        );
+        return {
+            internal_reasoning: reasoning,
+            diagnosis: `Nonostante un Win Rate del ${winRate}% su ${context?.tradeCount ?? trades.length} trade, il diario segnala Disposition Effect (${context.dispositionDetails || 'chiusura anticipata dei profitti rispetto alla durata delle perdite'}). Su ${latest?.asset_pair || 'i tuoi asset principali'} stai incassando briciole per alleviare l'ansia mentre lasci correre il rischio pieno.`,
+            cognitive_bias_detected: 'Loss Aversion / Disposition Effect',
+            actionable_rule:
+                'Sul prossimo trade imposta Take Profit (minimo 1:2) e Stop Loss all’ingresso e vietati di spostare o chiudere manualmente il TP prima del tocco per i prossimi 60 minuti.',
+            risk_score: 64,
+            modelUsed: 'quant-local-engine'
+        };
     }
 
-    if (lowerPrompt.includes('delay discounting') || lowerPrompt.includes('size') || lowerPrompt.includes('raddoppio') || lowerPrompt.includes('sollievo')) {
-        return responseHeader + `⏳ **Analisi Delay Discounting (Ricerca Compulsiva di Sollievo):**
-- **Principio Clinico:** Il fenomeno del *Delay Discounting* consiste nel preferire un sollievo psicologico immediato rispetto a un beneficio razionale differito nel tempo. Raddoppiare la size dopo una perdita serve a compensare la ferita narcisistica istantaneamente.
-- **Strategia di Bonifica Comportamentale:**
-  1. 🛡️ **Size Locking Inviolabile:** Non aumentare mai l'esposizione dopo una perdita: riducila semmai del 50%.
-  2. ⚓ **Ulysses Contract:** Vincola la tua operatività al superamento della Triade Razionale di sblocco prima di ogni re-entry.
-  3. ❓ **Quesito Guida:** *Questo trade è pianificato con criteri oggettivi o serve ad anestetizzare il disagio dell'operazione precedente?*`;
+    // Priority 3: Drawdown pressure or Cortisol Window
+    if (context?.cortisolClearingActive || ddPct >= ddLimit * 0.5) {
+        reasoning.push(
+            `4. Drawdown giornaliero al ${ddPct}% (oltre metà del limite ${ddLimit}%) o finestra cortisolo attiva: priorità assoluta alla preservazione del capitale.`
+        );
+        return {
+            internal_reasoning: reasoning,
+            diagnosis: `Hai già assorbito il ${ddPct}% di drawdown oggi rispetto al limite massimo del ${ddLimit}% (${accountLabel}), con ultimo eseguito su ${latest?.asset_pair || 'N/D'} (${latest ? `${latest.pnl >= 0 ? '+' : ''}$${latest.pnl}` : '$0'}). Operare ora espone la corteccia prefrontale a decisioni difensive distorte dal cortisolo.`,
+            cognitive_bias_detected: 'Cortisol-Induced Risk Distortion',
+            actionable_rule: `Sospendi nuovi ingressi per ${Math.max(20, context?.cortisolRemainingMinutes || 25)} minuti e imposta uno hard stop giornaliero residuo allo ${Math.max(0.5, Number((ddLimit - ddPct).toFixed(1)))}%.`,
+            risk_score: 71,
+            modelUsed: 'quant-local-engine'
+        };
     }
 
-    if (lowerPrompt.includes('cortisolo') || lowerPrompt.includes('cortisol') || lowerPrompt.includes('25 min') || lowerPrompt.includes('window') || lowerPrompt.includes('clearing')) {
-        return responseHeader + `🧪 **Finestra del Cortisolo (Cortisol Clearing Window: ~25 min):**
-- **Principio Endocrino:** In seguito a perdite subite o eventi imprevisti di mercato, il rilascio di cortisolo altera l'attività sinaptica della corteccia prefrontale dorsolaterale. Il tempo fisiologico di emivita e smaltimento plasmatico è di circa 25 minuti.
-- **Strategia di Bonifica Comportamentale:**
-  1. ⏸️ **Allontanamento Obbligatorio:** Concediti 25 minuti di de-escalation senza fissare i grafici o le quotazioni in tempo reale.
-  2. 🌬️ **Respiro Quadrato Box 4-4-4-4:** 4s Inhale, 4s Hold, 4s Exhale, 4s Hold per stimolare il nervo vago e abbassare la frequenza cardiaca.
-  3. 🧘 **Rientro Consapevole:** Riprendi l'attività solo quando la finestra di clearing è completata al 100%.`;
-    }
-
-    if (lowerPrompt.includes('revenge') || lowerPrompt.includes('recuperare') || lowerPrompt.includes('rabbia') || lowerPrompt.includes('perdita')) {
-        return responseHeader + `⚠️ **Rilevato Rischio di Revenge Trading:**
-- **Stato Mentale:** Quando registri perdite ravvicinate o sensazioni di avversione al rischio, il cervello tenta di "recuperare" forzando la dimensione della posizione (*over-leveraging*).
-- **Strategia di Bonifica Emotiva:**
-  1. ⏸️ **Pausa Operativa di 20 Minuti:** Chiudi la piattaforma ed allontanati dagli schermi per ridurre i livelli di cortisolo.
-  2. 📏 **Verifica della Max Drawdown:** La perdita attuale rientra nei limiti fissati dal tuo algoritmo di Risk Management?
-  3. ❓ **Quesito Guida:** *Questo trade soddisfa tutti i criteri del tuo setup o è una reazione d'impulso al mercato?*`;
-    }
-
-    if (lowerPrompt.includes('fomo') || lowerPrompt.includes('scappare') || lowerPrompt.includes('ritardo') || lowerPrompt.includes('ritracciamento')) {
-        return responseHeader + `🔥 **Gestione del Bias FOMO (Fear of Missing Out):**
-- **Diagnosi:** Inseguire i prezzi in estensione verticale porta quasi sempre ad entrare sui picchi locali di liquidità.
-- **Protocollo Tradyx:**
-  1. 🛡️ **Rimani Flat sulle Estensioni:** Non entrare mai a mercato senza un punto di Stop Loss tecnicamente difendibile.
-  2. 📈 **Attendi il Retest:** Un movimento di valore offre sempre un ritracciamento o un nuovo consolidamento.
-  3. ❓ **Quesito Guida:** *Qual è il rapporto Rischio/Rendimento effettivo se entri a questo livello di prezzo?*`;
-    }
-
-    return responseHeader + `💡 **Riscontro Comportamentale sul Prompt:**
-> "${prompt}"
-
-- **Analisi dell'Approccio:** La gestione della disciplina nel tempo richiede il costante monitoraggio delle proprie reazioni fisiche ed emotive durante l'esecuzione dei trade.
-- **Raccomandazioni Operative:**
-  - Rispetta sempre il tuo limite di rischio per singolo trade.
-  - Annota le emozioni vissute durante l'apertura ed il mantenimento della posizione.
-  - Mantieni la concentrazione sul processo e non sull'esito monetario della singola operazione.`;
+    // Priority 4: Disciplined execution with specific metrics referenced
+    reasoning.push(
+        `4. Nessuna anomalia critica su Δt, size (${sizeDelta >= 0 ? '+' : ''}${sizeDelta}%) o drawdown (${ddPct}%/${ddLimit}%): obiettivo prevenire overconfidence post-profitto.`
+    );
+    return {
+        internal_reasoning: reasoning,
+        diagnosis: `Esecuzione coerente con il piano sul tuo ${accountLabel}: Win Rate al ${winRate}% su ${context?.tradeCount ?? trades.length} trade, drawdown giornaliero contenuto al ${ddPct}%/${ddLimit}% e size controllata (${sizeDelta >= 0 ? '+' : ''}${sizeDelta}% rispetto alla media). In merito a "${prompt.slice(0, 80)}", l'unico rischio nascosto dopo una fase positiva su ${latest?.asset_pair || 'il tuo mercato'} è l'eccesso di confidenza.`,
+        cognitive_bias_detected: 'Nessuno — Esecuzione Disciplinata',
+        actionable_rule: `Mantieni invariata la size attuale (${(context?.avgPositionSize || 1).toFixed(2)}) per i prossimi 60 minuti e non aumentare il rischio oltre il ${context?.onboardingProfile?.maxRiskPerTrade ?? 200}${context?.onboardingProfile?.maxRiskType === 'PERCENT' ? '%' : ''} nemmeno dopo un altro trade vincente.`,
+        risk_score: 22,
+        modelUsed: 'quant-local-engine'
+    };
 }
